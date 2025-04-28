@@ -4,6 +4,7 @@ import { Scissors } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../api/services';
 
 export const LoginPage: React.FC = () => {
   const { t } = useLanguage();
@@ -14,28 +15,44 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Временная реализация до подключения API
-    setTimeout(() => {
-      if (email === 'user@example.com' && password === 'password') {
-        login({
-          id: '1',
-          name: 'Тестовый Пользователь',
-          email: 'user@example.com',
-          phone: '+996 700 123 456',
-          favorites: [],
-          bookings: []
-        });
-        navigate('/');
+    try {
+      // Вызываем API для входа
+      const response = await authAPI.login(email, password);
+
+      // Сохраняем токен в localStorage
+      localStorage.setItem('token', response.data.access);
+
+      // Получаем данные текущего пользователя
+      const userResponse = await authAPI.getCurrentUser();
+
+      // Обновляем состояние аутентификации
+      login(userResponse.data);
+
+      // Переходим на главную страницу
+      navigate('/');
+    } catch (err: any) {
+      console.error('Login failed:', err);
+
+      // Отображаем ошибку
+      if (err.response && err.response.data) {
+        if (err.response.data.detail) {
+          setError(err.response.data.detail);
+        } else if (err.response.data.non_field_errors) {
+          setError(err.response.data.non_field_errors.join(', '));
+        } else {
+          setError('Ошибка входа. Проверьте свои учетные данные.');
+        }
       } else {
-        setError('Неверный email или пароль');
+        setError('Не удалось соединиться с сервером. Пожалуйста, проверьте свое подключение.');
       }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -157,7 +174,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-
+              <a
                 href="#"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               >
@@ -171,7 +188,7 @@ export const LoginPage: React.FC = () => {
                 </svg>
               </a>
 
-
+              <a
                 href="#"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               >
@@ -196,11 +213,13 @@ export const RegisterPage: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    phone: '',
+    username: '',
+    first_name: '',
+    last_name: '',
     password: '',
-    confirmPassword: ''
+    re_password: '',
+    phone: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -210,10 +229,10 @@ export const RegisterPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.re_password) {
       setError('Пароли не совпадают');
       return;
     }
@@ -221,12 +240,38 @@ export const RegisterPage: React.FC = () => {
     setIsLoading(true);
     setError('');
 
-    // Временная реализация до подключения API
-    setTimeout(() => {
-      console.log('Registration data:', formData);
+    try {
+      // Регистрируем пользователя через API
+      await authAPI.register(formData);
+
+      // Показываем сообщение об успешной регистрации
+      alert('Регистрация успешна! Теперь вы можете войти в систему.');
+
+      // Перенаправляем на страницу входа
       navigate('/login');
+    } catch (err: any) {
+      console.error('Registration failed:', err);
+
+      // Отображаем ошибки регистрации
+      if (err.response && err.response.data) {
+        const errorMessages: string[] = [];
+
+        // Обрабатываем возможные форматы ошибок от API
+        Object.entries(err.response.data).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            errorMessages.push(`${key}: ${(value as string[]).join(', ')}`);
+          } else if (typeof value === 'string') {
+            errorMessages.push(`${key}: ${value}`);
+          }
+        });
+
+        setError(errorMessages.join('\n'));
+      } else {
+        setError('Не удалось соединиться с сервером. Пожалуйста, проверьте свое подключение.');
+      }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -251,29 +296,11 @@ export const RegisterPage: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
             <div className="mb-4 bg-red-50 p-4 rounded-md">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
             </div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                {t('name')}
-              </label>
-              <div className="mt-1">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
-                />
-              </div>
-            </div>
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -293,6 +320,60 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Имя пользователя
+              </label>
+              <div className="mt-1">
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                  Имя
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    autoComplete="given-name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                  Фамилия
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    autoComplete="family-name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 {t('phone')}
               </label>
@@ -302,7 +383,6 @@ export const RegisterPage: React.FC = () => {
                   name="phone"
                   type="tel"
                   autoComplete="tel"
-                  required
                   value={formData.phone}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
@@ -327,19 +407,19 @@ export const RegisterPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="re_password" className="block text-sm font-medium text-gray-700">
                 Подтверждение пароля
               </label>
               <div className="mt-1">
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="re_password"
+                  name="re_password"
                   type="password"
                   autoComplete="new-password"
                   required
-                  value={formData.confirmPassword}
+                  value={formData.re_password}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
                 />

@@ -115,7 +115,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-
+              <a
                 href={`https://wa.me/+996700123456?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -124,6 +124,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 WhatsApp
               </a>
 
+              <a
                 href={`https://t.me/barber123`}
                 target="_blank"
                 rel="noopener noreferrer"

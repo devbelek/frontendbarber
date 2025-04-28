@@ -6,7 +6,7 @@ import { favoritesAPI } from '../api/services';
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (userData: any) => void;
   register: (userData: any) => Promise<void>;
   logout: () => void;
   toggleFavorite: (haircutId: string) => Promise<void>;
@@ -35,7 +35,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const response = await authAPI.getCurrentUser();
-      setUser(response.data);
+
+      // Получаем избранные услуги
+      const favoritesResponse = await favoritesAPI.getAll();
+
+      // Преобразуем данные пользователя
+      const userData: User = {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        profile: response.data.profile,
+        favorites: favoritesResponse.data.map((favorite: any) => favorite.service)
+      };
+
+      setUser(userData);
     } catch (err) {
       console.error('Failed to fetch user:', err);
       localStorage.removeItem('token');
@@ -45,20 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
-    setError(null);
-    try {
-      setLoading(true);
-      const response = await authAPI.login(email, password);
-      localStorage.setItem('token', response.data.access);
-      await fetchCurrentUser();
-    } catch (err: any) {
-      console.error('Login failed:', err);
-      setError(err.response?.data?.detail || 'Ошибка входа');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  const login = (userData: any) => {
+    setUser(userData);
   };
 
   const register = async (userData: any) => {
@@ -66,13 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       await authAPI.register(userData);
-      // После успешной регистрации, выполняем вход
-      await login(userData.email, userData.password);
+      // После успешной регистрации, мы не выполняем вход автоматически,
+      // так как это может потребовать подтверждения через email в реальном приложении
+      return Promise.resolve();
     } catch (err: any) {
       console.error('Registration failed:', err);
       const errorMessages = Object.values(err.response?.data || {}).flat();
       setError(errorMessages.join(', ') || 'Ошибка регистрации');
-      throw err;
+      return Promise.reject(err);
     } finally {
       setLoading(false);
     }
@@ -84,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toggleFavorite = async (haircutId: string) => {
-    if (!user) return;
+    if (!user) return Promise.reject('User not authenticated');
 
     try {
       const isFavorite = user.favorites.includes(haircutId);
@@ -108,8 +112,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           };
         });
       }
+
+      return Promise.resolve();
     } catch (err) {
       console.error('Error toggling favorite:', err);
+      return Promise.reject(err);
     }
   };
 

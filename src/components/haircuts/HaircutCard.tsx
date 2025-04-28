@@ -17,7 +17,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { user, toggleFavorite } = useAuth();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
-  
+
   const isFavorite = user?.favorites.includes(haircut.id) || false;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -40,33 +40,33 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             <span className="sr-only">{t('loading')}</span>
           </div>
         )}
-        
+
         <img
           src={haircut.image}
           alt={haircut.title}
           className={`w-full h-64 object-cover transition-opacity duration-300 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setIsImageLoaded(true)}
         />
-        
+
         <button
           className={`absolute top-2 right-2 p-2 rounded-full ${
-            isFavorite 
-              ? 'bg-[#9A0F34] text-white' 
+            isFavorite
+              ? 'bg-[#9A0F34] text-white'
               : 'bg-white text-gray-800 hover:bg-gray-100'
           } transition-colors shadow-md`}
           onClick={handleFavoriteClick}
           aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
         >
-          <Heart 
-            size={20} 
-            className={isFavorite ? 'fill-current' : ''} 
+          <Heart
+            size={20}
+            className={isFavorite ? 'fill-current' : ''}
           />
         </button>
       </div>
-      
+
       <div className="p-4">
         <h3 className="text-lg font-semibold mb-1">{haircut.title}</h3>
-        
+
         <div className="flex justify-between items-center mb-3">
           <span className="text-[#9A0F34] font-bold">
             {haircut.price} {t('som')}
@@ -75,28 +75,28 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             {haircut.barber}
           </Link>
         </div>
-        
+
         <div className="flex items-center text-sm text-gray-600 mb-2">
           <Clock className="h-4 w-4 mr-1" />
           <span>{haircut.duration || '30'} мин</span>
         </div>
-        
+
         <div className="flex items-center text-sm text-gray-600 mb-4">
           <span className="mr-2">{haircut.type}</span>
           <span className="mx-2">•</span>
           <span>{haircut.location}</span>
         </div>
-        
+
         <div className="flex gap-2">
-          <Button 
-            variant="primary" 
-            fullWidth 
+          <Button
+            variant="primary"
+            fullWidth
             onClick={() => onBookClick(haircut)}
             className="flex-1"
           >
             {t('iWantThis')}
           </Button>
-          
+
           <Button
             variant="outline"
             onClick={handleConsultClick}
@@ -115,7 +115,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-              <a
+
                 href={`https://wa.me/+996700123456?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -123,7 +123,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               >
                 WhatsApp
               </a>
-              <a
+
                 href={`https://t.me/barber123`}
                 target="_blank"
                 rel="noopener noreferrer"

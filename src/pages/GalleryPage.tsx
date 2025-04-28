@@ -3,118 +3,146 @@ import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import FilterBar from '../components/filters/FilterBar';
 import BookingModal from '../components/booking/BookingModal';
-import { haircuts } from '../data/mockData';
+import { servicesAPI } from '../api/services';
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 const GalleryPage: React.FC = () => {
   const { t } = useLanguage();
-  const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>(haircuts);
+  const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchHaircuts();
+  }, []);
+
+  const fetchHaircuts = async (filters = {}) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await servicesAPI.getAll(filters);
+      // Преобразуем данные API в формат, совместимый с нашими компонентами
+      const haircuts: Haircut[] = response.data.map((service: any) => ({
+        id: service.id,
+        image: service.image,
+        title: service.title,
+        price: service.price,
+        barber: service.barber_details.full_name,
+        barberId: service.barber_details.id,
+        type: service.type,
+        length: service.length,
+        style: service.style,
+        location: service.location,
+        duration: service.duration,
+        isFavorite: service.is_favorite
+      }));
+
+      setFilteredHaircuts(haircuts);
+    } catch (err) {
+      console.error('Error fetching haircuts:', err);
+      setError('Не удалось загрузить стрижки. Пожалуйста, попробуйте позже.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFilterChange = (filters: any) => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      let result = [...haircuts];
-      
-      // Apply type filters
-      if (filters.types && filters.types.length > 0) {
-        result = result.filter(haircut => filters.types.includes(haircut.type));
-      }
-      
-      // Apply length filters
-      if (filters.lengths && filters.lengths.length > 0) {
-        result = result.filter(haircut => filters.lengths.includes(haircut.length));
-      }
-      
-      // Apply style filters
-      if (filters.styles && filters.styles.length > 0) {
-        result = result.filter(haircut => filters.styles.includes(haircut.style));
-      }
-      
-      // Apply location filters
-      if (filters.locations && filters.locations.length > 0) {
-        result = result.filter(haircut => filters.locations.includes(haircut.location));
-      }
-      
-      setFilteredHaircuts(result);
-      setIsLoading(false);
-    }, 500);
+    fetchHaircuts(filters);
   };
 
   const handleSearch = (query: string) => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      if (!query.trim()) {
-        setFilteredHaircuts(haircuts);
-        setIsLoading(false);
-        return;
-      }
-      
-      const lowerCaseQuery = query.toLowerCase();
-      const result = haircuts.filter(
-        haircut => 
-          haircut.title.toLowerCase().includes(lowerCaseQuery) || 
-          haircut.barber.toLowerCase().includes(lowerCaseQuery) ||
-          haircut.type.toLowerCase().includes(lowerCaseQuery)
-      );
-      
-      setFilteredHaircuts(result);
-      setIsLoading(false);
-    }, 500);
+    fetchHaircuts({ search: query });
   };
 
   const handleBookClick = (haircut: Haircut) => {
     setSelectedHaircut(haircut);
     setIsBookingModalOpen(true);
   };
-  
-  const handleBookingConfirm = (date: string, time: string) => {
-    // In a real app, this would send the booking to an API
-    console.log('Booking confirmed:', { haircut: selectedHaircut, date, time });
-    setIsBookingModalOpen(false);
-    // You might show a success message or redirect the user
+
+  const handleBookingConfirm = async (date: string, time: string) => {
+    if (!selectedHaircut) return;
+
+    try {
+      const bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: ''
+      };
+
+      await servicesAPI.createBooking(bookingData);
+      setIsBookingModalOpen(false);
+
+      // Показать сообщение об успешном бронировании
+      alert('Бронирование успешно создано!');
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+    }
   };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">{t('gallery')}</h1>
-        
-        <FilterBar 
+
+        <FilterBar
           onFilterChange={handleFilterChange}
           onSearch={handleSearch}
         />
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34]"></div>
           </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <svg
+              className="h-16 w-16 text-red-500 mb-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">{t('error')}</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <button
+              onClick={() => fetchHaircuts()}
+              className="px-4 py-2 bg-[#9A0F34] text-white rounded-md hover:bg-[#7b0c29] transition-colors"
+            >
+              {t('tryAgain')}
+            </button>
+          </div>
         ) : filteredHaircuts.length > 0 ? (
-          <HaircutGrid 
-            haircuts={filteredHaircuts} 
-            onBookClick={handleBookClick} 
+          <HaircutGrid
+            haircuts={filteredHaircuts}
+            onBookClick={handleBookClick}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <svg 
-              className="h-16 w-16 text-gray-400 mb-4" 
-              xmlns="http://www.w3.org/2000/svg" 
-              fill="none" 
-              viewBox="0 0 24 24" 
+            <svg
+              className="h-16 w-16 text-gray-400 mb-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={1.5} 
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('noResults')}</h3>
@@ -123,31 +151,31 @@ const GalleryPage: React.FC = () => {
             </p>
           </div>
         )}
-        
-        {/* Pagination (simplified for MVP) */}
+
+        {/* Пагинация (упрощенная версия для MVP) */}
         {filteredHaircuts.length > 0 && (
           <div className="mt-12 flex justify-center">
             <nav className="inline-flex rounded-md shadow">
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               >
                 Previous
               </a>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="px-3 py-2 border-t border-b border-gray-300 bg-white text-[#9A0F34] font-medium"
               >
                 1
               </a>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="px-3 py-2 border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               >
                 2
               </a>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-r-md"
               >
                 Next
@@ -156,8 +184,8 @@ const GalleryPage: React.FC = () => {
           </div>
         )}
       </div>
-      
-      {/* Booking Modal */}
+
+      {/* Модальное окно бронирования */}
       <BookingModal
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}

@@ -1,4 +1,4 @@
-// Common types used across the application
+// Общие типы, используемые в приложении
 
 export interface Haircut {
   id: string;
@@ -11,6 +11,8 @@ export interface Haircut {
   length: 'short' | 'medium' | 'long';
   style: string;
   location: string;
+  duration?: number;
+  isFavorite?: boolean;
 }
 
 export interface Barber {
@@ -28,25 +30,57 @@ export interface Barber {
   };
   portfolio: string[];
   description: string;
+  profile?: UserProfile;
 }
 
 export interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
-  phone: string;
+  first_name: string;
+  last_name: string;
+  profile?: UserProfile;
   favorites: string[];
-  bookings: Booking[];
+  bookings?: Booking[];
+}
+
+export interface UserProfile {
+  user_type: 'client' | 'barber';
+  phone: string;
+  photo?: string;
+  whatsapp?: string;
+  telegram?: string;
+  address?: string;
+  offers_home_service: boolean;
 }
 
 export interface Booking {
   id: string;
-  userId: string;
-  barberId: string;
-  haircutId: string;
+  client: string;
+  service: string;
+  service_details?: Haircut;
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  notes?: string;
+  created_at: string;
+}
+
+export interface Review {
+  id: string;
+  author: string;
+  author_details?: User;
+  barber: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export interface Favorite {
+  id: string;
+  service: string;
+  service_details?: Haircut;
+  created_at: string;
 }
 
 export type Language = 'ru' | 'kg';

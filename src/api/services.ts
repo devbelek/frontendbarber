@@ -14,8 +14,16 @@ export const authAPI = {
 
 // Услуги (стрижки)
 export const servicesAPI = {
-  getAll: (params?: any) =>
-    apiClient.get('/services/', { params }),
+  getAll: async (params?: any) => {
+    try {
+      const response = await apiClient.get('/services/', { params });
+      console.log('API Response Structure:', response);
+      return response;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  },
 
   getById: (id: string) =>
     apiClient.get(`/services/${id}/`),
@@ -36,6 +44,10 @@ export const servicesAPI = {
 
   delete: (id: string) =>
     apiClient.delete(`/services/${id}/`),
+
+  createBooking: (bookingData: any) => {
+    return bookingsAPI.create(bookingData);
+  },
 };
 
 // Бронирования

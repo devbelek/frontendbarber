@@ -33,6 +33,7 @@ const BarberProfilePage: React.FC = () => {
         // Получаем данные о барбере с API
         const barberResponse = await axios.get(`/api/profiles/barbers/${id}/`);
         const barberData = barberResponse.data;
+        console.log('Barber data response:', barberData);
 
         // Преобразуем данные в формат Barber
         const barberInfo: Barber = {
@@ -56,14 +57,27 @@ const BarberProfilePage: React.FC = () => {
 
         // Получаем стрижки барбера
         const haircutsResponse = await servicesAPI.getAll({ barber: id });
+        console.log('Barber haircuts response:', haircutsResponse);
+
+        // Handle both array and pagination object responses
+        let haircuts_data = haircutsResponse.data;
+
+        // If data is a pagination object with results property
+        if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
+          haircuts_data = haircutsResponse.data.results;
+        } else if (!Array.isArray(haircuts_data)) {
+          console.error('Unexpected response format:', haircutsResponse.data);
+          setBarberHaircuts([]);
+          return;
+        }
 
         // Преобразуем данные API в формат Haircut
-        const haircuts: Haircut[] = haircutsResponse.data.map((service: any) => ({
+        const haircuts: Haircut[] = haircuts_data.map((service: any) => ({
           id: service.id,
           image: service.image,
           title: service.title,
           price: service.price,
-          barber: service.barber_details.full_name,
+          barber: service.barber_details?.full_name || 'Unknown',
           barberId: service.barber,
           type: service.type,
           length: service.length,
@@ -77,7 +91,14 @@ const BarberProfilePage: React.FC = () => {
 
         // Получаем отзывы о барбере
         const reviewsResponse = await axios.get(`/api/profiles/reviews/?barber=${id}`);
-        setReviews(reviewsResponse.data);
+        console.log('Reviews response:', reviewsResponse);
+
+        let reviewsData = reviewsResponse.data;
+        if (reviewsResponse.data.results && Array.isArray(reviewsResponse.data.results)) {
+          reviewsData = reviewsResponse.data.results;
+        }
+
+        setReviews(reviewsData);
 
       } catch (err) {
         console.error('Failed to fetch barber data:', err);

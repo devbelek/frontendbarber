@@ -1,10 +1,14 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Search, User, Scissors, PlusCircle } from 'lucide-react';
+import { Home, Search, User, Scissors, LogIn } from 'lucide-react';
 
-const MobileNavigation: React.FC = () => {
+interface MobileNavigationProps {
+  openLoginModal: () => void;
+}
+
+const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) => {
   const location = useLocation();
-  
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
@@ -21,7 +25,7 @@ const MobileNavigation: React.FC = () => {
           <Home className="h-6 w-6" />
           <span className="text-xs mt-1">Главная</span>
         </Link>
-        
+
         <Link
           to="/gallery"
           className={`flex flex-col items-center justify-center flex-1 ${
@@ -31,16 +35,14 @@ const MobileNavigation: React.FC = () => {
           <Search className="h-6 w-6" />
           <span className="text-xs mt-1">Поиск</span>
         </Link>
-        
-        <Link
-          to="/add-service"
-          className={`flex flex-col items-center justify-center flex-1 ${
-            isActive('/add-service') ? 'text-[#9A0F34]' : 'text-gray-500'
-          }`}
+
+        <button
+          onClick={openLoginModal}
+          className="flex flex-col items-center justify-center flex-1 text-gray-500"
         >
-          <PlusCircle className="h-6 w-6" />
-          <span className="text-xs mt-1">Добавить</span>
-        </Link>
+          <LogIn className="h-6 w-6" />
+          <span className="text-xs mt-1">Войти</span>
+        </button>
         
         <Link
           to="/barbers"

@@ -7,16 +7,32 @@ export const translations = {
     bookings: 'Записи',
     profile: 'Профиль',
     signIn: 'Войти',
-    signUp: 'Регистрация',
+    becomeBarber: 'Стать барбером',
     logout: 'Выйти',
-    
+
     // Homepage
     heroTitle: 'Выбирай стрижку, а не барбера',
     heroSubtitle: 'Найди идеальную стрижку и запишись к мастеру, который ее сделал',
     exploreGallery: 'Смотреть галерею',
     popularHaircuts: 'Популярные стрижки',
     viewAll: 'Смотреть все',
-    
+    howItWorks: 'Как это работает',
+    howItWorksDescription: 'Простой способ найти идеальную стрижку и барбера',
+    browseHaircuts: 'Стрижки',
+    loginDescription: 'Войдите, чтобы получить доступ к бронированию и управлению вашим профилем',
+
+    // Features
+    chooseHaircut: 'Выбирайте стрижку',
+    chooseHaircutDescription: 'Просматривайте реальные работы барберов и выбирайте стрижку, которая вам нравится.',
+    bookBarber: 'Бронируйте мастера',
+    bookBarberDescription: 'Запишитесь к барберу, который сделал понравившуюся вам стрижку, в удобное время.',
+    saveTime: 'Экономьте время',
+    saveTimeDescription: 'Получите именно то, что хотите, без длительных объяснений мастеру. Просто покажите фото.',
+
+    // CTA
+    readyToTry: 'Готовы попробовать?',
+    readyToTryDescription: 'Присоединяйтесь к tarak сегодня и найдите идеальную стрижку. Для барберов — расширьте свою клиентскую базу.',
+
     // Gallery
     filterByType: 'Тип стрижки',
     filterByLength: 'Длина волос',
@@ -26,14 +42,14 @@ export const translations = {
     search: 'Поиск',
     searchPlaceholder: 'Найти стрижку...',
     clearFilters: 'Сбросить фильтры',
-    
+
     // Haircut Card
     iWantThis: 'Хочу так же',
     from: 'от',
     som: 'сом',
     favorite: 'В избранное',
     removeFavorite: 'Удалить из избранных',
-    
+
     // Barber Profile
     about: 'О барбере',
     portfolio: 'Портфолио',
@@ -43,7 +59,7 @@ export const translations = {
     workingHours: 'Часы работы',
     bookAppointment: 'Записаться',
     specialization: 'Специализация',
-    
+
     // Booking
     selectDate: 'Выберите дату',
     selectTime: 'Выберите время',
@@ -55,7 +71,7 @@ export const translations = {
     price: 'Стоимость',
     cancel: 'Отменить',
     confirm: 'Подтвердить',
-    
+
     // Profile
     personalInfo: 'Личная информация',
     myBookings: 'Мои записи',
@@ -66,13 +82,13 @@ export const translations = {
     email: 'Email',
     phone: 'Телефон',
     save: 'Сохранить',
-    
+
     // Status
     pending: 'Ожидает подтверждения',
     confirmed: 'Подтверждено',
     completed: 'Завершено',
     cancelled: 'Отменено',
-    
+
     // Misc
     loading: 'Загрузка...',
     noResults: 'Нет результатов',
@@ -80,7 +96,7 @@ export const translations = {
     tryAgain: 'Попробуйте снова',
     close: 'Закрыть',
   },
-  
+
   kg: {
     // Header & Navigation
     home: 'Башкы',
@@ -89,15 +105,31 @@ export const translations = {
     bookings: 'Жазылуулар',
     profile: 'Профиль',
     signIn: 'Кирүү',
-    signUp: 'Катталуу',
+    becomeBarber: 'Барбер болуу',
     logout: 'Чыгуу',
-    
+
     // Homepage
     heroTitle: 'Барберди эмес, чачты тандаңыз',
     heroSubtitle: 'Мыкты чач тарамын табыңыз жана аны жасаган устатка жазылыңыз',
     exploreGallery: 'Галереяны көрүү',
     popularHaircuts: 'Популярдуу чач тарамдар',
     viewAll: 'Баарын көрүү',
+    howItWorks: 'Бул кандай иштейт',
+    howItWorksDescription: 'Мыкты чач тарамын жана барберди табуунун жөнөкөй жолу',
+    browseHaircuts: 'Чач тарамдар',
+    loginDescription: 'Жазылуу жана профилди башкаруу үчүн кирүү',
+
+    // Features
+    chooseHaircut: 'Чач тарамын тандаңыз',
+    chooseHaircutDescription: 'Барберлердин реалдуу иштерин карап, сизге жаккан чач тарамын тандаңыз.',
+    bookBarber: 'Барберге жазылыңыз',
+    bookBarberDescription: 'Сизге жаккан чач тарамды жасаган барберге ыңгайлуу убакытка жазылыңыз.',
+    saveTime: 'Убакытты үнөмдөңүз',
+    saveTimeDescription: 'Барберге узак түшүндүрбөй эле каалагандай жыйынтык алыңыз. Жөн гана сүрөт көрсөтүңүз.',
+
+    // CTA
+    readyToTry: 'Сынап көрүүгө даярсызбы?',
+    readyToTryDescription: 'Бүгүн tarakка кошулуп, мыкты чач тарамын табыңыз. Барберлер үчүн — кардарлар базаңызды кеңейтиңиз.',
     
     // Gallery
     filterByType: 'Чач тарам түрү',

@@ -10,7 +10,11 @@ import { bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
-const HomePage: React.FC = () => {
+interface HomePageProps {
+  openLoginModal: () => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
@@ -24,14 +28,28 @@ const HomePage: React.FC = () => {
         setIsLoading(true);
         // Получаем 4 популярных стрижки (можно добавить параметр для сортировки)
         const response = await servicesAPI.getAll({ limit: 4 });
+        console.log('Popular haircuts response:', response);
+
+        // Handle both array and pagination object responses
+        let results = response.data;
+
+        // If data is a pagination object with results property
+        if (response.data.results && Array.isArray(response.data.results)) {
+          results = response.data.results;
+        } else if (!Array.isArray(results)) {
+          console.error('Unexpected response format:', response.data);
+          setError('Некорректный формат данных от сервера');
+          setPopularHaircuts([]);
+          return;
+        }
 
         // Преобразуем данные API в формат Haircut
-        const haircuts: Haircut[] = response.data.map((service: any) => ({
+        const haircuts: Haircut[] = results.map((service: any) => ({
           id: service.id,
           image: service.image,
           title: service.title,
           price: service.price,
-          barber: service.barber_details.full_name,
+          barber: service.barber_details?.full_name || 'Unknown',
           barberId: service.barber,
           type: service.type,
           length: service.length,
@@ -82,45 +100,45 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <Layout>
-      {/* Hero Section */}
-      <section className="relative bg-gray-900 text-white">
-        <div className="absolute inset-0 bg-black opacity-50"></div>
+    <Layout openLoginModal={openLoginModal}>
+      {/* Hero Section - Improved Design */}
+      <section className="relative bg-gradient-to-r from-gray-900 to-[#9A0F34] text-white">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center opacity-20"
           style={{
             backgroundImage: 'url(https://images.pexels.com/photos/1813272/pexels-photo-1813272.jpeg)',
-            backgroundBlendMode: 'overlay',
-            backgroundColor: 'rgba(0,0,0,0.4)',
           }}
         ></div>
 
         <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
-          <div className="max-w-2xl">
-            <div className="flex items-center mb-6">
-              <Scissors className="h-8 w-8 mr-2 text-[#9A0F34]" />
-              <span className="text-xl font-bold">BarberHub</span>
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="flex items-center justify-center mb-6">
+              <Scissors className="h-12 w-12 text-white" />
+              <span className="ml-3 text-4xl font-bold">tarak</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
               {t('heroTitle')}
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-200 mb-8">
+            <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-lg mx-auto">
               {t('heroSubtitle')}
             </p>
 
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
               <Link to="/gallery">
                 <Button variant="primary" size="lg">
                   {t('exploreGallery')}
                 </Button>
               </Link>
-              <Link to="/barbers">
-                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:bg-opacity-10">
-                  {t('barbers')}
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white text-white hover:bg-white hover:bg-opacity-10"
+                onClick={openLoginModal}
+              >
+                {t('becomeBarber')}
+              </Button>
             </div>
           </div>
         </div>
@@ -168,68 +186,80 @@ const HomePage: React.FC = () => {
 
         </div>
       </section>
-      
-      {/* Features Section */}
-      <section className="py-12 md:py-16">
+
+      {/* Features Section - Improved Design */}
+      <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('howItWorks')}</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">{t('howItWorksDescription')}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {/* Feature 1 */}
-            <div className="text-center p-6 rounded-lg bg-white shadow-sm border border-gray-100">
-              <div className="w-16 h-16 mx-auto mb-4 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
+            <div className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl">
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
                 <Scissors className="h-8 w-8 text-[#9A0F34]" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Выбирайте стрижку</h3>
-              <p className="text-gray-600">
-                Просматривайте реальные работы барберов и выбирайте стрижку, которая вам нравится.
+              <h3 className="text-xl font-semibold mb-4 text-center">{t('chooseHaircut')}</h3>
+              <p className="text-gray-600 text-center">
+                {t('chooseHaircutDescription')}
               </p>
             </div>
-            
+
             {/* Feature 2 */}
-            <div className="text-center p-6 rounded-lg bg-white shadow-sm border border-gray-100">
-              <div className="w-16 h-16 mx-auto mb-4 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
+            <div className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl">
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
                 <svg className="h-8 w-8 text-[#9A0F34]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Бронируйте мастера</h3>
-              <p className="text-gray-600">
-                Запишитесь к барберу, который сделал понравившуюся вам стрижку, в удобное время.
+              <h3 className="text-xl font-semibold mb-4 text-center">{t('bookBarber')}</h3>
+              <p className="text-gray-600 text-center">
+                {t('bookBarberDescription')}
               </p>
             </div>
-            
+
             {/* Feature 3 */}
-            <div className="text-center p-6 rounded-lg bg-white shadow-sm border border-gray-100">
-              <div className="w-16 h-16 mx-auto mb-4 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
+            <div className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl">
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34] bg-opacity-10 rounded-full flex items-center justify-center">
                 <svg className="h-8 w-8 text-[#9A0F34]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Экономьте время</h3>
-              <p className="text-gray-600">
-                Получите именно то, что хотите, без длительных объяснений мастеру. Просто покажите фото.
+              <h3 className="text-xl font-semibold mb-4 text-center">{t('saveTime')}</h3>
+              <p className="text-gray-600 text-center">
+                {t('saveTimeDescription')}
               </p>
             </div>
           </div>
         </div>
       </section>
-      
-      {/* CTA Section */}
-      <section className="py-12 md:py-16 bg-gray-900 text-white">
+
+      {/* CTA Section - Improved Design */}
+      <section className="py-16 bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Готовы попробовать?</h2>
-          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-            Присоединяйтесь к BarberHub сегодня и найдите идеальную стрижку. Для барберов — расширьте свою клиентскую базу.
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('readyToTry')}</h2>
+          <p className="text-xl text-white opacity-90 mb-8 max-w-2xl mx-auto">
+            {t('readyToTryDescription')}
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <Link to="/register">
-              <Button variant="primary" size="lg">
-                Зарегистрироваться
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:bg-opacity-10">
-                Войти
+            <Button
+              variant="primary"
+              size="lg"
+              className="bg-white text-[#9A0F34] hover:bg-gray-100"
+              onClick={openLoginModal}
+            >
+              {t('becomeBarber')}
+            </Button>
+            <Link to="/gallery">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white text-white hover:bg-white hover:bg-opacity-10"
+              >
+                {t('browseHaircuts')}
               </Button>
             </Link>
           </div>

@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, User, Scissors, Moon, Sun, Globe } from 'lucide-react';
+import { Menu, X, User, Scissors, Globe } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import { Language } from '../../types';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  openLoginModal: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const { t, language, setLanguage } = useLanguage();
   const { isAuthenticated, logout } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
-  
+
   const toggleLanguage = () => {
     const newLanguage: Language = language === 'ru' ? 'kg' : 'ru';
     setLanguage(newLanguage);
@@ -27,7 +29,7 @@ const Header: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <Scissors className="h-8 w-8 mr-2 text-[#9A0F34]" />
-            <span className="text-xl font-bold">BarberHub</span>
+            <span className="text-xl font-bold">tarak</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -52,14 +54,7 @@ const Header: React.FC = () => {
             >
               <Globe className="h-5 w-5" />
             </button>
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-            
+
             {isAuthenticated ? (
               <>
                 <Link to="/profile">
@@ -74,23 +69,19 @@ const Header: React.FC = () => {
               </>
             ) : (
               <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    {t('signIn')}
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button variant="primary" size="sm">
-                    {t('signUp')}
-                  </Button>
-                </Link>
+                <Button variant="ghost" size="sm" onClick={openLoginModal}>
+                  {t('signIn')}
+                </Button>
+                <Button variant="primary" size="sm" onClick={openLoginModal}>
+                  {t('becomeBarber')}
+                </Button>
               </>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <button 
-            className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors" 
+          <button
+            className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
             onClick={toggleMenu}
             aria-label={isMenuOpen ? "Close Menu" : "Open Menu"}
           >
@@ -101,28 +92,28 @@ const Header: React.FC = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t mt-3 space-y-4">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('home')}
             </Link>
-            <Link 
-              to="/gallery" 
+            <Link
+              to="/gallery"
               className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('gallery')}
             </Link>
-            <Link 
-              to="/barbers" 
+            <Link
+              to="/barbers"
               className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('barbers')}
             </Link>
-            
+
             <div className="pt-2 border-t flex justify-between">
               <div className="flex space-x-2">
                 <button
@@ -132,15 +123,8 @@ const Header: React.FC = () => {
                 >
                   <Globe className="h-5 w-5" />
                 </button>
-                <button
-                  onClick={toggleDarkMode}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                >
-                  {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                </button>
               </div>
-              
+
               {isAuthenticated ? (
                 <div className="flex space-x-2">
                   <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
@@ -158,16 +142,18 @@ const Header: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex space-x-2">
-                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" size="sm">
-                      {t('signIn')}
-                    </Button>
-                  </Link>
-                  <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="primary" size="sm">
-                      {t('signUp')}
-                    </Button>
-                  </Link>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    openLoginModal();
+                    setIsMenuOpen(false);
+                  }}>
+                    {t('signIn')}
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={() => {
+                    openLoginModal();
+                    setIsMenuOpen(false);
+                  }}>
+                    {t('becomeBarber')}
+                  </Button>
                 </div>
               )}
             </div>

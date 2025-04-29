@@ -7,13 +7,22 @@ import { servicesAPI } from '../api/services';
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
-const GalleryPage: React.FC = () => {
+interface GalleryPageProps {
+  openLoginModal: () => void;
+}
+
+const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    count: 0,
+    next: null,
+    previous: null
+  });
 
   useEffect(() => {
     fetchHaircuts();
@@ -25,14 +34,43 @@ const GalleryPage: React.FC = () => {
 
     try {
       const response = await servicesAPI.getAll(filters);
+      console.log('API Response:', response);
+
+      // Check the structure of response.data
+      if (!response.data) {
+        console.error('No data in response:', response);
+        setError('Получены некорректные данные от сервера');
+        setFilteredHaircuts([]);
+        return;
+      }
+
+      // Handle both array and pagination object responses
+      let results = response.data;
+
+      // If data is a pagination object with results property
+      if (response.data.results && Array.isArray(response.data.results)) {
+        results = response.data.results;
+        // Store pagination info
+        setPagination({
+          count: response.data.count || 0,
+          next: response.data.next,
+          previous: response.data.previous
+        });
+      } else if (!Array.isArray(results)) {
+        console.error('Unexpected response format:', response.data);
+        setError('Некорректный формат данных от сервера');
+        setFilteredHaircuts([]);
+        return;
+      }
+
       // Преобразуем данные API в формат, совместимый с нашими компонентами
-      const haircuts: Haircut[] = response.data.map((service: any) => ({
+      const haircuts: Haircut[] = results.map((service: any) => ({
         id: service.id,
         image: service.image,
         title: service.title,
         price: service.price,
-        barber: service.barber_details.full_name,
-        barberId: service.barber_details.id,
+        barber: service.barber_details?.full_name || 'Unknown',
+        barberId: service.barber_details?.id || service.barber,
         type: service.type,
         length: service.length,
         style: service.style,
@@ -85,8 +123,11 @@ const GalleryPage: React.FC = () => {
     }
   };
 
+  // Проверяем, нужно ли показывать пагинацию
+  const showPagination = pagination.next !== null || pagination.previous !== null;
+
   return (
-    <Layout>
+    <Layout openLoginModal={openLoginModal}>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">{t('gallery')}</h1>
 
@@ -152,31 +193,53 @@ const GalleryPage: React.FC = () => {
           </div>
         )}
 
-        {/* Пагинация (упрощенная версия для MVP) */}
-        {filteredHaircuts.length > 0 && (
+        {/* Пагинация - показывается только если есть следующая/предыдущая страница */}
+        {filteredHaircuts.length > 0 && showPagination && (
           <div className="mt-12 flex justify-center">
             <nav className="inline-flex rounded-md shadow">
-              <a
+
                 href="#"
-                className="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className={`px-3 py-2 rounded-l-md border border-gray-300 bg-white ${
+                  pagination.previous ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (pagination.previous) {
+                    // Handle previous page navigation
+                  }
+                }}
               >
                 Previous
               </a>
-              <a
+
                 href="#"
                 className="px-3 py-2 border-t border-b border-gray-300 bg-white text-[#9A0F34] font-medium"
               >
                 1
               </a>
-              <a
+              {pagination.next && (
+
+                  href="#"
+                  className="px-3 py-2 border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Handle next page navigation
+                  }}
+                >
+                  2
+                </a>
+              )}
+
                 href="#"
-                className="px-3 py-2 border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              >
-                2
-              </a>
-              <a
-                href="#"
-                className="px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-r-md"
+                className={`px-3 py-2 border border-gray-300 bg-white rounded-r-md ${
+                  pagination.next ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (pagination.next) {
+                    // Handle next page navigation
+                  }
+                }}
               >
                 Next
               </a>

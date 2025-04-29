@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Globe, Search, LogOut } from 'lucide-react';
+import { Menu, X, User, Globe, MessageSquare, LogOut } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
@@ -72,6 +72,26 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  // Custom Comb Logo
+  const CombLogo = () => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      className="h-10 w-10"
+      fill="none"
+      stroke={isHomePage && !isScrolled ? "#ffffff" : "#9A0F34"}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+      <path d="M8 6h8" />
+      <path d="M8 10h8" />
+      <path d="M8 14h8" />
+      <path d="M8 18h8" />
+    </svg>
+  );
+
   return (
     <header className={headerStyles}>
       <div className="container mx-auto px-4 py-3">
@@ -84,22 +104,14 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
           >
             <Link to="/" className="flex items-center">
               <div className="relative">
-                <svg viewBox="0 0 36 36" className="h-10 w-10">
-                  <circle cx="18" cy="18" r="16" fill={isHomePage && !isScrolled ? "rgba(255,255,255,0.2)" : "#f4eef0"} />
-                  <path
-                    d="M14,12 L22,24 M22,12 L14,24 M11,18 L25,18"
-                    stroke={isHomePage && !isScrolled ? "#ffffff" : "#9A0F34"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <CombLogo />
               </div>
               <div className="ml-2">
                 <span className={`text-xl font-bold ${isHomePage && !isScrolled ? "text-white" : "text-[#9A0F34]"}`}>
                   TARAK
                 </span>
                 <span className={`text-xs block -mt-1 ${isHomePage && !isScrolled ? "text-gray-200" : "text-gray-500"}`}>
-                  барбер-хаб
+                  платформа барберов
                 </span>
               </div>
             </Link>
@@ -180,7 +192,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                       className={isHomePage && !isScrolled ? "border-white text-white" : ""}
                     >
                       <User className="h-5 w-5 mr-1" />
-                      {t('profile')}
+                      Мой профиль
                     </Button>
                   </Link>
                 </motion.div>
@@ -197,28 +209,16 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                 </motion.div>
               </>
             ) : (
-              <>
-                <motion.div variants={itemVariants}>
-                  <Button
-                    variant={isHomePage && !isScrolled ? "outline" : "ghost"}
-                    size="sm"
-                    onClick={openLoginModal}
-                    className={isHomePage && !isScrolled ? "border-white text-white hover:bg-white/10" : ""}
-                  >
-                    {t('signIn')}
-                  </Button>
-                </motion.div>
-                <motion.div variants={itemVariants}>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={openLoginModal}
-                    className={isHomePage && !isScrolled ? "bg-white text-[#9A0F34] hover:bg-gray-100" : ""}
-                  >
-                    {t('becomeBarber')}
-                  </Button>
-                </motion.div>
-              </>
+              <motion.div variants={itemVariants}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={openLoginModal}
+                  className={isHomePage && !isScrolled ? "bg-white text-[#9A0F34] hover:bg-gray-100" : ""}
+                >
+                  Я барбер
+                </Button>
+              </motion.div>
             )}
           </motion.div>
 
@@ -279,29 +279,23 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                   <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
                     <Button variant="ghost" size="sm">
                       <User className="h-5 w-5 mr-1" />
-                      {t('profile')}
+                      Мой профиль
                     </Button>
                   </Link>
                   <Button variant="outline" size="sm" onClick={() => {
                     logout();
                     setIsMenuOpen(false);
                   }}>
-                    {t('logout')}
+                    Выйти
                   </Button>
                 </div>
               ) : (
                 <div className="flex space-x-2">
-                  <Button variant="ghost" size="sm" onClick={() => {
-                    openLoginModal();
-                    setIsMenuOpen(false);
-                  }}>
-                    {t('signIn')}
-                  </Button>
                   <Button variant="primary" size="sm" onClick={() => {
                     openLoginModal();
                     setIsMenuOpen(false);
                   }}>
-                    {t('becomeBarber')}
+                    Я барбер
                   </Button>
                 </div>
               )}

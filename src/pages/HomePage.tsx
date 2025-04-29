@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Scissors, Calendar, Clock, Star } from 'lucide-react';
+import { ChevronRight, Calendar, Clock, MessageSquare, MapPin } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
@@ -144,7 +144,24 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               className="mb-8"
             >
               <div className="inline-flex items-center bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full mb-6">
-                <Scissors className="h-6 w-6 text-[#f4a4b8]" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6 text-[#f4a4b8]"
+                >
+                  <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+                  <path d="M8 6h8" />
+                  <path d="M8 10h8" />
+                  <path d="M8 14h8" />
+                  <path d="M8 18h8" />
+                </svg>
                 <span className="ml-3 text-2xl font-semibold bg-gradient-to-r from-white to-[#f4a4b8] text-transparent bg-clip-text">TARAK</span>
               </div>
 
@@ -153,7 +170,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               </h1>
 
               <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-xl mx-auto">
-                {t('heroSubtitle')}
+                Находите талантливых барберов по их работам и выбирайте идеальную стрижку для себя
               </p>
             </motion.div>
 
@@ -174,7 +191,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 className="w-full sm:w-auto border-white/70 text-white hover:bg-white/10 hover:border-white transition-all duration-300 transform hover:-translate-y-1"
                 onClick={openLoginModal}
               >
-                {t('becomeBarber')}
+                Я барбер
               </Button>
             </motion.div>
           </div>
@@ -190,32 +207,173 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         </div>
       </section>
 
-      {/* Statistics Section */}
-      <section className="py-10 bg-white">
+      {/* Platform Benefits Section - replacing statistics */}
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-4">
-              <div className="text-3xl md:text-4xl font-bold text-[#9A0F34] mb-2">50+</div>
-              <p className="text-gray-600">Профессиональных барберов</p>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl md:text-4xl font-bold text-[#9A0F34] mb-2">500+</div>
-              <p className="text-gray-600">Стрижек в каталоге</p>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl md:text-4xl font-bold text-[#9A0F34] mb-2">1000+</div>
-              <p className="text-gray-600">Довольных клиентов</p>
-            </div>
-            <div className="p-4">
-              <div className="text-3xl md:text-4xl font-bold text-[#9A0F34] mb-2">4.8</div>
-              <p className="text-gray-600">Средняя оценка</p>
+          <div className="text-center mb-12">
+            <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Как это работает</span>
+            <h2 className="text-3xl font-bold mt-2 mb-4">Ваш путь к идеальной стрижке</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              TARAK соединяет клиентов и барберов. Нет необходимости регистрироваться, чтобы найти подходящего мастера.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div
+              variants={itemVariants}
+              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:-translate-y-2"
+            >
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-8 w-8 text-[#9A0F34]"
+                >
+                  <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+                  <path d="M8 6h8" />
+                  <path d="M8 10h8" />
+                  <path d="M8 14h8" />
+                  <path d="M8 18h8" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Выбирайте по стрижке</h3>
+              <p className="text-gray-600">
+                Просматривайте работы барберов и выбирайте стиль, который вам нравится, а не мастера
+              </p>
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:-translate-y-2"
+            >
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
+                <MessageSquare className="h-8 w-8 text-[#9A0F34]" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Свяжитесь напрямую</h3>
+              <p className="text-gray-600">
+                Пишите барберам напрямую через WhatsApp или Telegram без необходимости регистрации
+              </p>
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:-translate-y-2"
+            >
+              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
+                <MapPin className="h-8 w-8 text-[#9A0F34]" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Выбирайте где стричься</h3>
+              <p className="text-gray-600">
+                Посетите барбершоп или пригласите мастера к себе домой в зависимости от услуги
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Barber Value Proposition */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Для барберов</span>
+                <h2 className="text-3xl font-bold mt-2 mb-6">Расширьте свою клиентскую базу с TARAK</h2>
+
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white">✓</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="font-semibold text-lg">Если у вас есть барбершоп</h3>
+                      <p className="text-gray-600">Привлекайте больше клиентов, демонстрируя свои лучшие работы</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white">✓</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="font-semibold text-lg">Работаете на выезде</h3>
+                      <p className="text-gray-600">Предлагайте услуги на дому и расширяйте географию своей работы</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white">✓</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="font-semibold text-lg">Работайте в удобное время</h3>
+                      <p className="text-gray-600">Управляйте своим графиком и принимайте только подходящие заказы</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  variant="primary"
+                  onClick={openLoginModal}
+                  className="bg-[#9A0F34] hover:bg-[#7b0c29]"
+                >
+                  Стать барбером на платформе
+                </Button>
+              </div>
+
+              <div className="relative">
+                <div className="rounded-lg overflow-hidden shadow-xl">
+                  <img
+                    src="https://images.pexels.com/photos/1805600/pexels-photo-1805600.jpeg"
+                    alt="Барбер за работой"
+                    className="w-full h-auto"
+                  />
+                </div>
+                <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-lg shadow-lg w-48">
+                  <div className="flex items-center mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 text-[#9A0F34] mr-2"
+                    >
+                      <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+                      <path d="M8 6h8" />
+                      <path d="M8 10h8" />
+                      <path d="M8 14h8" />
+                      <path d="M8 18h8" />
+                    </svg>
+                    <span className="font-semibold">Свой график</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Устанавливайте своё рабочее время и принимайте удобные заказы</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Popular Haircuts Section */}
-      <section className="py-12 md:py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-10">
             <div>
@@ -267,148 +425,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         </div>
       </section>
 
-      {/* Features Section - Modern Design */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Преимущества</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-4">{t('howItWorks')}</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {t('howItWorksDescription')}
-            </p>
-          </div>
-
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-10"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {/* Feature 1 */}
-            <motion.div
-              variants={itemVariants}
-              className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-full flex items-center justify-center">
-                <Scissors className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">{t('chooseHaircut')}</h3>
-              <p className="text-gray-600 text-center">
-                {t('chooseHaircutDescription')}
-              </p>
-            </motion.div>
-
-            {/* Feature 2 */}
-            <motion.div
-              variants={itemVariants}
-              className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-full flex items-center justify-center">
-                <Calendar className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">{t('bookBarber')}</h3>
-              <p className="text-gray-600 text-center">
-                {t('bookBarberDescription')}
-              </p>
-            </motion.div>
-
-            {/* Feature 3 */}
-            <motion.div
-              variants={itemVariants}
-              className="rounded-xl p-8 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-full flex items-center justify-center">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">{t('saveTime')}</h3>
-              <p className="text-gray-600 text-center">
-                {t('saveTimeDescription')}
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-16 md:py-24 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Отзывы</span>
-            <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-4">Что говорят наши клиенты</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Узнайте, что думают клиенты о нашем сервисе и барберах
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4">
-                "Отличный сервис! Нашел именно ту стрижку, которую хотел, и барбер сделал все идеально. Теперь всегда буду пользоваться TARAK."
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-                <div>
-                  <h4 className="font-semibold">Александр К.</h4>
-                  <p className="text-gray-500 text-sm">Бишкек</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4">
-                "Впервые воспользовался сервисом по рекомендации друга. Удобно выбирать стрижку по фото, а не объяснять словами. Результат превзошел ожидания!"
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-                <div>
-                  <h4 className="font-semibold">Максим Д.</h4>
-                  <p className="text-gray-500 text-sm">Бишкек</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(4)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-current" />
-                  ))}
-                  <Star className="h-5 w-5 text-gray-300" />
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4">
-                "Очень удобно бронировать услуги через сайт. Уже дважды стригся у разных барберов, и оба раза остался доволен. Рекомендую всем!"
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-                <div>
-                  <h4 className="font-semibold">Руслан Т.</h4>
-                  <p className="text-gray-500 text-sm">Бишкек</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section - Modern Design */}
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] text-white relative overflow-hidden">
         {/* Background Pattern */}
@@ -422,9 +438,28 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('readyToTry')}</h2>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-12 w-12 mx-auto mb-6 text-white opacity-80"
+            >
+              <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+              <path d="M8 6h8" />
+              <path d="M8 10h8" />
+              <path d="M8 14h8" />
+              <path d="M8 18h8" />
+            </svg>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Присоединяйтесь к TARAK</h2>
             <p className="text-xl text-white opacity-90 mb-8">
-              {t('readyToTryDescription')}
+              Для барберов — отличная возможность расширить клиентскую базу.
+              Для клиентов — простой способ найти идеальную стрижку.
             </p>
             <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Button
@@ -433,7 +468,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 className="bg-white text-[#9A0F34] hover:bg-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 onClick={openLoginModal}
               >
-                {t('becomeBarber')}
+                Я барбер
               </Button>
               <Link to="/gallery">
                 <Button
@@ -441,7 +476,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                   size="lg"
                   className="border-white text-white hover:bg-white/10 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  {t('browseHaircuts')}
+                  Смотреть стрижки
                 </Button>
               </Link>
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Scissors } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import Button from '../ui/Button';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -12,6 +12,26 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
 
   if (!isOpen) return null;
+
+  // Custom Comb Logo
+  const CombLogo = () => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      className="h-10 w-10 text-[#9A0F34]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+      <path d="M8 6h8" />
+      <path d="M8 10h8" />
+      <path d="M8 14h8" />
+      <path d="M8 18h8" />
+    </svg>
+  );
 
   const handleGoogleLogin = () => {
     // В реальном приложении здесь будет логика входа через Google
@@ -34,11 +54,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         <div className="p-6">
           <div className="flex items-center justify-center mb-6">
-            <Scissors className="h-10 w-10 text-[#9A0F34]" />
+            <CombLogo />
             <span className="ml-2 text-2xl font-bold">tarak</span>
           </div>
 
-          <h2 className="text-xl font-bold text-center mb-6">{t('signIn')}</h2>
+          <h2 className="text-xl font-bold text-center mb-6">Вход для барберов</h2>
+
+          <div className="mb-6 text-center">
+            <p className="text-sm text-gray-600 mb-4">
+              Создайте профиль барбера, чтобы публиковать свои работы и привлекать новых клиентов
+            </p>
+          </div>
 
           <button
             onClick={handleGoogleLogin}
@@ -53,10 +79,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             Войти через Google
           </button>
 
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              {t('loginDescription')}
-            </p>
+          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-start">
+              <MessageSquare className="h-5 w-5 text-[#9A0F34] mt-1 mr-3 flex-shrink-0" />
+              <p className="text-sm text-gray-700">
+                <strong>Для клиентов регистрация не требуется.</strong> Просто просматривайте работы и связывайтесь с барберами напрямую через WhatsApp или Telegram.
+              </p>
+            </div>
           </div>
         </div>
       </div>

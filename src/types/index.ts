@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 // Общие типы, используемые в приложении
 
 export interface Haircut {
@@ -31,6 +33,10 @@ export interface Barber {
   portfolio: string[];
   description: string;
   profile?: UserProfile;
+  // New properties
+  whatsapp?: string;
+  telegram?: string;
+  offerHomeService?: boolean;
 }
 
 export interface User {

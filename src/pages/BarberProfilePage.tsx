@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, Star, ChevronRight, Phone, Mail } from 'lucide-react';
+import { MapPin, Calendar, Clock, ChevronRight, Phone, Mail, MessageSquare, ExternalLink } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
@@ -18,10 +18,9 @@ const BarberProfilePage: React.FC = () => {
   const [barberHaircuts, setBarberHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'info'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'info'>('portfolio');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBarberData = async () => {
@@ -40,8 +39,8 @@ const BarberProfilePage: React.FC = () => {
           id: barberData.id,
           name: `${barberData.first_name} ${barberData.last_name}`,
           avatar: barberData.profile.photo || 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-          rating: barberData.avg_rating || 0,
-          reviewCount: barberData.review_count || 0,
+          rating: 0, // We're removing ratings
+          reviewCount: 0,
           specialization: barberData.profile.specialization || [],
           location: barberData.profile.address || 'Бишкек',
           workingHours: {
@@ -50,7 +49,10 @@ const BarberProfilePage: React.FC = () => {
             days: barberData.profile.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
           },
           portfolio: barberData.portfolio || [],
-          description: barberData.profile.bio || 'Информация о барбере'
+          description: barberData.profile.bio || 'Информация о барбере',
+          whatsapp: barberData.profile.whatsapp || '',
+          telegram: barberData.profile.telegram || '',
+          offerHomeService: barberData.profile.offers_home_service || false
         };
 
         setBarber(barberInfo);
@@ -89,17 +91,6 @@ const BarberProfilePage: React.FC = () => {
 
         setBarberHaircuts(haircuts);
 
-        // Получаем отзывы о барбере
-        const reviewsResponse = await axios.get(`/api/profiles/reviews/?barber=${id}`);
-        console.log('Reviews response:', reviewsResponse);
-
-        let reviewsData = reviewsResponse.data;
-        if (reviewsResponse.data.results && Array.isArray(reviewsResponse.data.results)) {
-          reviewsData = reviewsResponse.data.results;
-        }
-
-        setReviews(reviewsData);
-
       } catch (err) {
         console.error('Failed to fetch barber data:', err);
         setError('Не удалось загрузить данные о барбере');
@@ -111,37 +102,22 @@ const BarberProfilePage: React.FC = () => {
     fetchBarberData();
   }, [id]);
 
-  const handleBookClick = (haircut: Haircut) => {
-    setSelectedHaircut(haircut);
-    setIsBookingModalOpen(true);
-  };
+  const handleContactClick = (type: 'whatsapp' | 'telegram', contact: string) => {
+    let url = '';
+    if (type === 'whatsapp') {
+      url = `https://wa.me/${contact}`;
+    } else if (type === 'telegram') {
+      url = `https://t.me/${contact}`;
+    }
 
-  const handleBookingConfirm = async (date: string, time: string) => {
-    if (!selectedHaircut) return;
-
-    try {
-      // Создаем бронирование через API
-      const bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: ''
-      };
-
-      await bookingsAPI.create(bookingData);
-      setIsBookingModalOpen(false);
-
-      // Показываем уведомление об успешном бронировании
-      alert('Бронирование успешно создано!');
-    } catch (err) {
-      console.error('Error creating booking:', err);
-      alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+    if (url) {
+      window.open(url, '_blank');
     }
   };
 
   if (loading) {
     return (
-      <Layout>
+      <Layout openLoginModal={() => {}}>
         <div className="container mx-auto px-4 py-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34] mx-auto mb-4"></div>
           <p>{t('loading')}</p>
@@ -152,7 +128,7 @@ const BarberProfilePage: React.FC = () => {
 
   if (error || !barber) {
     return (
-      <Layout>
+      <Layout openLoginModal={() => {}}>
         <div className="container mx-auto px-4 py-12 text-center">
           <div className="bg-red-50 p-4 rounded-md mb-4">
             <p className="text-red-700">{error || 'Барбер не найден'}</p>
@@ -165,8 +141,30 @@ const BarberProfilePage: React.FC = () => {
     );
   }
 
+  // Custom Comb Icon for Profile
+  const CombIcon = ({ className = "" }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+      <path d="M8 6h8" />
+      <path d="M8 10h8" />
+      <path d="M8 14h8" />
+      <path d="M8 18h8" />
+    </svg>
+  );
+
   return (
-    <Layout>
+    <Layout openLoginModal={() => {}}>
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
@@ -179,13 +177,7 @@ const BarberProfilePage: React.FC = () => {
               />
             </div>
             <div className="p-6 md:w-2/3">
-              <h1 className="text-2xl font-bold mb-2">{barber.name}</h1>
-
-              <div className="flex items-center mb-4">
-                <Star className="h-5 w-5 text-yellow-500 mr-1" />
-                <span className="font-medium mr-1">{barber.rating}</span>
-                <span className="text-gray-500">({barber.reviewCount} {t('reviews')})</span>
-              </div>
+              <h1 className="text-2xl font-bold mb-4">{barber.name}</h1>
 
               <p className="text-gray-700 mb-4">{barber.description}</p>
 
@@ -194,7 +186,10 @@ const BarberProfilePage: React.FC = () => {
                   <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-500">{t('location')}</p>
-                    <p className="font-medium">{barber.location}</p>
+                    <p className="font-medium">{barber.location || 'Не указано'}</p>
+                    {barber.offerHomeService && (
+                      <p className="text-sm text-[#9A0F34] mt-1">Выезд на дом</p>
+                    )}
                   </div>
                 </div>
 
@@ -223,16 +218,37 @@ const BarberProfilePage: React.FC = () => {
                 ))}
               </div>
 
-              <Button variant="primary" onClick={() => {
-                if (barberHaircuts.length > 0) {
-                  setSelectedHaircut(barberHaircuts[0]);
-                  setIsBookingModalOpen(true);
-                } else {
-                  alert('У этого барбера пока нет доступных услуг для бронирования');
-                }
-              }}>
-                {t('bookAppointment')}
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                {barber.whatsapp && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleContactClick('whatsapp', barber.whatsapp || '')}
+                    className="flex items-center"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2 text-green-500">
+                      <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    WhatsApp
+                  </Button>
+                )}
+
+                {barber.telegram && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleContactClick('telegram', barber.telegram || '')}
+                    className="flex items-center"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2 text-blue-500">
+                      <path fill="currentColor" d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
+                    </svg>
+                    Telegram
+                  </Button>
+                )}
+
+                {(!barber.whatsapp && !barber.telegram) && (
+                  <p className="text-gray-500 italic">Контактные данные не указаны</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -249,16 +265,6 @@ const BarberProfilePage: React.FC = () => {
               onClick={() => setActiveTab('portfolio')}
             >
               {t('portfolio')}
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'reviews'
-                  ? 'border-[#9A0F34] text-[#9A0F34]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('reviews')}
-            >
-              {t('reviews')}
             </button>
             <button
               className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
@@ -282,54 +288,14 @@ const BarberProfilePage: React.FC = () => {
               {barberHaircuts.length > 0 ? (
                 <HaircutGrid
                   haircuts={barberHaircuts}
-                  onBookClick={handleBookClick}
+                  onBookClick={() => {}}
                 />
               ) : (
                 <Card>
                   <CardContent className="text-center py-12">
+                    <CombIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">
                       Этот барбер еще не добавил стрижки в свое портфолио.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">{t('reviews')}</h2>
-
-              {reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <Card key={review.id}>
-                      <CardContent>
-                        <div className="flex justify-between mb-2">
-                          <h3 className="font-medium">{review.author_details.first_name || review.author_details.username}</h3>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-4 w-4 ${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}
-                                fill={star <= review.rating ? 'currentColor' : 'none'}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-1">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </p>
-                        <p className="text-gray-700">{review.comment}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <p className="text-gray-500">
-                      У этого барбера пока нет отзывов.
                     </p>
                   </CardContent>
                 </Card>
@@ -347,20 +313,18 @@ const BarberProfilePage: React.FC = () => {
                   <div className="flex items-start">
                     <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="font-medium">{barber.location}</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        10 минут от метро, вход со двора
-                      </p>
+                      <p className="font-medium">{barber.location || 'Не указано'}</p>
+                      {barber.offerHomeService && (
+                        <div className="mt-2 text-[#9A0F34] bg-[#9A0F34]/5 p-2 rounded-md inline-flex items-center">
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          <span>Возможен выезд на дом</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Map placeholder - в реальном приложении здесь будет встроенная карта */}
-                  <div className="mt-4 h-48 bg-gray-200 rounded-md flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">Карта местоположения</p>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="mb-6">
                 <CardContent>
                   <h3 className="font-medium mb-3">{t('workingHours')}</h3>
@@ -377,19 +341,41 @@ const BarberProfilePage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent>
                   <h3 className="font-medium mb-3">Контакты</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center">
-                      <Phone className="h-5 w-5 text-gray-400 mr-2" />
-                      <p>+996 700 123 456</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className="h-5 w-5 text-gray-400 mr-2" />
-                      <p>barber@barberhub.kg</p>
-                    </div>
+                    {barber.whatsapp && (
+                      <div
+                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleContactClick('whatsapp', barber.whatsapp || '')}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2 text-green-500">
+                          <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        <span>WhatsApp: {barber.whatsapp}</span>
+                      </div>
+                    )}
+
+                    {barber.telegram && (
+                      <div
+                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleContactClick('telegram', barber.telegram || '')}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2 text-blue-500">
+                          <path fill="currentColor" d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
+                        </svg>
+                        <span>Telegram: {barber.telegram}</span>
+                      </div>
+                    )}
+
+                    {(!barber.whatsapp && !barber.telegram) && (
+                      <div className="flex items-center">
+                        <MessageSquare className="h-5 w-5 text-gray-400 mr-2" />
+                        <p className="text-gray-500 italic">Контактные данные не указаны</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -397,14 +383,6 @@ const BarberProfilePage: React.FC = () => {
           )}
         </div>
       </div>
-      
-      {/* Booking Modal */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        haircut={selectedHaircut || (barberHaircuts.length > 0 ? barberHaircuts[0] : null)}
-        onConfirm={handleBookingConfirm}
-      />
     </Layout>
   );
 };

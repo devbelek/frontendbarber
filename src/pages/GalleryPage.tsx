@@ -197,7 +197,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
         {filteredHaircuts.length > 0 && showPagination && (
           <div className="mt-12 flex justify-center">
             <nav className="inline-flex rounded-md shadow">
-
+              <a
                 href="#"
                 className={`px-3 py-2 rounded-l-md border border-gray-300 bg-white ${
                   pagination.previous ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'
@@ -212,13 +212,15 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
                 Previous
               </a>
 
+              <a
                 href="#"
                 className="px-3 py-2 border-t border-b border-gray-300 bg-white text-[#9A0F34] font-medium"
               >
                 1
               </a>
-              {pagination.next && (
 
+              {pagination.next && (
+                <a
                   href="#"
                   className="px-3 py-2 border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                   onClick={(e) => {
@@ -230,6 +232,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
                 </a>
               )}
 
+              <a
                 href="#"
                 className={`px-3 py-2 border border-gray-300 bg-white rounded-r-md ${
                   pagination.next ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'

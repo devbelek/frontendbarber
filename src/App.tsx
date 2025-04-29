@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import GalleryPage from './pages/GalleryPage';
 import BarberProfilePage from './pages/BarberProfilePage';
 import ProfilePage from './pages/ProfilePage';
+import NotFoundPage from './pages/NotFoundPage';
 import LoginModal from './components/auth/LoginModal';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/gallery" element={<GalleryPage openLoginModal={() => setIsLoginModalOpen(true)} />} />
             <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
       </AuthProvider>

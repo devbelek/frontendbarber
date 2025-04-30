@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Search, User, Scissors, LogIn } from 'lucide-react';
+import { Home, Search, User, Scissors } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface MobileNavigationProps {
   openLoginModal: () => void;
@@ -8,13 +9,21 @@ interface MobileNavigationProps {
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) => {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      openLoginModal();
+    }
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe md:hidden z-40">
       <div className="flex justify-around items-center h-16">
         <Link
           to="/"
@@ -29,21 +38,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) =
         <Link
           to="/gallery"
           className={`flex flex-col items-center justify-center flex-1 ${
-            isActive('/gallery') ? 'text-[#9A0F34]' : 'text-gray-500'
+            isActive('/gallery') ? 'text-[#00000]' : 'text-gray-500'
           }`}
         >
           <Search className="h-6 w-6" />
           <span className="text-xs mt-1">Поиск</span>
         </Link>
 
-        <button
-          onClick={openLoginModal}
-          className="flex flex-col items-center justify-center flex-1 text-gray-500"
-        >
-          <LogIn className="h-6 w-6" />
-          <span className="text-xs mt-1">Войти</span>
-        </button>
-        
         <Link
           to="/barbers"
           className={`flex flex-col items-center justify-center flex-1 ${
@@ -53,9 +54,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) =
           <Scissors className="h-6 w-6" />
           <span className="text-xs mt-1">Барберы</span>
         </Link>
-        
+
         <Link
-          to="/profile"
+          to={isAuthenticated ? "/profile" : "#"}
+          onClick={handleProfileClick}
           className={`flex flex-col items-center justify-center flex-1 ${
             isActive('/profile') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}

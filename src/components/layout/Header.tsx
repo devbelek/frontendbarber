@@ -4,6 +4,7 @@ import { Menu, X, User, Globe, MessageSquare, LogOut } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
+import Logo from '../ui/Logo';
 import { Language } from '../../types';
 import { motion } from 'framer-motion';
 
@@ -72,26 +73,6 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
-  // Custom Comb Logo
-  const CombLogo = () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      className="h-10 w-10"
-      fill="none"
-      stroke={isHomePage && !isScrolled ? "#ffffff" : "#9A0F34"}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
-      <path d="M8 6h8" />
-      <path d="M8 10h8" />
-      <path d="M8 14h8" />
-      <path d="M8 18h8" />
-    </svg>
-  );
-
   return (
     <header className={headerStyles}>
       <div className="container mx-auto px-4 py-3">
@@ -102,18 +83,8 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             animate="visible"
             variants={logoVariants}
           >
-            <Link to="/" className="flex items-center">
-              <div className="relative">
-                <CombLogo />
-              </div>
-              <div className="ml-2">
-                <span className={`text-xl font-bold ${isHomePage && !isScrolled ? "text-white" : "text-[#9A0F34]"}`}>
-                  TARAK
-                </span>
-                <span className={`text-xs block -mt-1 ${isHomePage && !isScrolled ? "text-gray-200" : "text-gray-500"}`}>
-                  платформа барберов
-                </span>
-              </div>
+            <Link to="/">
+              <Logo darkMode={isHomePage && !isScrolled} size="md" />
             </Link>
           </motion.div>
 
@@ -139,11 +110,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             <motion.div variants={itemVariants}>
               <Link
                 to="/gallery"
-                className={`font-medium hover:text-[#9A0F34] transition-colors ${
-                  location.pathname === '/gallery'
-                    ? (isHomePage && !isScrolled ? 'text-white' : 'text-[#9A0F34]')
-                    : (isHomePage && !isScrolled ? 'text-gray-200' : 'text-gray-700')
-                }`}
+className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-2 rounded-md hover:bg-gray-100 transition-colors`}
               >
                 {t('gallery')}
               </Link>
@@ -189,7 +156,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                     <Button
                       variant={isHomePage && !isScrolled ? "outline" : "ghost"}
                       size="sm"
-                      className={isHomePage && !isScrolled ? "border-white text-white" : ""}
+                      className={isHomePage && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
                     >
                       <User className="h-5 w-5 mr-1" />
                       Мой профиль
@@ -201,7 +168,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                     variant={isHomePage && !isScrolled ? "outline" : "outline"}
                     size="sm"
                     onClick={logout}
-                    className={isHomePage && !isScrolled ? "border-white text-white" : ""}
+                    className={isHomePage && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
                   >
                     <LogOut className="h-4 w-4 mr-1" />
                     {t('logout')}

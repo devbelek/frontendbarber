@@ -24,12 +24,12 @@ const Button: React.FC<ButtonProps> = ({
   const variantClasses = {
     primary: 'bg-[#9A0F34] text-white hover:bg-[#7b0c29] focus:ring-[#9A0F34]',
     secondary: 'bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-800',
-    outline: 'border border-gray-300 bg-transparent text-gray-900 hover:bg-gray-50 focus:ring-gray-300',
+    outline: 'border-2 border-gray-300 bg-transparent text-gray-900 hover:bg-gray-50 focus:ring-gray-300',
     ghost: 'bg-transparent text-gray-900 hover:bg-gray-100 focus:ring-gray-300'
   };
-  
+
   const sizeClasses = {
-    sm: 'text-xs px-3 py-2',
+    sm: 'text-sm px-3 py-1.5',
     md: 'text-sm px-4 py-2',
     lg: 'text-base px-6 py-3'
   };

@@ -20,7 +20,7 @@ const LocationBasedRecommendations: React.FC = () => {
     locationName: null,
   });
   const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
-  const [locationPermission, setLocationPermission] = useState<
+  const [locationPermission, setLocationPermission] = useState
     'granted' | 'denied' | 'prompt'
   >('prompt');
 
@@ -141,13 +141,69 @@ const LocationBasedRecommendations: React.FC = () => {
   const getRecommendations = async (latitude: number, longitude: number) => {
     try {
       setLoading(true);
+
+      // В реальном приложении здесь будет вызов API
+      // Для демонстрации используем заглушку
+
+      // Имитация задержки запроса
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Генерируем моковые данные для демонстрации
+      const demoRecommendations: Haircut[] = [
+        {
+          id: '101',
+          image: 'https://images.pexels.com/photos/1570807/pexels-photo-1570807.jpeg',
+          title: 'Стильный кроп',
+          price: 600,
+          barber: 'Максим К.',
+          barberId: '2',
+          type: 'crop',
+          length: 'short',
+          style: 'modern',
+          location: 'Бишкек, рядом с вами',
+          duration: 45
+        },
+        {
+          id: '102',
+          image: 'https://images.pexels.com/photos/1805600/pexels-photo-1805600.jpeg',
+          title: 'Классический фейд',
+          price: 500,
+          barber: 'Александр П.',
+          barberId: '1',
+          type: 'fade',
+          length: 'short',
+          style: 'business',
+          location: 'Бишкек, 2.5 км от вас',
+          duration: 30
+        },
+        {
+          id: '103',
+          image: 'https://images.pexels.com/photos/1319460/pexels-photo-1319460.jpeg',
+          title: 'Текстурный андеркат',
+          price: 700,
+          barber: 'Руслан Д.',
+          barberId: '3',
+          type: 'undercut',
+          length: 'medium',
+          style: 'trendy',
+          location: 'Бишкек, 3 км от вас',
+          duration: 60
+        }
+      ];
+
+      setRecommendations(demoRecommendations);
+      setShowRecommendations(true);
+      setLoading(false);
+
+      // Раскомментируйте код ниже для реальной интеграции с API
+      /*
       const response = await locationAPI.getRecommendations(latitude, longitude);
       setRecommendations(response.data);
       setShowRecommendations(true);
+      */
     } catch (err) {
       console.error('Ошибка при получении рекомендаций:', err);
       setError('Не удалось загрузить рекомендации');
-    } finally {
       setLoading(false);
     }
   };

@@ -1,4 +1,4 @@
-// api/services.js
+// api/services.ts
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8000/api';
@@ -37,7 +37,7 @@ export const profileAPI = {
   getAllBarbers: () => authAxios.get('/profiles/barbers/'),
 };
 
-// Добавление API для уведомлений Telegram
+// API для уведомлений Telegram
 export const notificationsAPI = {
   // Регистрация телеграм-аккаунта барбера
   registerTelegramAccount: (data) => authAxios.post('/notifications/register-telegram/', data),
@@ -63,15 +63,20 @@ export const bookingsAPI = {
   // Получить доступные слоты времени для барбера на определенную дату
   getAvailableSlots: (barberId, date) =>
     authAxios.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
+
+  // Создать бронирование (добавлена эта функция, которой не хватало)
+  createBooking: (data) => authAxios.post('/bookings/', data),
 };
 
-// Существующий API для сервисов
+// API для сервисов
 export const servicesAPI = {
   getAll: (params = {}) => authAxios.get('/services/', { params }),
   getById: (id) => authAxios.get(`/services/${id}/`),
   create: (data) => authAxios.post('/services/', data),
   update: (id, data) => authAxios.patch(`/services/${id}/`, data),
   delete: (id) => authAxios.delete(`/services/${id}/`),
+  // Добавляем метод для бронирования сервиса
+  createBooking: (data) => authAxios.post('/bookings/', data),
 };
 
 // API для избранного
@@ -101,4 +106,11 @@ export const authAPI = {
   register: (userData) => axios.post(`${API_URL}/auth/users/`, userData),
   getCurrentUser: () => authAxios.get('/auth/users/me/'),
   resetPassword: (email) => axios.post(`${API_URL}/auth/users/reset_password/`, { email }),
+
+  // Метод для проверки наличия токена и его валидности
+  validateToken: () => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.reject('No token found');
+    return authAxios.post('/auth/jwt/verify/', { token });
+  },
 };

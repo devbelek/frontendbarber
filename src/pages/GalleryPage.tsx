@@ -3,9 +3,10 @@ import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import FilterBar from '../components/filters/FilterBar';
 import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI } from '../api/services';
+import { servicesAPI, bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface GalleryPageProps {
   openLoginModal: () => void;
@@ -13,6 +14,7 @@ interface GalleryPageProps {
 
 const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
@@ -97,11 +99,15 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   };
 
   const handleBookClick = (haircut: Haircut) => {
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
     setSelectedHaircut(haircut);
     setIsBookingModalOpen(true);
   };
 
-  const handleBookingConfirm = async (date: string, time: string) => {
+  const handleBookingConfirm = async (date: string, time: string, contactInfo: any) => {
     if (!selectedHaircut) return;
 
     try {
@@ -109,10 +115,11 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
         service: selectedHaircut.id,
         date: date,
         time: time,
-        notes: ''
+        notes: contactInfo?.notes || ''
       };
 
-      await servicesAPI.createBooking(bookingData);
+      // Используем bookingsAPI.create вместо servicesAPI.createBooking
+      await bookingsAPI.create(bookingData);
       setIsBookingModalOpen(false);
 
       // Показать сообщение об успешном бронировании
@@ -122,9 +129,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
       alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
     }
   };
-
-  // Проверяем, нужно ли показывать пагинацию
-  const showPagination = pagination.next !== null || pagination.previous !== null;
 
   return (
     <Layout openLoginModal={openLoginModal}>
@@ -190,63 +194,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
             <p className="text-gray-500">
               Попробуйте изменить параметры поиска или сбросить фильтры.
             </p>
-          </div>
-        )}
-
-        {/* Пагинация - показывается только если есть следующая/предыдущая страница */}
-        {filteredHaircuts.length > 0 && showPagination && (
-          <div className="mt-12 flex justify-center">
-            <nav className="inline-flex rounded-md shadow">
-              <a
-                href="#"
-                className={`px-3 py-2 rounded-l-md border border-gray-300 bg-white ${
-                  pagination.previous ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (pagination.previous) {
-                    // Handle previous page navigation
-                  }
-                }}
-              >
-                Previous
-              </a>
-
-              <a
-                href="#"
-                className="px-3 py-2 border-t border-b border-gray-300 bg-white text-[#9A0F34] font-medium"
-              >
-                1
-              </a>
-
-              {pagination.next && (
-                <a
-                  href="#"
-                  className="px-3 py-2 border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Handle next page navigation
-                  }}
-                >
-                  2
-                </a>
-              )}
-
-              <a
-                href="#"
-                className={`px-3 py-2 border border-gray-300 bg-white rounded-r-md ${
-                  pagination.next ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (pagination.next) {
-                    // Handle next page navigation
-                  }
-                }}
-              >
-                Next
-              </a>
-            </nav>
           </div>
         )}
       </div>

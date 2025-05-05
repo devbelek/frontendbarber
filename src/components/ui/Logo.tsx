@@ -1,4 +1,3 @@
-// src/components/ui/Logo.tsx
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -36,6 +35,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', darkMode = false }) => {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
+          {/* Исправленный путь SVG */}
           <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
           <path d="M8 6h8" />
           <path d="M8 10h8" />

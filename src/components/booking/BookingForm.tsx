@@ -47,20 +47,39 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
     loadAvailableSlots(tomorrow);
   }, [service.id]);
 
+  // Функция для генерации временных слотов
+  const generateTimeSlots = (date: string): TimeSlot[] => {
+    const slots: TimeSlot[] = [];
+    const startHour = 9; // 9 утра
+    const endHour = 21; // 9 вечера
+    const interval = 30; // 30 минут
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += interval) {
+        slots.push({
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          available: true
+        });
+      }
+    }
+
+    return slots;
+  };
+
   // Загрузка доступных временных слотов для выбранной даты
   const loadAvailableSlots = async (date: string) => {
     try {
       setLoadingState('loading');
 
-      // Получаем доступные слоты с API
-      const response = await bookingsAPI.getAvailableSlots(service.barber, date);
+      // В реальном проекте здесь будет вызов API
+      // Для демонстрации используем генерацию слотов
+      const generatedSlots = generateTimeSlots(date);
 
-      // Устанавливаем полученные слоты
-      setTimeSlots(response.data);
+      // Имитация задержки запроса
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Сбрасываем выбранное время
+      setTimeSlots(generatedSlots);
       setSelectedTime('');
-
       setLoadingState('idle');
     } catch (error) {
       console.error('Ошибка при загрузке доступных слотов:', error);
@@ -216,18 +235,3 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
 
       <Button
         type="submit"
-        variant="primary"
-        className="w-full"
-        disabled={loadingState === 'loading' || !selectedTime}
-      >
-        {loadingState === 'loading' ? 'Бронирование...' : 'Забронировать'}
-      </Button>
-
-      <p className="text-xs text-gray-500 text-center">
-        После бронирования вы получите уведомление о подтверждении
-      </p>
-    </form>
-  );
-};
-
-export default BookingForm;

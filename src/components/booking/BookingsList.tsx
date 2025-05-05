@@ -58,7 +58,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ bookings, onStatusChange })
     }
   };
 
-  // Форматирование даты
+  // Format date
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return new Intl.DateTimeFormat('ru-RU', {
@@ -68,10 +68,10 @@ const BookingsList: React.FC<BookingsListProps> = ({ bookings, onStatusChange })
     }).format(date);
   };
 
-  // Форматирование времени
+  // Format time
   const formatTime = (timeStr: string) => {
-    // Предполагаем, что timeStr приходит в формате "HH:MM:SS"
-    return timeStr.substring(0, 5); // Берем только часы и минуты
+    // Assuming timeStr comes in "HH:MM:SS" format
+    return timeStr.substring(0, 5); // Take only hours and minutes
   };
 
   if (bookings.length === 0) {

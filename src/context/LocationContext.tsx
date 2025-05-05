@@ -49,86 +49,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     }
     return DEFAULT_REGION;
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Функция для определения региона по координатам
-  const determineRegionFromCoords = async (coords: Coordinates): Promise<Region | null> => {
-    try {
-      // В реальном приложении здесь будет вызов API геокодирования
-      // Например, Google Geocoding API или подобный сервис
-
-      // Для MVP мы используем упрощенный подход:
-      // Координаты Бишкека: примерно 42.87, 74.59
-      // Координаты Оша: примерно 40.51, 72.80
-      // и т.д.
-
-      // Простая логика определения ближайшего города на основе координат
-      // В реальном приложении будет использоваться более точный алгоритм
-
-      if (coords.latitude > 42 && coords.longitude > 74) {
-        return KG_REGIONS[0]; // Бишкек
-      } else if (coords.latitude > 40 && coords.longitude > 72) {
-        return KG_REGIONS[1]; // Ош
-      } else if (coords.latitude > 39 && coords.longitude > 69) {
-        return KG_REGIONS[2]; // Баткен
-      }
-
-      // В случае неопределенности возвращаем Бишкек
-      return KG_REGIONS[0];
-    } catch (error) {
-      console.error('Error determining region from coordinates:', error);
-      return null;
-    }
-  };
-
-  // Эффект для определения местоположения при загрузке приложения
-  useEffect(() => {
-    const detectLocation = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Проверка доступности геолокации в браузере
-        if (!navigator.geolocation) {
-          throw new Error('Геолокация не поддерживается вашим браузером');
-        }
-
-        // Получаем координаты пользователя
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const coords = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            };
-
-            // Определяем регион на основе координат
-            const detectedRegion = await determineRegionFromCoords(coords);
-
-            if (detectedRegion) {
-              setCurrentRegion(detectedRegion);
-              // Сохраняем регион в localStorage
-              localStorage.setItem('userRegion', JSON.stringify(detectedRegion));
-            }
-
-            setLoading(false);
-          },
-          (error) => {
-            console.error('Error getting location:', error);
-            setError('Не удалось определить ваше местоположение');
-            setLoading(false);
-          },
-          { timeout: 10000, enableHighAccuracy: false }
-        );
-      } catch (err) {
-        console.error('Location detection error:', err);
-        setError(err instanceof Error ? err.message : 'Ошибка определения местоположения');
-        setLoading(false);
-      }
-    };
-
-    detectLocation();
-  }, []);
 
   // Обновляем localStorage при изменении региона
   const handleSetCurrentRegion = (region: Region) => {

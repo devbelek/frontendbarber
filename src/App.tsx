@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
@@ -23,7 +23,8 @@ function App() {
               <Route path="/" element={<HomePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
               <Route path="/gallery" element={<GalleryPage openLoginModal={() => setIsLoginModalOpen(true)} />} />
               <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile" element={<ProfilePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
+              <Route path="/barbers" element={<Navigate to="/gallery" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Router>

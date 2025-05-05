@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Logo from '../ui/Logo';
+import RegionSelector from '../ui/RegionSelector';
 import { Language } from '../../types';
 import { motion } from 'framer-motion';
 
@@ -136,6 +137,11 @@ className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-
             animate="visible"
             variants={navVariants}
           >
+            {/* Region Selector */}
+            <motion.div variants={itemVariants}>
+              <RegionSelector />
+            </motion.div>
+
             <motion.button
               variants={itemVariants}
               onClick={toggleLanguage}
@@ -232,6 +238,7 @@ className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-
 
             <div className="pt-2 border-t flex justify-between">
               <div className="flex space-x-2">
+                <RegionSelector />
                 <button
                   onClick={toggleLanguage}
                   className="p-2 rounded-full hover:bg-gray-100 transition-colors"

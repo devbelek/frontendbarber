@@ -3,10 +3,19 @@ import { User } from '../types';
 import { authAPI } from '../api/services';
 import { favoritesAPI } from '../api/services';
 
+type GoogleUserInfo = {
+  email: string;
+  name: string;
+  picture: string;
+  given_name?: string;
+  family_name?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   login: (userData: any) => void;
+  loginWithGoogle: (userInfo: GoogleUserInfo) => void;
   register: (userData: any) => Promise<void>;
   logout: () => void;
   toggleFavorite: (haircutId: string) => Promise<void>;
@@ -24,8 +33,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Проверяем аутентификацию при загрузке
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const googleUser = localStorage.getItem('googleUser');
+
     if (token) {
       fetchCurrentUser();
+    } else if (googleUser) {
+      // Если есть данные Google-пользователя, восстанавливаем сессию
+      try {
+        const userData = JSON.parse(googleUser);
+        setUser(userData);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to parse Google user data:', err);
+        localStorage.removeItem('googleUser');
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
@@ -64,6 +86,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(userData);
   };
 
+  const loginWithGoogle = (googleUserInfo: GoogleUserInfo) => {
+    // Создаем объект пользователя на основе данных из Google
+    const userData: User = {
+      id: `google-${Date.now()}`, // Временный ID для Google-пользователя
+      username: googleUserInfo.email.split('@')[0], // Используем часть email как username
+      email: googleUserInfo.email,
+      first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
+      last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+      profile: {
+        user_type: 'barber', // Поскольку авторизация через Google только для барберов
+        phone: '',
+        photo: googleUserInfo.picture,
+        offers_home_service: false
+      },
+      favorites: []
+    };
+
+    // Сохраняем данные пользователя в localStorage
+    localStorage.setItem('googleUser', JSON.stringify(userData));
+
+    // Обновляем состояние
+    setUser(userData);
+  };
+
   const register = async (userData: any) => {
     setError(null);
     try {
@@ -84,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('googleUser');
     setUser(null);
   };
 
@@ -126,6 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated: !!user,
         login,
+        loginWithGoogle,
         register,
         logout,
         toggleFavorite,

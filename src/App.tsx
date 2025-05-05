@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
+import { LocationProvider } from './context/LocationContext';
 import HomePage from './pages/HomePage';
 import GalleryPage from './pages/GalleryPage';
 import BarberProfilePage from './pages/BarberProfilePage';
@@ -15,16 +16,18 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Router>
-          <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
-          <Routes>
-            <Route path="/" element={<HomePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
-            <Route path="/gallery" element={<GalleryPage openLoginModal={() => setIsLoginModalOpen(true)} />} />
-            <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Router>
+        <LocationProvider>
+          <Router>
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+            <Routes>
+              <Route path="/" element={<HomePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
+              <Route path="/gallery" element={<GalleryPage openLoginModal={() => setIsLoginModalOpen(true)} />} />
+              <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={() => setIsLoginModalOpen(true)} />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Router>
+        </LocationProvider>
       </AuthProvider>
     </LanguageProvider>
   );

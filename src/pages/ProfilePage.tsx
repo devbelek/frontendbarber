@@ -1,23 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, Settings, LogOut } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MessageCircle } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
+import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { profileAPI, bookingsAPI } from '../api/services';
+import TelegramRegistration from '../components/profile/TelegramRegistration';
+import BookingsList from '../components/booking/BookingsList';
+import FavoritesList from '../components/favorites/FavoritesList';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  // Проверяем аутентификацию
+  useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');
+    } else {
+      // Загружаем бронирования, если пользователь авторизован
+      loadBookings();
     }
   }, [isAuthenticated, navigate]);
+
+  // Загрузка бронирований пользователя
+  const loadBookings = async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      setLoading(true);
+      const response = await bookingsAPI.getAll();
+      setBookings(response.data);
+    } catch (error) {
+      console.error('Ошибка при загрузке бронирований:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -36,10 +61,10 @@ const ProfilePage: React.FC = () => {
           <div className="flex flex-col md:flex-row">
             <div className="p-6 md:w-1/3 border-r border-gray-200">
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 bg-gray-300 rounded-full mb-4 flex items-center justify-center">
-                  {user.profile?.photo ? (
+                <div className="w-24 h-24 bg-gray-300 rounded-full mb-4 flex items-center justify-center overflow-hidden">
+                  {user.profile?.photo || user.picture ? (
                     <img
-                      src={user.profile.photo}
+                      src={user.profile?.photo || user.picture}
                       alt={user.username}
                       className="w-full h-full object-cover rounded-full"
                     />
@@ -49,6 +74,11 @@ const ProfilePage: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-bold">{user.first_name} {user.last_name}</h2>
                 <p className="text-gray-600">{user.email}</p>
+                {user.profile?.user_type === 'barber' && (
+                  <div className="mt-2 px-3 py-1 bg-[#9A0F34]/10 text-[#9A0F34] rounded-full text-sm">
+                    Барбер
+                  </div>
+                )}
 
                 <div className="mt-6 w-full">
                   <button
@@ -79,12 +109,6 @@ const ProfilePage: React.FC = () => {
                     {t('favorites')}
                   </button>
                   <button
-                    className="flex items-center w-full mb-2 p-3 rounded-md text-left text-gray-700 hover:bg-gray-50"
-                  >
-                    <Settings className="h-5 w-5 mr-3" />
-                    {t('settings')}
-                  </button>
-                  <button
                     onClick={() => {
                       logout();
                       navigate('/');
@@ -101,23 +125,52 @@ const ProfilePage: React.FC = () => {
             <div className="p-6 md:w-2/3">
               {activeTab === 'info' && (
                 <div>
-                  <h3 className="text-xl font-bold mb-4">{t('personalInfo')}</h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">{t('personalInfo')}</h3>
+                  </div>
+
                   <Card>
                     <CardContent>
                       <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">{t('name')}</label>
-                          <p className="mt-1">{user.first_name} {user.last_name}</p>
+                        <div className="border-b pb-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Имя и фамилия
+                          </label>
+                          <p className="text-gray-900">{user.first_name} {user.last_name}</p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">{t('email')}</label>
-                          <p className="mt-1">{user.email}</p>
+
+                        <div className="border-b pb-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                          </label>
+                          <p className="text-gray-900">{user.email}</p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">{t('phone')}</label>
-                          <p className="mt-1">{user.profile?.phone || '-'}</p>
-                        </div>
-                        <Button variant="outline">{t('editProfile')}</Button>
+
+                        {user.profile?.user_type === 'barber' && (
+                          <TelegramRegistration />
+                        )}
+
+                        {user.profile?.telegram && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              Telegram для уведомлений
+                            </label>
+                            <p className="text-gray-900">
+                              <a
+                                href={`https://t.me/${user.profile.telegram}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center"
+                              >
+                                @{user.profile.telegram}
+                                <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -127,26 +180,20 @@ const ProfilePage: React.FC = () => {
               {activeTab === 'bookings' && (
                 <div>
                   <h3 className="text-xl font-bold mb-4">{t('myBookings')}</h3>
-                  <Card>
-                    <CardContent className="text-center py-12">
-                      <p className="text-gray-500">
-                        У вас пока нет бронирований
-                      </p>
-                    </CardContent>
-                  </Card>
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <p>Загрузка бронирований...</p>
+                    </div>
+                  ) : (
+                    <BookingsList bookings={bookings} onStatusChange={loadBookings} />
+                  )}
                 </div>
               )}
 
               {activeTab === 'favorites' && (
                 <div>
                   <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
-                  <Card>
-                    <CardContent className="text-center py-12">
-                      <p className="text-gray-500">
-                        У вас пока нет избранных стрижек
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <FavoritesList />
                 </div>
               )}
             </div>

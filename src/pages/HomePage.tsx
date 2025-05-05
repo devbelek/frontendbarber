@@ -1,460 +1,444 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Calendar, Clock, MessageSquare, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Clock, Heart, LogOut, MapPin, Phone, MessageCircle } from 'lucide-react';
 import Layout from '../components/layout/Layout';
+import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import HaircutGrid from '../components/haircuts/HaircutGrid';
-import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI, bookingsAPI } from '../api/services';
-import { Haircut } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { motion } from 'framer-motion';
-import Logo from '../components/ui/Logo';
+import { profileAPI } from '../api/services';
 
-interface HomePageProps {
-  openLoginModal: () => void;
-}
-
-const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
+const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
-  const [popularHaircuts, setPopularHaircuts] = useState<Haircut[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    address: '',
+    telegram: '',
+    offers_home_service: false
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
+  // Инициализация данных формы из данных пользователя
   useEffect(() => {
-    const fetchPopularHaircuts = async () => {
-      try {
-        setIsLoading(true);
-        // Получаем 4 популярных стрижки (можно добавить параметр для сортировки)
-        const response = await servicesAPI.getAll({ limit: 4 });
-        console.log('Popular haircuts response:', response);
+    if (user) {
+      setFormData({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        phone: user.profile?.phone || '',
+        address: user.profile?.address || '',
+        telegram: user.profile?.telegram || '',
+        offers_home_service: user.profile?.offers_home_service || false
+      });
+    }
+  }, [user]);
 
-        // Handle both array and pagination object responses
-        let results = response.data;
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
-        // If data is a pagination object with results property
-        if (response.data.results && Array.isArray(response.data.results)) {
-          results = response.data.results;
-        } else if (!Array.isArray(results)) {
-          console.error('Unexpected response format:', response.data);
-          setError('Некорректный формат данных от сервера');
-          setPopularHaircuts([]);
-          return;
-        }
-
-        // Преобразуем данные API в формат Haircut
-        const haircuts: Haircut[] = results.map((service: any) => ({
-          id: service.id,
-          image: service.image,
-          title: service.title,
-          price: service.price,
-          barber: service.barber_details?.full_name || 'Unknown',
-          barberId: service.barber,
-          type: service.type,
-          length: service.length,
-          style: service.style,
-          location: service.location,
-          duration: service.duration,
-          isFavorite: service.is_favorite
-        }));
-
-        setPopularHaircuts(haircuts);
-      } catch (err) {
-        console.error('Failed to fetch popular haircuts:', err);
-        setError('Не удалось загрузить популярные стрижки');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPopularHaircuts();
-  }, []);
-
-  const handleBookClick = (haircut: Haircut) => {
-    setSelectedHaircut(haircut);
-    setIsBookingModalOpen(true);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleBookingConfirm = async (date: string, time: string, contactInfo: { name: string; phone: string }) => {
-    if (!selectedHaircut) return;
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      // Создаем бронирование через API с добавлением контактных данных
-      const bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: `Имя: ${contactInfo.name}, Телефон: ${contactInfo.phone}`
+      // Данные для обновления пользовательской информации
+      const userData = {
+        first_name: formData.first_name,
+        last_name: formData.last_name
       };
 
-      await bookingsAPI.create(bookingData);
-      setIsBookingModalOpen(false);
+      // Данные для обновления профиля
+      const profileData = {
+        phone: formData.phone,
+        address: formData.address,
+        telegram: formData.telegram,
+        offers_home_service: formData.offers_home_service
+      };
 
-      // Показать сообщение об успешном бронировании
-      alert('Бронирование успешно создано! Барбер свяжется с вами для подтверждения.');
-    } catch (err) {
-      console.error('Error creating booking:', err);
-      alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+      // Обновляем данные пользователя
+      await profileAPI.updateUserInfo(userData);
+
+      // Обновляем данные профиля
+      await profileAPI.updateProfile(profileData);
+
+      setSuccess('Данные профиля успешно обновлены');
+      setIsEditing(false);
+
+      // Обновляем страницу для получения обновленных данных
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      console.error('Failed to update profile:', err);
+      setError(err.response?.data?.detail || 'Произошла ошибка при обновлении профиля');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Анимация для элементов
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5
-      }
-    }
-  };
+  if (!user) {
+    return (
+      <Layout openLoginModal={() => {}}>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-lg">Пожалуйста, войдите в систему, чтобы просмотреть профиль</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
-    <Layout openLoginModal={openLoginModal}>
-      {/* Современный минималистичный hero-section */}
-      <section className="bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] py-16 md:py-24 text-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-10"
-            >
-              <div className="inline-block mb-6">
-                <Logo darkMode={true} size="lg" />
-              </div>
+    <Layout openLoginModal={() => {}}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+          <div className="flex flex-col md:flex-row">
+            <div className="p-6 md:w-1/3 border-r border-gray-200">
+              <div className="flex flex-col items-center">
+                <div className="w-24 h-24 bg-gray-300 rounded-full mb-4 flex items-center justify-center overflow-hidden">
+                  {user.profile?.photo || user.picture ? (
+                    <img
+                      src={user.profile?.photo || user.picture}
+                      alt={user.username}
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <User className="h-12 w-12 text-gray-500" />
+                  )}
+                </div>
+                <h2 className="text-xl font-bold">{user.first_name} {user.last_name}</h2>
+                <p className="text-gray-600">{user.email}</p>
+                {user.profile?.user_type === 'barber' && (
+                  <div className="mt-2 px-3 py-1 bg-[#9A0F34]/10 text-[#9A0F34] rounded-full text-sm">
+                    Барбер
+                  </div>
+                )}
 
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                {t('heroTitle')}
-              </h1>
-
-              <p className="text-lg md:text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
-                Находите талантливых барберов по их работам и выбирайте идеальную стрижку для себя
-              </p>
-
-              <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <Link to="/gallery">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="w-full sm:w-auto bg-white text-[#9A0F34] hover:bg-gray-100 border-white"
+                <div className="mt-6 w-full">
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                      activeTab === 'info' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                   >
-                    {t('exploreGallery')}
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto border-white text-white hover:bg-white/10"
-                  onClick={openLoginModal}
-                >
-                  Я барбер
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Декоративный элемент */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white rounded-t-[50%] transform translate-y-8 z-10 hidden md:block"></div>
-      </section>
-
-      {/* Информационные карточки - Как это работает */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Как это работает</span>
-              <h2 className="text-3xl font-bold mt-2 mb-4">Ваш путь к идеальной стрижке</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                TARAK соединяет клиентов и барберов. Нет необходимости регистрироваться, чтобы найти подходящего мастера.
-              </p>
-            </motion.div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              variants={itemVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:shadow-lg hover:translate-y-[-4px]"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-8 w-8 text-[#9A0F34]"
-                >
-                  <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
-                  <path d="M8 6h8" />
-                  <path d="M8 10h8" />
-                  <path d="M8 14h8" />
-                  <path d="M8 18h8" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Выбирайте по стрижке</h3>
-              <p className="text-gray-600">
-                Просматривайте работы барберов и выбирайте стиль, который вам нравится, а не мастера
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={itemVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:shadow-lg hover:translate-y-[-4px]"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
-                <MessageSquare className="h-8 w-8 text-[#9A0F34]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Свяжитесь напрямую</h3>
-              <p className="text-gray-600">
-                Пишите барберам напрямую через WhatsApp или Telegram без необходимости регистрации
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={itemVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="bg-gray-50 p-8 rounded-lg text-center transition-transform duration-300 hover:shadow-lg hover:translate-y-[-4px]"
-            >
-              <div className="w-16 h-16 mx-auto mb-6 bg-[#9A0F34]/10 rounded-full flex items-center justify-center">
-                <MapPin className="h-8 w-8 text-[#9A0F34]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Выбирайте где стричься</h3>
-              <p className="text-gray-600">
-                Посетите барбершоп или пригласите мастера к себе домой в зависимости от услуги
-              </p>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Haircuts Section */}
-      <section className="py-12 md:py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-10">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Найди свой стиль</span>
-              <h2 className="text-2xl md:text-3xl font-bold mt-1">{t('popularHaircuts')}</h2>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <Link
-                to="/gallery"
-                className="text-[#9A0F34] hover:text-[#7b0c29] font-medium flex items-center"
-              >
-                {t('viewAll')}
-                <ChevronRight className="h-5 w-5 ml-1" />
-              </Link>
-            </motion.div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34]"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">{error}</p>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="mt-4"
-              >
-                Попробовать снова
-              </Button>
-            </div>
-          ) : popularHaircuts.length > 0 ? (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-            >
-              <HaircutGrid
-                haircuts={popularHaircuts}
-                onBookClick={handleBookClick}
-              />
-            </motion.div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Пока нет доступных стрижек</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Barber Value Proposition - Clean & Minimal */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center"
-            >
-              <div className="md:col-span-3 md:pr-12">
-                <span className="text-[#9A0F34] font-semibold text-sm uppercase tracking-wider">Для барберов</span>
-                <h2 className="text-3xl font-bold mt-2 mb-6">Расширьте свою клиентскую базу с TARAK</h2>
-
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start bg-gray-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white">✓</span>
-                      </div>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="font-semibold text-lg">Если у вас есть барбершоп</h3>
-                      <p className="text-gray-600">Привлекайте больше клиентов, демонстрируя свои лучшие работы</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start bg-gray-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white">✓</span>
-                      </div>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="font-semibold text-lg">Работаете на выезде</h3>
-                      <p className="text-gray-600">Предлагайте услуги на дому и расширяйте географию своей работы</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start bg-gray-50 p-4 rounded-lg transition-all duration-300 hover:shadow-md">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-5 h-5 bg-[#9A0F34] rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white">✓</span>
-                      </div>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="font-semibold text-lg">Работайте в удобное время</h3>
-                      <p className="text-gray-600">Управляйте своим графиком и принимайте только подходящие заказы</p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  variant="primary"
-                  onClick={openLoginModal}
-                  className="bg-[#9A0F34] hover:bg-[#7b0c29]"
-                >
-                  Стать барбером на платформе
-                </Button>
-              </div>
-
-              <div className="md:col-span-2 relative">
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <img
-                    src="https://images.pexels.com/photos/1813272/pexels-photo-1813272.jpeg"
-                    alt="Барбер за работой"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <div className="absolute -bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg">
-                  <div className="text-center">
-                    <span className="text-sm font-semibold text-[#9A0F34]">Гибкие условия</span>
-                    <p className="text-xs mt-1">Работайте на своих условиях</p>
-                  </div>
+                    <User className="h-5 w-5 mr-3" />
+                    {t('personalInfo')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('bookings')}
+                    className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                      activeTab === 'bookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Clock className="h-5 w-5 mr-3" />
+                    {t('myBookings')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('favorites')}
+                    className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                      activeTab === 'favorites' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Heart className="h-5 w-5 mr-3" />
+                    {t('favorites')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                    }}
+                    className="flex items-center w-full mt-4 p-3 rounded-md text-left text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    {t('logout')}
+                  </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
+
+            <div className="p-6 md:w-2/3">
+              {activeTab === 'info' && (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">{t('personalInfo')}</h3>
+                    {!isEditing && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        {t('editProfile')}
+                      </Button>
+                    )}
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 p-4 rounded-md mb-4">
+                      <p className="text-red-700 text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="bg-green-50 p-4 rounded-md mb-4">
+                      <p className="text-green-700 text-sm">{success}</p>
+                    </div>
+                  )}
+
+                  <Card>
+                    <CardContent>
+                      {isEditing ? (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Имя
+                              </label>
+                              <input
+                                type="text"
+                                name="first_name"
+                                value={formData.first_name}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Фамилия
+                              </label>
+                              <input
+                                type="text"
+                                name="last_name"
+                                value={formData.last_name}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              disabled
+                              className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Email нельзя изменить
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Телефон
+                            </label>
+                            <div className="relative">
+                              <Phone className="absolute top-2.5 left-3 h-5 w-5 text-gray-400" />
+                              <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                placeholder="+996 XXX XXX XXX"
+                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Адрес барбершопа
+                            </label>
+                            <div className="relative">
+                              <MapPin className="absolute top-2.5 left-3 h-5 w-5 text-gray-400" />
+                              <input
+                                type="text"
+                                name="address"
+                                value={formData.address}
+                                onChange={handleChange}
+                                placeholder="Например: Бишкек, ул. Киевская 95"
+                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Telegram профиль
+                            </label>
+                            <div className="relative">
+                              <MessageCircle className="absolute top-2.5 left-3 h-5 w-5 text-blue-400" />
+                              <input
+                                type="text"
+                                name="telegram"
+                                value={formData.telegram}
+                                onChange={handleChange}
+                                placeholder="Например: username без @"
+                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              На этот профиль будут отправляться уведомления о заказах
+                            </p>
+                          </div>
+
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="offers_home_service"
+                              name="offers_home_service"
+                              checked={formData.offers_home_service}
+                              onChange={handleCheckboxChange}
+                              className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
+                            />
+                            <label htmlFor="offers_home_service" className="ml-2 block text-sm text-gray-900">
+                              Предлагаю услуги на выезде
+                            </label>
+                          </div>
+
+                          <div className="flex space-x-3 pt-4">
+                            <Button
+                              type="submit"
+                              variant="primary"
+                              disabled={isSubmitting}
+                              className="relative"
+                            >
+                              {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsEditing(false)}
+                              disabled={isSubmitting}
+                            >
+                              Отмена
+                            </Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="border-b pb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Имя и фамилия
+                            </label>
+                            <p className="text-gray-900">{user.first_name} {user.last_name}</p>
+                          </div>
+
+                          <div className="border-b pb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <p className="text-gray-900">{user.email}</p>
+                          </div>
+
+                          <div className="border-b pb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                              <Phone className="h-4 w-4 mr-1" />
+                              Телефон
+                            </label>
+                            <p className="text-gray-900">{user.profile?.phone || 'Не указан'}</p>
+                          </div>
+
+                          <div className="border-b pb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                              <MapPin className="h-4 w-4 mr-1" />
+                              Адрес барбершопа
+                            </label>
+                            <p className="text-gray-900">{user.profile?.address || 'Не указан'}</p>
+                            {user.profile?.offers_home_service && (
+                              <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Выезд на дом
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              Telegram для уведомлений
+                            </label>
+                            <p className="text-gray-900">
+                              {user.profile?.telegram ? (
+                                <a
+                                  href={`https://t.me/${user.profile.telegram}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline flex items-center"
+                                >
+                                  @{user.profile.telegram}
+                                  <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              ) : (
+                                'Не указан'
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {activeTab === 'bookings' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">{t('myBookings')}</h3>
+                  <Card>
+                    <CardContent className="text-center py-12">
+                      <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        У вас пока нет бронирований
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {activeTab === 'favorites' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
+                  <Card>
+                    <CardContent className="text-center py-12">
+                      <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        У вас пока нет избранных стрижек
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* CTA Section - Minimal Design */}
-      <section className="py-16 bg-gray-900 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto"
-          >
-            <Logo darkMode={true} size="lg" />
-            <h2 className="text-3xl font-bold mt-6 mb-4">Присоединяйтесь к TARAK</h2>
-            <p className="text-lg text-gray-300 mb-8">
-              Для барберов — отличная возможность расширить клиентскую базу.
-              Для клиентов — простой способ найти идеальную стрижку.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button
-                variant="primary"
-                size="lg"
-                className="bg-white text-[#9A0F34] hover:bg-gray-100"
-                onClick={openLoginModal}
-              >
-                Я барбер
-              </Button>
-              <Link to="/gallery">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-white text-white hover:bg-white/10"
-                >
-                  Смотреть стрижки
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      
-      {/* Booking Modal */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        haircut={selectedHaircut}
-        onConfirm={handleBookingConfirm}
-      />
+      </div>
     </Layout>
   );
 };
 
-export default HomePage;
+export default ProfilePage;

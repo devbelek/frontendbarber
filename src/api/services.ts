@@ -1,111 +1,104 @@
-import apiClient from './client';
+// api/services.js
+import axios from 'axios';
 
-// Аутентификация
-export const authAPI = {
-  login: (email: string, password: string) =>
-    apiClient.post('/auth/jwt/create/', { email, password }),
+const API_URL = 'http://localhost:8000/api';
 
-  register: (userData: any) =>
-    apiClient.post('/auth/users/', userData),
+// Настраиваем axios для отправки токена с каждым запросом
+const authAxios = axios.create({
+  baseURL: API_URL,
+});
 
-  getCurrentUser: () =>
-    apiClient.get('/auth/users/me/'),
-};
-
-// Услуги (стрижки)
-export const servicesAPI = {
-  getAll: async (params?: any) => {
-    try {
-      const response = await apiClient.get('/services/', { params });
-      console.log('API Response Structure:', response);
-      return response;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
+authAxios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
   },
+  (error) => Promise.reject(error)
+);
 
-  getById: (id: string) =>
-    apiClient.get(`/services/${id}/`),
-
-  create: (serviceData: FormData) =>
-    apiClient.post('/services/', serviceData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-
-  update: (id: string, serviceData: FormData) =>
-    apiClient.put(`/services/${id}/`, serviceData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-
-  delete: (id: string) =>
-    apiClient.delete(`/services/${id}/`),
-
-  createBooking: (bookingData: any) => {
-    return bookingsAPI.create(bookingData);
-  },
-};
-
-// Бронирования
-export const bookingsAPI = {
-  getAll: (params?: any) =>
-    apiClient.get('/bookings/', { params }),
-
-  getById: (id: string) =>
-    apiClient.get(`/bookings/${id}/`),
-
-  create: (bookingData: any) =>
-    apiClient.post('/bookings/', bookingData),
-
-  update: (id: string, bookingData: any) =>
-    apiClient.put(`/bookings/${id}/`, bookingData),
-
-  delete: (id: string) =>
-    apiClient.delete(`/bookings/${id}/`),
-
-  changeStatus: (id: string, status: string) =>
-    apiClient.patch(`/bookings/${id}/`, { status }),
-};
-
-// Избранное
-export const favoritesAPI = {
-  getAll: (params?: any) =>
-    apiClient.get('/profiles/favorites/', { params }),
-
-  add: (serviceId: string) =>
-    apiClient.post('/profiles/favorites/', { service: serviceId }),
-
-  remove: (serviceId: string) =>
-    apiClient.delete(`/profiles/favorites/${serviceId}/`),
-};
-
-// Профиль
+// API для профиля пользователя
 export const profileAPI = {
-  getProfile: () =>
-    apiClient.get('/profiles/me/'),
+  // Получить информацию о текущем пользователе
+  getCurrentUser: () => authAxios.get('/auth/users/me/'),
 
-  updateProfile: (profileData: any) =>
-    apiClient.patch('/profiles/profile/update/', profileData),
+  // Обновить информацию пользователя
+  updateUserInfo: (data) => authAxios.patch('/auth/users/me/', data),
 
-  updateUserInfo: (userData: any) =>
-    apiClient.patch('/auth/users/me/', userData),
+  // Обновить профиль пользователя
+  updateProfile: (data) => authAxios.patch('/profiles/profile/update/', data),
+
+  // Получить профиль барбера по ID
+  getBarberProfile: (id) => authAxios.get(`/profiles/barbers/${id}/`),
+
+  // Получить список всех барберов
+  getAllBarbers: () => authAxios.get('/profiles/barbers/'),
 };
 
-// Барберы
-export const barbersAPI = {
-  getAll: (params?: any) =>
-    apiClient.get('/profiles/barbers/', { params }),
+// Добавление API для уведомлений Telegram
+export const notificationsAPI = {
+  // Регистрация телеграм-аккаунта барбера
+  registerTelegramAccount: (data) => authAxios.post('/notifications/register-telegram/', data),
 
-  getById: (id: string) =>
-    apiClient.get(`/profiles/barbers/${id}/`),
+  // Проверка статуса регистрации в телеграм
+  checkTelegramStatus: () => authAxios.get('/notifications/telegram-status/'),
+};
 
-  getReviews: (barberId: string) =>
-    apiClient.get(`/profiles/reviews/?barber=${barberId}`),
+// API для бронирований
+export const bookingsAPI = {
+  // Получить все бронирования пользователя
+  getAll: () => authAxios.get('/bookings/'),
 
-  addReview: (reviewData: any) =>
-    apiClient.post('/profiles/reviews/', reviewData),
+  // Создать новое бронирование
+  create: (data) => authAxios.post('/bookings/', data),
+
+  // Обновить статус бронирования
+  updateStatus: (id, status) => authAxios.patch(`/bookings/${id}/`, { status }),
+
+  // Отменить бронирование
+  cancel: (id) => authAxios.patch(`/bookings/${id}/`, { status: 'cancelled' }),
+
+  // Получить доступные слоты времени для барбера на определенную дату
+  getAvailableSlots: (barberId, date) =>
+    authAxios.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
+};
+
+// Существующий API для сервисов
+export const servicesAPI = {
+  getAll: (params = {}) => authAxios.get('/services/', { params }),
+  getById: (id) => authAxios.get(`/services/${id}/`),
+  create: (data) => authAxios.post('/services/', data),
+  update: (id, data) => authAxios.patch(`/services/${id}/`, data),
+  delete: (id) => authAxios.delete(`/services/${id}/`),
+};
+
+// API для избранного
+export const favoritesAPI = {
+  getAll: () => authAxios.get('/profiles/favorites/'),
+  add: (serviceId) => authAxios.post('/profiles/favorites/', { service: serviceId }),
+  remove: (serviceId) => authAxios.delete(`/profiles/favorites/${serviceId}/remove/`),
+};
+
+// API для отзывов
+export const reviewsAPI = {
+  getForBarber: (barberId) => authAxios.get(`/profiles/reviews/?barber=${barberId}`),
+  create: (data) => authAxios.post('/profiles/reviews/', data),
+};
+
+// API для геолокации
+export const locationAPI = {
+  getNearbyBarbers: (latitude, longitude, radius = 5) =>
+    authAxios.get(`/services/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
+
+  getRecommendations: (latitude, longitude) =>
+    authAxios.get(`/services/recommendations/?latitude=${latitude}&longitude=${longitude}`),
+};
+
+export const authAPI = {
+  login: (credentials) => axios.post(`${API_URL}/auth/jwt/create/`, credentials),
+  register: (userData) => axios.post(`${API_URL}/auth/users/`, userData),
+  getCurrentUser: () => authAxios.get('/auth/users/me/'),
+  resetPassword: (email) => axios.post(`${API_URL}/auth/users/reset_password/`, { email }),
 };

@@ -44,9 +44,12 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
         const response = await profileAPI.getAllBarbers();
         console.log('Barbers response:', response);
 
-        // Используем демо-данные, если API возвращает пустой массив
-        if (!response.data || (Array.isArray(response.data) && response.data.length === 0)) {
-          // Демо-данные барберов
+        // Если ответ успешный, но данные отсутствуют или пусты
+        if (!response.data ||
+            (Array.isArray(response.data) && response.data.length === 0) ||
+            (response.data.results && Array.isArray(response.data.results) && response.data.results.length === 0)) {
+
+          // Используем демо-данные
           setBarbers([
             {
               id: '1',
@@ -61,37 +64,12 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
               avg_rating: 4.8,
               review_count: 124
             },
-            {
-              id: '2',
-              username: 'maxim_k',
-              first_name: 'Максим',
-              last_name: 'Кузнецов',
-              profile: {
-                photo: 'https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg',
-                user_type: 'barber',
-                address: 'Бишкек, Восток'
-              },
-              avg_rating: 4.9,
-              review_count: 98
-            },
-            {
-              id: '3',
-              username: 'ruslan_d',
-              first_name: 'Руслан',
-              last_name: 'Доскеев',
-              profile: {
-                photo: 'https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg',
-                user_type: 'barber',
-                address: 'Бишкек, Запад'
-              },
-              avg_rating: 4.7,
-              review_count: 75
-            }
+            // Остальные демо-данные...
           ]);
           return;
         }
 
-        // Обработка ответа API
+        // Обработка успешного ответа API
         let barbersData: Barber[] = [];
 
         if (Array.isArray(response.data)) {

@@ -62,65 +62,91 @@ const ProfilePage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-    setSuccess(null);
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      setError(null);
+      setSuccess(null);
 
-    try {
-      // Проверяем, авторизован ли пользователь
-      if (!user || !isAuthenticated) {
-        setError('Необходимо войти в систему для обновления профиля');
+      try {
+        // Проверяем, авторизован ли пользователь
+        if (!user || !isAuthenticated) {
+          setError('Необходимо войти в систему для обновления профиля');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Данные для обновления пользовательской информации
+        const userData = {
+          first_name: formData.first_name,
+          last_name: formData.last_name
+        };
+
+        // Данные для обновления профиля
+        const profileData = {
+          whatsapp: formData.whatsapp,
+          telegram: formData.telegram,
+          address: formData.address,
+          offers_home_service: formData.offers_home_service
+        };
+
+        // Проверка наличия токена перед запросом
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Обновляем данные пользователя
+        await profileAPI.updateUserInfo(userData);
+
+        // Обновляем данные профиля
+        await profileAPI.updateProfile(profileData);
+
+        setSuccess('Данные профиля успешно обновлены');
+        setIsEditing(false);
+
+        // Обновляем состояние пользователя
+        if (setUser) {
+          setUser({
+            ...user,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            profile: {
+              ...user.profile,
+              whatsapp: formData.whatsapp,
+              telegram: formData.telegram,
+              address: formData.address,
+              offers_home_service: formData.offers_home_service
+            }
+          });
+        }
+      } catch (err: any) {
+        console.error('Failed to update profile:', err);
+        let errorMessage = 'Произошла ошибка при обновлении профиля';
+
+        if (err.response?.status === 401) {
+          errorMessage = 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.';
+          // Если 401, перенаправляем на страницу входа
+          setTimeout(() => {
+            logout();
+            navigate('/login');
+          }, 2000);
+        } else if (err.response?.data?.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response?.data) {
+          const errorsArray = Object.entries(err.response.data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('; ');
+          errorMessage = errorsArray || errorMessage;
+        }
+
+        setError(errorMessage);
+      } finally {
         setIsSubmitting(false);
-        return;
       }
-
-      // Данные для обновления пользовательской информации
-      const userData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name
-      };
-
-      // Данные для обновления профиля
-      const profileData = {
-        whatsapp: formData.whatsapp,
-        telegram: formData.telegram,
-        address: formData.address,
-        offers_home_service: formData.offers_home_service
-      };
-
-      // Обновляем данные пользователя
-      await profileAPI.updateUserInfo(userData);
-
-      // Обновляем данные профиля
-      await profileAPI.updateProfile(profileData);
-
-      setSuccess('Данные профиля успешно обновлены');
-      setIsEditing(false);
-
-      // Обновляем состояние пользователя (не реализовано в текущем коде)
-      // Обычно мы бы перезапросили данные пользователя или обновили их вручную
-    } catch (err: any) {
-      console.error('Failed to update profile:', err);
-      let errorMessage = 'Произошла ошибка при обновлении профиля';
-
-      if (err.response?.status === 401) {
-        errorMessage = 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.';
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      } else if (err.response?.data) {
-        const errorsArray = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('; ');
-        errorMessage = errorsArray || errorMessage;
-      }
-
-      setError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    };
 
   if (!user) {
     return (

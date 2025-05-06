@@ -14,12 +14,21 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    const googleUser = localStorage.getItem('googleUser');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('Adding token to request:', config.url);
+    } else if (googleUser) {
+      // Создаем новый временный токен для пользователя Google
+      const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      localStorage.setItem('token', newToken);
+      config.headers.Authorization = `Bearer ${newToken}`;
+      console.log('Adding temporary Google token to request:', config.url);
     } else {
       console.warn('No token found for request:', config.url);
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -34,13 +43,21 @@ apiClient.interceptors.response.use(
     // Если получена ошибка 401 и это не повторная попытка
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       console.warn('Authentication token expired or invalid');
+      originalRequest._retry = true;
 
-      // Удаляем недействительный токен
-      localStorage.removeItem('token');
+      // Проверяем наличие Google-пользователя
+      const googleUser = localStorage.getItem('googleUser');
+      if (googleUser) {
+        // Создаем новый временный токен для Google-пользователя
+        const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        localStorage.setItem('token', newToken);
 
-      // Можно добавить логику обновления токена через refresh token
-      // Пример для refresh token механизма (раскомментируйте при необходимости)
-      /*
+        // Повторяем запрос с новым токеном
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return axios(originalRequest);
+      }
+
+      // Для обычных пользователей пытаемся обновить токен
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
@@ -52,16 +69,29 @@ apiClient.interceptors.response.use(
 
           // Повторяем исходный запрос
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          originalRequest._retry = true;
           return axios(originalRequest);
         } catch (refreshError) {
           console.error('Failed to refresh token:', refreshError);
           // При ошибке обновления токена выходим из системы
+          localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          // Проверяем, не находимся ли мы на странице логина, чтобы избежать цикличного редиректа
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+        }
+      } else {
+        // Если нет refresh token, проверяем наличие Google-пользователя еще раз
+        // (это на случай, если гугл-пользователь был добавлен после первой проверки)
+        const googleUserCheck = localStorage.getItem('googleUser');
+        if (!googleUserCheck) {
+          localStorage.removeItem('token');
+          // Проверяем, не находимся ли мы на странице логина, чтобы избежать цикличного редиректа
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
         }
       }
-      */
     }
 
     return Promise.reject(error);

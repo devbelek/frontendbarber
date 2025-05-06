@@ -37,35 +37,36 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     </svg>
   );
 
-  const handleGoogleLoginSuccess = (credentialResponse: any) => {
-    try {
-      const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
-      console.log('Google login success:', decoded);
+    // Обновленный метод handleGoogleLoginSuccess в LoginModal.tsx
+    const handleGoogleLoginSuccess = (credentialResponse: any) => {
+      try {
+        const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
+        console.log('Google login success:', decoded);
 
-      // Extract relevant user info
-      const userInfo = {
-        email: decoded.email,
-        name: decoded.name,
-        picture: decoded.picture,
-        given_name: decoded.given_name,
-        family_name: decoded.family_name
-      };
+        // Extract relevant user info
+        const userInfo = {
+          email: decoded.email,
+          name: decoded.name,
+          picture: decoded.picture,
+          given_name: decoded.given_name,
+          family_name: decoded.family_name
+        };
 
-      // Login with Google
-      loginWithGoogle(userInfo);
+        // Login with Google
+        loginWithGoogle(userInfo);
 
-      // Close modal
-      onClose();
+        // Close modal
+        onClose();
 
-      // Show success message
-      setTimeout(() => {
-        alert('Вы успешно вошли как барбер через Google!');
-      }, 500);
-    } catch (error) {
-      console.error('Error processing Google login:', error);
-      alert('Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
-    }
-  };
+        // Show success message
+        setTimeout(() => {
+          alert('Вы успешно вошли как барбер через Google!');
+        }, 500);
+      } catch (error) {
+        console.error('Error processing Google login:', error);
+        alert('Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+      }
+    };
 
   const handleGoogleLoginError = () => {
     console.error('Google login failed');

@@ -67,78 +67,94 @@ const AddServicePage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
 
-    try {
-      // Валидация
-      if (!formData.title.trim()) {
-        setError('Пожалуйста, введите название услуги');
+      try {
+        // Валидация
+        if (!formData.title.trim()) {
+          setError('Пожалуйста, введите название услуги');
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.price.trim() || isNaN(Number(formData.price))) {
+          setError('Пожалуйста, введите корректную цену');
+          setLoading(false);
+          return;
+        }
+
+        if (!image) {
+          setError('Пожалуйста, загрузите фото работы');
+          setLoading(false);
+          return;
+        }
+
+        // Проверка наличия токена
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Требуется авторизация. Пожалуйста, войдите в систему снова.');
+          setLoading(false);
+          setTimeout(() => navigate('/login'), 2000);
+          return;
+        }
+
+        // Создаем FormData для отправки файла
+        const serviceData = new FormData();
+        serviceData.append('title', formData.title);
+        serviceData.append('price', formData.price);
+        serviceData.append('duration', formData.duration);
+        serviceData.append('type', formData.type);
+        serviceData.append('length', formData.length);
+        serviceData.append('style', formData.style);
+        serviceData.append('location', formData.location);
+        serviceData.append('description', formData.description);
+
+        if (image) {
+          serviceData.append('image', image);
+        }
+
+        // Отправляем на сервер
+        await servicesAPI.create(serviceData);
+
+        setSuccess('Услуга успешно добавлена!');
+
+        // Сбрасываем форму
+        setFormData({
+          title: '',
+          price: '',
+          duration: '30',
+          type: 'classic',
+          length: 'short',
+          style: 'business',
+          location: user?.profile?.address || '',
+          description: '',
+        });
+        setImage(null);
+        setPreviewUrl(null);
+
+        // Редирект на профиль после небольшой задержки
+        setTimeout(() => {
+          navigate('/profile');
+        }, 2000);
+
+      } catch (err: any) {
+        console.error('Error creating service:', err);
+        let errorMessage = err.response?.data?.detail || 'Не удалось создать услугу. Пожалуйста, попробуйте позже.';
+
+        if (err.response?.status === 401) {
+          errorMessage = 'Требуется авторизация. Пожалуйста, войдите в систему снова.';
+          setTimeout(() => navigate('/login'), 2000);
+        }
+
+        setError(errorMessage);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      if (!formData.price.trim() || isNaN(Number(formData.price))) {
-        setError('Пожалуйста, введите корректную цену');
-        setLoading(false);
-        return;
-      }
-
-      if (!image) {
-        setError('Пожалуйста, загрузите фото работы');
-        setLoading(false);
-        return;
-      }
-
-      // Создаем FormData для отправки файла
-      const serviceData = new FormData();
-      serviceData.append('title', formData.title);
-      serviceData.append('price', formData.price);
-      serviceData.append('duration', formData.duration);
-      serviceData.append('type', formData.type);
-      serviceData.append('length', formData.length);
-      serviceData.append('style', formData.style);
-      serviceData.append('location', formData.location);
-      serviceData.append('description', formData.description);
-
-      if (image) {
-        serviceData.append('image', image);
-      }
-
-      // Отправляем на сервер
-      await servicesAPI.create(serviceData);
-
-      setSuccess('Услуга успешно добавлена!');
-
-      // Сбрасываем форму
-      setFormData({
-        title: '',
-        price: '',
-        duration: '30',
-        type: 'classic',
-        length: 'short',
-        style: 'business',
-        location: user?.profile?.address || '',
-        description: '',
-      });
-      setImage(null);
-      setPreviewUrl(null);
-
-      // Редирект на профиль после небольшой задержки
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
-
-    } catch (err: any) {
-      console.error('Error creating service:', err);
-      setError(err.response?.data?.detail || 'Не удалось создать услугу. Пожалуйста, попробуйте позже.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
     <Layout openLoginModal={() => {}}>

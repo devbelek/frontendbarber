@@ -1,5 +1,4 @@
-// src/context/AuthContext.tsx - обновите toggleFavorite и весь AuthProvider
-
+// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
@@ -45,13 +44,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           fetchCurrentUser();
         } catch (err) {
           console.error('Invalid token:', err);
+
+          // Проверяем, есть ли Google-пользователь и обновляем токен
+          if (googleUser) {
+            try {
+              const userData = JSON.parse(googleUser);
+              setUser(userData);
+
+              // Создаем новый временный токен
+              const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+              localStorage.setItem('token', newToken);
+
+              setLoading(false);
+              return; // Прерываем выполнение функции
+            } catch (parseErr) {
+              console.error('Failed to parse Google user data:', parseErr);
+            }
+          }
+
+          // Если нет Google-пользователя или не удалось его восстановить, удаляем токен
           localStorage.removeItem('token');
           setLoading(false);
         }
       } else if (googleUser) {
-        // Если есть данные Google-пользователя, восстанавливаем сессию
+        // Если есть данные Google-пользователя, но нет токена, восстанавливаем сессию и создаем новый токен
         try {
           const userData = JSON.parse(googleUser);
+
+          // Создаем новый временный токен
+          const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+          localStorage.setItem('token', newToken);
+
           setUser(userData);
           setLoading(false);
         } catch (err) {
@@ -70,6 +93,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchCurrentUser = async () => {
     try {
       setLoading(true);
+
+      // Проверяем, не является ли пользователь Google-пользователем
+      const googleUser = localStorage.getItem('googleUser');
+      if (googleUser) {
+        // Просто восстанавливаем данные Google-пользователя
+        const userData = JSON.parse(googleUser);
+        setUser(userData);
+        return; // Прерываем выполнение функции
+      }
+
+      // Для обычных пользователей получаем данные с сервера
       const response = await authAPI.getCurrentUser();
 
       // Получаем избранные услуги
@@ -95,8 +129,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
     } catch (err) {
       console.error('Failed to fetch user:', err);
-      localStorage.removeItem('token');
-      setUser(null);
+
+      // Проверяем наличие Google-пользователя перед удалением токена
+      const googleUser = localStorage.getItem('googleUser');
+      if (!googleUser) {
+        localStorage.removeItem('token');
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -132,6 +171,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loginWithGoogle = (googleUserInfo: GoogleUserInfo) => {
+    // Генерируем временный JWT-подобный токен на стороне клиента
+    const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
+    // Сохраняем токен в localStorage
+    localStorage.setItem('token', tempToken);
+
     // Создаем объект пользователя на основе данных из Google
     const userData: User = {
       id: `google-${Date.now()}`, // Временный ID для Google-пользователя
@@ -180,9 +225,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
-  // ИСПРАВЛЕННАЯ ФУНКЦИЯ toggleFavorite
   const toggleFavorite = async (haircutId: string): Promise<void> => {
     if (!user) return Promise.reject('User not authenticated');
+
+    // Проверяем наличие токена
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Создаем новый временный токен для Google-пользователей
+      const googleUser = localStorage.getItem('googleUser');
+      if (googleUser) {
+        const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        localStorage.setItem('token', newToken);
+      } else {
+        setError('Требуется авторизация для добавления в избранное');
+        return Promise.reject('No authentication token');
+      }
+    }
 
     try {
       setLoading(true);

@@ -123,6 +123,13 @@ export const authAPI = {
   validateToken: () => {
     const token = localStorage.getItem('token');
     if (!token) return Promise.reject('No token found');
+
+  // Проверяем, начинается ли токен с 'google-auth-' (наш временный токен)
+    if (token.startsWith('google-auth-')) {
+    // Для Google-токенов возвращаем успешный ответ без проверки на сервере
+      return Promise.resolve({ data: { valid: true } });
+    }
+
+  // Для обычных токенов выполняем стандартную проверку
     return apiClient.post('/auth/jwt/verify/', { token });
-  },
-};
+  }

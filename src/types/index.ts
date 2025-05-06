@@ -48,7 +48,6 @@ export interface User {
   profile?: UserProfile;
   favorites: string[];
   bookings?: Booking[];
-  // Google authentication related
   googleId?: string;
   isGoogleUser?: boolean;
   picture?: string;

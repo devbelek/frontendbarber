@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, User, Scissors } from 'lucide-react';
 import Card, { CardContent } from '../ui/Card';
+import Button from '../ui/Button';
 import { Link } from 'react-router-dom';
 import { favoritesAPI } from '../../api/services';
 import { Favorite } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import ImageWithFallback from '../ui/ImageWithFallback';
 
 const FavoritesList: React.FC = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toggleFavorite } = useAuth();
 
   useEffect(() => {
@@ -18,10 +21,18 @@ const FavoritesList: React.FC = () => {
   const loadFavorites = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const response = await favoritesAPI.getAll();
-      setFavorites(response.data);
-    } catch (error) {
-      console.error('Ошибка при загрузке избранного:', error);
+
+      if (response.data) {
+        setFavorites(Array.isArray(response.data) ? response.data : (response.data.results || []));
+      } else {
+        setFavorites([]);
+      }
+    } catch (err) {
+      console.error('Ошибка при загрузке избранного:', err);
+      setError('Не удалось загрузить избранное. Пожалуйста, попробуйте позже.');
     } finally {
       setLoading(false);
     }
@@ -60,6 +71,19 @@ const FavoritesList: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => loadFavorites()}>
+            Повторить загрузку
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (favorites.length === 0) {
     return (
       <Card>
@@ -93,7 +117,7 @@ const FavoritesList: React.FC = () => {
                 </div>
 
                 <div className="text-lg font-bold text-[#9A0F34]">
-                  {favorite.service_details?.price} ₽
+                  {favorite.service_details?.price} сом
                 </div>
 
                 <button
@@ -108,7 +132,7 @@ const FavoritesList: React.FC = () => {
               {favorite.service_details?.image && (
                 <Link to={`/services/${favorite.service}`} className="block">
                   <div className="w-20 h-20 rounded-md overflow-hidden">
-                    <img
+                    <ImageWithFallback
                       src={favorite.service_details.image}
                       alt={favorite.service_details.title}
                       className="w-full h-full object-cover"

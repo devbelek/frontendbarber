@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, Clock, MessageCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import ImageWithFallback from '../ui/ImageWithFallback';
 import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -18,7 +19,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
-  const isFavorite = user?.favorites.includes(haircut.id) || false;
+  const isFavorite = user?.favorites?.includes(haircut.id) || false;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,7 +42,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           </div>
         )}
 
-        <img
+        <ImageWithFallback
           src={haircut.image}
           alt={haircut.title}
           className={`w-full h-64 object-cover transition-opacity duration-300 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}

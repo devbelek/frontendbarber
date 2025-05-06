@@ -10,6 +10,7 @@ import { servicesAPI, bookingsAPI } from '../api/services';
 import axios from 'axios';
 import { Barber, Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import ImageWithFallback from '../components/ui/ImageWithFallback';
 
 const BarberProfilePage: React.FC = () => {
   const { t } = useLanguage();
@@ -170,7 +171,7 @@ const BarberProfilePage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
           <div className="md:flex">
             <div className="md:w-1/3">
-              <img
+              <ImageWithFallback
                 src={barber.avatar}
                 alt={barber.name}
                 className="h-full w-full object-cover"

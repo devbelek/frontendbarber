@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, LogOut, MapPin, Phone, MessageCircle } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import BookingsList from '../components/booking/BookingsList';
+import FavoritesList from '../components/favorites/FavoritesList';
+import TelegramRegistration from '../components/profile/TelegramRegistration';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { profileAPI } from '../api/services';
@@ -18,9 +21,9 @@ const ProfilePage: React.FC = () => {
     first_name: '',
     last_name: '',
     email: '',
-    phone: '',
-    address: '',
+    whatsapp: '',
     telegram: '',
+    address: '',
     offers_home_service: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,9 +37,9 @@ const ProfilePage: React.FC = () => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
-        phone: user.profile?.phone || '',
-        address: user.profile?.address || '',
+        whatsapp: user.profile?.whatsapp || '',
         telegram: user.profile?.telegram || '',
+        address: user.profile?.address || '',
         offers_home_service: user.profile?.offers_home_service || false
       });
     }
@@ -45,7 +48,7 @@ const ProfilePage: React.FC = () => {
   // Проверка авторизации
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/');
+      navigate('/login');
     }
   }, [isAuthenticated, navigate]);
 
@@ -81,9 +84,9 @@ const ProfilePage: React.FC = () => {
 
       // Данные для обновления профиля
       const profileData = {
-        phone: formData.phone,
-        address: formData.address,
+        whatsapp: formData.whatsapp,
         telegram: formData.telegram,
+        address: formData.address,
         offers_home_service: formData.offers_home_service
       };
 
@@ -96,24 +99,8 @@ const ProfilePage: React.FC = () => {
       setSuccess('Данные профиля успешно обновлены');
       setIsEditing(false);
 
-      // Обновляем состояние пользователя
-      if (user) {
-        const updatedUser = {
-          ...user,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          profile: {
-            ...user.profile,
-            phone: formData.phone,
-            address: formData.address,
-            telegram: formData.telegram,
-            offers_home_service: formData.offers_home_service
-          }
-        };
-
-        // Обновляем пользователя в контексте (нужно добавить setUser в AuthContext)
-        // setUser(updatedUser);
-      }
+      // Обновляем состояние пользователя (не реализовано в текущем коде)
+      // Обычно мы бы перезапросили данные пользователя или обновили их вручную
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       let errorMessage = 'Произошла ошибка при обновлении профиля';
@@ -287,21 +274,47 @@ const ProfilePage: React.FC = () => {
                             </p>
                           </div>
 
+                          {/* Замена поля телефона на Telegram и WhatsApp */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Телефон
+                              Telegram профиль
                             </label>
                             <div className="relative">
-                              <Phone className="absolute top-2.5 left-3 h-5 w-5 text-gray-400" />
+                              <MessageCircle className="absolute top-2.5 left-3 h-5 w-5 text-blue-400" />
                               <input
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
+                                type="text"
+                                name="telegram"
+                                value={formData.telegram}
+                                onChange={handleChange}
+                                placeholder="Username (без @)"
+                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              На этот профиль будут отправляться уведомления о бронированиях
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              WhatsApp номер
+                            </label>
+                            <div className="relative">
+                              <svg viewBox="0 0 24 24" className="absolute top-2.5 left-3 h-5 w-5 text-green-500">
+                                <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                              </svg>
+                              <input
+                                type="text"
+                                name="whatsapp"
+                                value={formData.whatsapp}
                                 onChange={handleChange}
                                 placeholder="+996 XXX XXX XXX"
                                 className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
                               />
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              WhatsApp номер для связи с клиентами
+                            </p>
                           </div>
 
                           <div>
@@ -319,26 +332,6 @@ const ProfilePage: React.FC = () => {
                                 className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
                               />
                             </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Telegram профиль
-                            </label>
-                            <div className="relative">
-                              <MessageCircle className="absolute top-2.5 left-3 h-5 w-5 text-blue-400" />
-                              <input
-                                type="text"
-                                name="telegram"
-                                value={formData.telegram}
-                                onChange={handleChange}
-                                placeholder="Например: username без @"
-                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              На этот профиль будут отправляться уведомления о заказах
-                            </p>
                           </div>
 
                           <div className="flex items-center">
@@ -390,12 +383,67 @@ const ProfilePage: React.FC = () => {
                             <p className="text-gray-900">{user.email}</p>
                           </div>
 
+                          {/* Отображение Telegram */}
                           <div className="border-b pb-3">
                             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                              <Phone className="h-4 w-4 mr-1" />
-                              Телефон
+                              <MessageCircle className="h-4 w-4 mr-1 text-blue-500" />
+                              Telegram
                             </label>
-                            <p className="text-gray-900">{user.profile?.phone || 'Не указан'}</p>
+                            <p className="text-gray-900">
+                              {user.profile?.telegram ? (
+                                <a
+                                  href={`https://t.me/${user.profile.telegram}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline flex items-center"
+                                >
+                                  @{user.profile.telegram}
+                                  <svg
+                                    className="h-4 w-4 ml-1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                    />
+                                  </svg>
+                                </a>
+                              ) : (
+                                'Не указан'
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Отображение WhatsApp */}
+                          <div className="border-b pb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                              <svg viewBox="0 0 24 24" className="h-4 w-4 mr-1 text-green-500">
+                                <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                              </svg>
+                              WhatsApp
+                            </label>
+                            <p className="text-gray-900">
+                              {user.profile?.whatsapp ? (
+                                <a
+                                  href={`https://wa.me/${user.profile.whatsapp.replace(/\s+/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-green-600 hover:underline flex items-center"
+                                >
+                                  {user.profile.whatsapp}
+                                  <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              ) : (
+                                'Не указан'
+                              )}
+                            </p>
                           </div>
 
                           <div className="border-b pb-3">
@@ -410,73 +458,38 @@ const ProfilePage: React.FC = () => {
                               </div>
                             )}
                           </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                              <MessageCircle className="h-4 w-4 mr-1" />
-                              Telegram для уведомлений
-                            </label>
-                            <p className="text-gray-900">
-                            {user.profile?.telegram ? (
-                              <a
-                                href={`https://t.me/${user.profile.telegram}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline flex items-center"
-                              >
-                                @{user.profile.telegram}
-                                <svg
-                                  className="h-4 w-4 ml-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                  />
-                                </svg>
-                              </a>
-                            ) : (
-                              'Не указан'
-                            )}
-                            </p>
-                          </div>
                         </div>
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* Добавляем кнопку для барберов, чтобы добавить услугу */}
+                  {user.profile?.user_type === 'barber' && (
+                    <div className="mt-6">
+                      <Button
+                        variant="primary"
+                        onClick={() => navigate('/add-service')}
+                        className="flex items-center"
+                      >
+                        <Scissors className="h-4 w-4 mr-2" />
+                        Добавить услугу
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'bookings' && (
                 <div>
                   <h3 className="text-xl font-bold mb-4">{t('myBookings')}</h3>
-                  <Card>
-                    <CardContent className="text-center py-12">
-                      <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        У вас пока нет бронирований
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <BookingsList />
                 </div>
               )}
 
               {activeTab === 'favorites' && (
                 <div>
                   <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
-                  <Card>
-                    <CardContent className="text-center py-12">
-                      <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        У вас пока нет избранных стрижек
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <FavoritesList />
                 </div>
               )}
             </div>

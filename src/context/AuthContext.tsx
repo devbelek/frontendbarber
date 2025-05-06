@@ -1,8 +1,8 @@
-// src/context/AuthContext.tsx
+// src/context/AuthContext.tsx - обновите toggleFavorite и весь AuthProvider
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../types';
-import { authAPI } from '../api/services';
-import { favoritesAPI } from '../api/services';
+import { authAPI, favoritesAPI } from '../api/services';
 
 type GoogleUserInfo = {
   email: string;
@@ -180,28 +180,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
-  const toggleFavorite = async (haircutId: string) => {
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ toggleFavorite
+  const toggleFavorite = async (haircutId: string): Promise<void> => {
     if (!user) return Promise.reject('User not authenticated');
 
     try {
-      const isFavorite = user.favorites.includes(haircutId);
+      setLoading(true);
+      // Проверяем, добавлена ли услуга в избранное
+      const isFavorite = user.favorites?.includes(haircutId) || false;
 
       if (isFavorite) {
+        // Удаляем из избранного
         await favoritesAPI.remove(haircutId);
-        setUser(prev => {
-          if (!prev) return null;
+
+        // Обновляем состояние избранного в пользователе
+        setUser(prevUser => {
+          if (!prevUser) return null;
           return {
-            ...prev,
-            favorites: prev.favorites.filter(id => id !== haircutId)
+            ...prevUser,
+            favorites: prevUser.favorites.filter(id => id !== haircutId)
           };
         });
       } else {
+        // Добавляем в избранное
         await favoritesAPI.add(haircutId);
-        setUser(prev => {
-          if (!prev) return null;
+
+        // Обновляем состояние избранного в пользователе
+        setUser(prevUser => {
+          if (!prevUser) return null;
           return {
-            ...prev,
-            favorites: [...prev.favorites, haircutId]
+            ...prevUser,
+            favorites: [...(prevUser.favorites || []), haircutId]
           };
         });
       }
@@ -209,7 +218,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return Promise.resolve();
     } catch (err) {
       console.error('Error toggling favorite:', err);
+      setError('Не удалось обновить избранное. Пожалуйста, попробуйте позже.');
       return Promise.reject(err);
+    } finally {
+      setLoading(false);
     }
   };
 

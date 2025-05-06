@@ -12,6 +12,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import LoginModal from './components/auth/LoginModal';
 import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
+import AddServicePage from './pages/AddServicePage';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -37,6 +38,8 @@ function App() {
               <Route path="/profile" element={<ProfilePage openLoginModal={openLoginModal} />} />
               <Route path="/barbers" element={<BarberListPage openLoginModal={openLoginModal} />} />
               <Route path="/login" element={<LoginPage />} />
+              {/* Добавьте этот маршрут */}
+              <Route path="/add-service" element={<AddServicePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Router>

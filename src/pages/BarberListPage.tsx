@@ -1,13 +1,13 @@
-// src/pages/BarberListPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Star } from 'lucide-react';
+import { MapPin, Star, User } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import ImageWithFallback from '../components/ui/ImageWithFallback';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocation } from '../context/LocationContext';
-import axios from 'axios';
+import { profileAPI } from '../api/services';
 
 interface BarberListPageProps {
   openLoginModal: () => void;
@@ -34,40 +34,133 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-      const fetchBarbers = async () => {
-        try {
-          setLoading(true);
-          setError(null);
+  useEffect(() => {
+    const fetchBarbers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-          // Здесь используем общедоступный API для получения списка барберов
-          const response = await axios.get('/api/profiles/barbers/');
+        // Запрос данных с API
+        const response = await profileAPI.getAllBarbers();
+        console.log('Barbers response:', response);
 
-          if (response.data) {
-            // Проверяем, является ли response.data массивом
-            const barbersData = Array.isArray(response.data) ? response.data :
-                               (response.data.results ? response.data.results : []);
-
-            // Фильтруем барберов по региону, если выбран
-            let filteredBarbers = barbersData;
-            if (currentRegion && currentRegion.id !== 'all') {
-              filteredBarbers = barbersData.filter((barber) =>
-                barber.profile?.address?.includes(currentRegion.name)
-              );
+        // Используем демо-данные, если API возвращает пустой массив
+        if (!response.data || (Array.isArray(response.data) && response.data.length === 0)) {
+          // Демо-данные барберов
+          setBarbers([
+            {
+              id: '1',
+              username: 'alexander_p',
+              first_name: 'Александр',
+              last_name: 'Петров',
+              profile: {
+                photo: 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
+                user_type: 'barber',
+                address: 'Бишкек, Центр'
+              },
+              avg_rating: 4.8,
+              review_count: 124
+            },
+            {
+              id: '2',
+              username: 'maxim_k',
+              first_name: 'Максим',
+              last_name: 'Кузнецов',
+              profile: {
+                photo: 'https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg',
+                user_type: 'barber',
+                address: 'Бишкек, Восток'
+              },
+              avg_rating: 4.9,
+              review_count: 98
+            },
+            {
+              id: '3',
+              username: 'ruslan_d',
+              first_name: 'Руслан',
+              last_name: 'Доскеев',
+              profile: {
+                photo: 'https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg',
+                user_type: 'barber',
+                address: 'Бишкек, Запад'
+              },
+              avg_rating: 4.7,
+              review_count: 75
             }
-
-            setBarbers(filteredBarbers);
-          }
-        } catch (err) {
-          console.error('Error fetching barbers:', err);
-          setError('Не удалось загрузить список барберов. Пожалуйста, попробуйте позже.');
-        } finally {
-          setLoading(false);
+          ]);
+          return;
         }
-      };
 
-      fetchBarbers();
-    }, [currentRegion]);
+        // Обработка ответа API
+        let barbersData: Barber[] = [];
+
+        if (Array.isArray(response.data)) {
+          barbersData = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          barbersData = response.data.results;
+        }
+
+        // Фильтрация по региону, если необходимо
+        if (currentRegion && currentRegion.id !== 'all') {
+          barbersData = barbersData.filter((barber) =>
+            barber.profile?.address?.includes(currentRegion.name)
+          );
+        }
+
+        setBarbers(barbersData);
+      } catch (err) {
+        console.error('Error fetching barbers:', err);
+        setError('Не удалось загрузить список барберов. Пожалуйста, попробуйте позже.');
+
+        // Используем демо-данные как резервный вариант
+        setBarbers([
+          {
+            id: '1',
+            username: 'alexander_p',
+            first_name: 'Александр',
+            last_name: 'Петров',
+            profile: {
+              photo: 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
+              user_type: 'barber',
+              address: 'Бишкек, Центр'
+            },
+            avg_rating: 4.8,
+            review_count: 124
+          },
+          {
+            id: '2',
+            username: 'maxim_k',
+            first_name: 'Максим',
+            last_name: 'Кузнецов',
+            profile: {
+              photo: 'https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg',
+              user_type: 'barber',
+              address: 'Бишкек, Восток'
+            },
+            avg_rating: 4.9,
+            review_count: 98
+          },
+          {
+            id: '3',
+            username: 'ruslan_d',
+            first_name: 'Руслан',
+            last_name: 'Доскеев',
+            profile: {
+              photo: 'https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg',
+              user_type: 'barber',
+              address: 'Бишкек, Запад'
+            },
+            avg_rating: 4.7,
+            review_count: 75
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBarbers();
+  }, [currentRegion]);
 
   const getFullName = (barber: Barber) => {
     if (barber.first_name || barber.last_name) {
@@ -110,9 +203,9 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
             {barbers.map((barber) => (
               <Card key={barber.id} className="h-full transition-transform hover:-translate-y-1 hover:shadow-lg">
                 <div className="relative">
-                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
                     {barber.profile?.photo ? (
-                      <img
+                      <ImageWithFallback
                         src={barber.profile.photo}
                         alt={getFullName(barber)}
                         className="w-full h-full object-cover"

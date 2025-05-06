@@ -4,35 +4,112 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+// Демо-данные для случаев, когда API недоступен
+const demoHaircuts = [
+  {
+    id: '1',
+    image: 'https://images.pexels.com/photos/1576937/pexels-photo-1576937.jpeg',
+    title: 'Классическая стрижка',
+    price: 500,
+    barber: 'Александр П.',
+    barber_details: {
+      id: 1,
+      full_name: 'Александр Петров'
+    },
+    type: 'classic',
+    length: 'short',
+    style: 'business',
+    location: 'Бишкек, Центр',
+    duration: 30,
+    is_favorite: false
+  },
+  {
+    id: '2',
+    image: 'https://images.pexels.com/photos/1805600/pexels-photo-1805600.jpeg',
+    title: 'Фейд с текстурой',
+    price: 600,
+    barber: 'Максим К.',
+    barber_details: {
+      id: 2,
+      full_name: 'Максим Кузнецов'
+    },
+    type: 'fade',
+    length: 'short',
+    style: 'modern',
+    location: 'Бишкек, Восток',
+    duration: 45,
+    is_favorite: false
+  },
+  {
+    id: '3',
+    image: 'https://images.pexels.com/photos/1319460/pexels-photo-1319460.jpeg',
+    title: 'Андеркат',
+    price: 650,
+    barber: 'Руслан Д.',
+    barber_details: {
+      id: 3,
+      full_name: 'Руслан Доскеев'
+    },
+    type: 'undercut',
+    length: 'medium',
+    style: 'trendy',
+    location: 'Бишкек, Центр',
+    duration: 35,
+    is_favorite: false
+  }
+];
+
+const demoBarbers = [
+  {
+    id: '1',
+    username: 'alexander_p',
+    first_name: 'Александр',
+    last_name: 'Петров',
+    profile: {
+      photo: 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
+      user_type: 'barber',
+      address: 'Бишкек, Центр'
+    },
+    avg_rating: 4.8,
+    review_count: 124
+  },
+  {
+    id: '2',
+    username: 'maxim_k',
+    first_name: 'Максим',
+    last_name: 'Кузнецов',
+    profile: {
+      photo: 'https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg',
+      user_type: 'barber',
+      address: 'Бишкек, Восток'
+    },
+    avg_rating: 4.9,
+    review_count: 98
+  },
+  {
+    id: '3',
+    username: 'ruslan_d',
+    first_name: 'Руслан',
+    last_name: 'Доскеев',
+    profile: {
+      photo: 'https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg',
+      user_type: 'barber',
+      address: 'Бишкек, Запад'
+    },
+    avg_rating: 4.7,
+    review_count: 75
+  }
+];
+
 // API для профиля пользователя
 export const profileAPI = {
   // Получить информацию о текущем пользователе
   getCurrentUser: () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return Promise.reject({
-        response: {
-          data: {
-            detail: 'No authentication token found'
-          }
-        }
-      });
-    }
     return apiClient.get('/auth/users/me/');
   },
 
   // Обновить информацию пользователя
   updateUserInfo: (data) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return Promise.reject({
-        response: {
-          data: {
-            detail: 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.'
-          }
-        }
-      });
-    }
     return apiClient.patch('/auth/users/me/', data);
   },
 
@@ -40,10 +117,15 @@ export const profileAPI = {
   updateProfile: (data) => apiClient.patch('/profiles/profile/update/', data),
 
   // Получить профиль барбера по ID
-  getBarberProfile: (id) => apiClient.get(`/profiles/barbers/${id}/`),
+  getBarberProfile: (id) => {
+    return apiClient.get(`/profiles/barbers/${id}/`);
+  },
 
   // Получить список всех барберов
-  getAllBarbers: () => apiClient.get('/profiles/barbers/'),
+  getAllBarbers: () => {
+    console.log('Fetching barbers from backend API');
+    return apiClient.get('/profiles/barbers/');
+  },
 };
 
 // API для уведомлений Telegram
@@ -79,8 +161,26 @@ export const bookingsAPI = {
 
 // API для сервисов
 export const servicesAPI = {
-  getAll: (params = {}) => apiClient.get('/services/', { params }),
-  getById: (id) => apiClient.get(`/services/${id}/`),
+  getAll: (params = {}) => {
+    try {
+      return apiClient.get('/services/', { params });
+    } catch (error) {
+      console.log("Using demo data for services");
+      return Promise.resolve({
+        data: demoHaircuts
+      });
+    }
+  },
+  getById: (id) => {
+    try {
+      return apiClient.get(`/services/${id}/`);
+    } catch (error) {
+      console.log("Using demo data for service");
+      return Promise.resolve({
+        data: demoHaircuts.find(h => h.id === id) || demoHaircuts[0]
+      });
+    }
+  },
   create: (data) => apiClient.post('/services/', data),
   update: (id, data) => apiClient.patch(`/services/${id}/`, data),
   delete: (id) => apiClient.delete(`/services/${id}/`),
@@ -124,12 +224,6 @@ export const authAPI = {
     const token = localStorage.getItem('token');
     if (!token) return Promise.reject('No token found');
 
-  // Проверяем, начинается ли токен с 'google-auth-' (наш временный токен)
-    if (token.startsWith('google-auth-')) {
-    // Для Google-токенов возвращаем успешный ответ без проверки на сервере
-      return Promise.resolve({ data: { valid: true } });
-    }
-
-  // Для обычных токенов выполняем стандартную проверку
     return apiClient.post('/auth/jwt/verify/', { token });
   }
+}

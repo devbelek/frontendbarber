@@ -1,3 +1,5 @@
+// Файл: src/pages/BarberListPage.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, User } from 'lucide-react';
@@ -13,26 +15,12 @@ interface BarberListPageProps {
   openLoginModal: () => void;
 }
 
-interface Barber {
-  id: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  profile: {
-    photo: string | null;
-    user_type: string;
-    address: string | null;
-  };
-  avg_rating?: number;
-  review_count?: number;
-}
-
 const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const { currentRegion } = useLocation();
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchBarbers = async () => {
@@ -40,98 +28,40 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
         setLoading(true);
         setError(null);
 
-        // Запрос данных с API
+        console.log('Запрос списка барберов...');
         const response = await profileAPI.getAllBarbers();
-        console.log('Barbers response:', response);
+        console.log('Ответ API барберов:', response);
 
-        // Если ответ успешный, но данные отсутствуют или пусты
-        if (!response.data ||
-            (Array.isArray(response.data) && response.data.length === 0) ||
-            (response.data.results && Array.isArray(response.data.results) && response.data.results.length === 0)) {
+        // Проверка наличия данных в ответе
+        if (response && response.data) {
+          let barbersData = [];
 
-          // Используем демо-данные
-          setBarbers([
-            {
-              id: '1',
-              username: 'alexander_p',
-              first_name: 'Александр',
-              last_name: 'Петров',
-              profile: {
-                photo: 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-                user_type: 'barber',
-                address: 'Бишкек, Центр'
-              },
-              avg_rating: 4.8,
-              review_count: 124
-            },
-            // Остальные демо-данные...
-          ]);
-          return;
-        }
-
-        // Обработка успешного ответа API
-        let barbersData: Barber[] = [];
-
-        if (Array.isArray(response.data)) {
-          barbersData = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          barbersData = response.data.results;
-        }
-
-        // Фильтрация по региону, если необходимо
-        if (currentRegion && currentRegion.id !== 'all') {
-          barbersData = barbersData.filter((barber) =>
-            barber.profile?.address?.includes(currentRegion.name)
-          );
-        }
-
-        setBarbers(barbersData);
-      } catch (err) {
-        console.error('Error fetching barbers:', err);
-        setError('Не удалось загрузить список барберов. Пожалуйста, попробуйте позже.');
-
-        // Используем демо-данные как резервный вариант
-        setBarbers([
-          {
-            id: '1',
-            username: 'alexander_p',
-            first_name: 'Александр',
-            last_name: 'Петров',
-            profile: {
-              photo: 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-              user_type: 'barber',
-              address: 'Бишкек, Центр'
-            },
-            avg_rating: 4.8,
-            review_count: 124
-          },
-          {
-            id: '2',
-            username: 'maxim_k',
-            first_name: 'Максим',
-            last_name: 'Кузнецов',
-            profile: {
-              photo: 'https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg',
-              user_type: 'barber',
-              address: 'Бишкек, Восток'
-            },
-            avg_rating: 4.9,
-            review_count: 98
-          },
-          {
-            id: '3',
-            username: 'ruslan_d',
-            first_name: 'Руслан',
-            last_name: 'Доскеев',
-            profile: {
-              photo: 'https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg',
-              user_type: 'barber',
-              address: 'Бишкек, Запад'
-            },
-            avg_rating: 4.7,
-            review_count: 75
+          // Если данные в формате пагинации с полем results
+          if (response.data.results && Array.isArray(response.data.results)) {
+            console.log('Извлекаем барберов из поля results:', response.data.results);
+            barbersData = response.data.results;
           }
-        ]);
+          // Если данные пришли сразу как массив
+          else if (Array.isArray(response.data)) {
+            console.log('Данные пришли как массив:', response.data);
+            barbersData = response.data;
+          }
+
+          console.log('Обработанные данные барберов:', barbersData);
+
+          if (barbersData.length > 0) {
+            setBarbers(barbersData);
+          } else {
+            setError('В системе пока нет зарегистрированных барберов');
+          }
+        } else {
+          setBarbers([]);
+          setError('Не удалось получить данные о барберах');
+        }
+      } catch (err) {
+        console.error('Ошибка при загрузке барберов:', err);
+        setError('Не удалось загрузить барберов. Пожалуйста, попробуйте позже.');
+        setBarbers([]);
       } finally {
         setLoading(false);
       }
@@ -140,7 +70,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
     fetchBarbers();
   }, [currentRegion]);
 
-  const getFullName = (barber: Barber) => {
+  const getFullName = (barber) => {
     if (barber.first_name || barber.last_name) {
       return `${barber.first_name || ''} ${barber.last_name || ''}`.trim();
     }
@@ -174,7 +104,9 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
         ) : error ? (
           <div className="bg-red-50 p-6 rounded-lg text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>Попробовать снова</Button>
+            <Button onClick={() => window.location.reload()}>
+              Попробовать снова
+            </Button>
           </div>
         ) : barbers.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

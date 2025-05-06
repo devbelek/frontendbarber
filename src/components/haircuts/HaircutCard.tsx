@@ -15,7 +15,7 @@ interface HaircutCardProps {
 
 const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { t } = useLanguage();
-  const { user, toggleFavorite } = useAuth();
+  const { user, toggleFavorite, isAuthenticated } = useAuth();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
@@ -24,6 +24,13 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Если пользователь не авторизован, просто показываем подсказку
+    if (!isAuthenticated) {
+      alert('Чтобы добавить в избранное, необходимо войти как барбер');
+      return;
+    }
+
     toggleFavorite(haircut.id);
   };
 
@@ -31,6 +38,13 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     e.preventDefault();
     e.stopPropagation();
     setShowConsultModal(true);
+  };
+
+  // Прямой переход к бронированию без проверки авторизации
+  const handleBookClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onBookClick(haircut);
   };
 
   return (
@@ -92,7 +106,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           <Button
             variant="primary"
             fullWidth
-            onClick={() => onBookClick(haircut)}
+            onClick={handleBookClick}
             className="flex-1"
           >
             {t('iWantThis')}

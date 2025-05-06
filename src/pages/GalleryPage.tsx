@@ -3,10 +3,9 @@ import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import FilterBar from '../components/filters/FilterBar';
 import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI, bookingsAPI } from '../api/services';
+import { servicesAPI } from '../api/services';
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 
 interface GalleryPageProps {
   openLoginModal: () => void;
@@ -14,95 +13,82 @@ interface GalleryPageProps {
 
 const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
-  const { isAuthenticated } = useAuth();
   const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    count: 0,
-    next: null,
-    previous: null
-  });
+  const [filters, setFilters] = useState({});
 
   useEffect(() => {
-    fetchHaircuts();
+    fetchHaircuts(filters);
   }, []);
 
-  const fetchHaircuts = async (filters = {}) => {
+  const fetchHaircuts = async (currentFilters = {}) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await servicesAPI.getAll(filters);
+      console.log('Fetching haircuts with filters:', currentFilters);
+      const response = await servicesAPI.getAll(currentFilters);
       console.log('API Response:', response);
 
-      // Check the structure of response.data
-      if (!response.data) {
-        console.error('No data in response:', response);
-        setError('Получены некорректные данные от сервера');
+      if (response && response.data) {
+        let results = response.data;
+
+        // Если данные в виде объекта пагинации
+        if (response.data.results && Array.isArray(response.data.results)) {
+          results = response.data.results;
+        }
+
+        if (Array.isArray(results) && results.length > 0) {
+          // Преобразуем данные API в формат компонентов
+          const haircuts: Haircut[] = results.map((service: any) => ({
+            id: service.id,
+            image: service.image,
+            title: service.title,
+            price: service.price,
+            barber: service.barber_details?.full_name || 'Unknown',
+            barberId: service.barber_details?.id || service.barber,
+            type: service.type,
+            length: service.length,
+            style: service.style,
+            location: service.location,
+            duration: service.duration,
+            isFavorite: service.is_favorite
+          }));
+
+          setFilteredHaircuts(haircuts);
+        } else {
+          setFilteredHaircuts([]);
+          setError('Не найдено стрижек по заданным критериям');
+        }
+      } else {
         setFilteredHaircuts([]);
-        return;
+        setError('Не удалось получить данные о стрижках');
       }
-
-      // Handle both array and pagination object responses
-      let results = response.data;
-
-      // If data is a pagination object with results property
-      if (response.data.results && Array.isArray(response.data.results)) {
-        results = response.data.results;
-        // Store pagination info
-        setPagination({
-          count: response.data.count || 0,
-          next: response.data.next,
-          previous: response.data.previous
-        });
-      } else if (!Array.isArray(results)) {
-        console.error('Unexpected response format:', response.data);
-        setError('Некорректный формат данных от сервера');
-        setFilteredHaircuts([]);
-        return;
-      }
-
-      // Преобразуем данные API в формат, совместимый с нашими компонентами
-      const haircuts: Haircut[] = results.map((service: any) => ({
-        id: service.id,
-        image: service.image,
-        title: service.title,
-        price: service.price,
-        barber: service.barber_details?.full_name || 'Unknown',
-        barberId: service.barber_details?.id || service.barber,
-        type: service.type,
-        length: service.length,
-        style: service.style,
-        location: service.location,
-        duration: service.duration,
-        isFavorite: service.is_favorite
-      }));
-
-      setFilteredHaircuts(haircuts);
     } catch (err) {
       console.error('Error fetching haircuts:', err);
       setError('Не удалось загрузить стрижки. Пожалуйста, попробуйте позже.');
+      setFilteredHaircuts([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFilterChange = (filters: any) => {
-    fetchHaircuts(filters);
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+    fetchHaircuts(newFilters);
   };
 
   const handleSearch = (query: string) => {
-    fetchHaircuts({ search: query });
+    const searchFilters = { ...filters, search: query };
+    setFilters(searchFilters);
+    fetchHaircuts(searchFilters);
   };
 
   const handleBookClick = (haircut: Haircut) => {
-    if (!isAuthenticated) {
-      openLoginModal();
-      return;
-    }
+    // Открываем модальное окно бронирования без проверки авторизации
     setSelectedHaircut(haircut);
     setIsBookingModalOpen(true);
   };
@@ -111,19 +97,31 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
     if (!selectedHaircut) return;
 
     try {
+      // Создаем объект данных бронирования
       const bookingData = {
         service: selectedHaircut.id,
         date: date,
         time: time,
-        notes: contactInfo?.notes || ''
+        notes: contactInfo?.notes || '',
+        // Добавляем контактную информацию для неавторизованных клиентов
+        client_name: contactInfo.name,
+        client_phone: contactInfo.phone
       };
 
-      // Используем bookingsAPI.create вместо servicesAPI.createBooking
-      await bookingsAPI.create(bookingData);
+      // Отправляем запрос на создание бронирования
+      await servicesAPI.createBooking(bookingData);
+
+      // Закрываем модальное окно
       setIsBookingModalOpen(false);
 
-      // Показать сообщение об успешном бронировании
-      alert('Бронирование успешно создано!');
+      // Показываем сообщение об успешном бронировании
+      alert(`Бронирование успешно создано!
+
+Услуга: ${selectedHaircut.title}
+Дата: ${date}
+Время: ${time}
+Имя: ${contactInfo.name}
+Телефон: ${contactInfo.phone}`);
     } catch (err) {
       console.error('Error creating booking:', err);
       alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
@@ -163,7 +161,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('error')}</h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <button
-              onClick={() => fetchHaircuts()}
+              onClick={() => fetchHaircuts(filters)}
               className="px-4 py-2 bg-[#9A0F34] text-white rounded-md hover:bg-[#7b0c29] transition-colors"
             >
               {t('tryAgain')}

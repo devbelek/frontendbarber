@@ -1,3 +1,4 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../types';
 import { authAPI } from '../api/services';
@@ -13,8 +14,9 @@ type GoogleUserInfo = {
 
 type AuthContextType = {
   user: User | null;
+  setUser: (user: User | null) => void;
   isAuthenticated: boolean;
-  login: (userData: any) => void;
+  login: (userData: any) => Promise<boolean>;
   loginWithGoogle: (userInfo: GoogleUserInfo) => void;
   register: (userData: any) => Promise<void>;
   logout: () => void;
@@ -32,25 +34,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Проверяем аутентификацию при загрузке
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const googleUser = localStorage.getItem('googleUser');
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      const googleUser = localStorage.getItem('googleUser');
 
-    if (token) {
-      fetchCurrentUser();
-    } else if (googleUser) {
-      // Если есть данные Google-пользователя, восстанавливаем сессию
-      try {
-        const userData = JSON.parse(googleUser);
-        setUser(userData);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to parse Google user data:', err);
-        localStorage.removeItem('googleUser');
+      if (token) {
+        try {
+          // Проверяем валидность токена
+          await authAPI.validateToken();
+          fetchCurrentUser();
+        } catch (err) {
+          console.error('Invalid token:', err);
+          localStorage.removeItem('token');
+          setLoading(false);
+        }
+      } else if (googleUser) {
+        // Если есть данные Google-пользователя, восстанавливаем сессию
+        try {
+          const userData = JSON.parse(googleUser);
+          setUser(userData);
+          setLoading(false);
+        } catch (err) {
+          console.error('Failed to parse Google user data:', err);
+          localStorage.removeItem('googleUser');
+          setLoading(false);
+        }
+      } else {
         setLoading(false);
       }
-    } else {
-      setLoading(false);
-    }
+    };
+
+    checkAuth();
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -59,7 +73,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authAPI.getCurrentUser();
 
       // Получаем избранные услуги
-      const favoritesResponse = await favoritesAPI.getAll();
+      let favorites: string[] = [];
+      try {
+        const favoritesResponse = await favoritesAPI.getAll();
+        favorites = favoritesResponse.data.map((favorite: any) => favorite.service);
+      } catch (err) {
+        console.warn('Failed to fetch favorites:', err);
+      }
 
       // Преобразуем данные пользователя
       const userData: User = {
@@ -69,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         first_name: response.data.first_name,
         last_name: response.data.last_name,
         profile: response.data.profile,
-        favorites: favoritesResponse.data.map((favorite: any) => favorite.service)
+        favorites: favorites
       };
 
       setUser(userData);
@@ -82,8 +102,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = (userData: any) => {
-    setUser(userData);
+  const login = async (userData: any): Promise<boolean> => {
+    setError(null);
+    try {
+      setLoading(true);
+      const response = await authAPI.login(userData);
+
+      // Сохраняем токены в localStorage
+      localStorage.setItem('token', response.data.access);
+      if (response.data.refresh) {
+        localStorage.setItem('refreshToken', response.data.refresh);
+      }
+
+      console.log('Login successful, token saved:', response.data.access);
+
+      // Получаем данные пользователя
+      await fetchCurrentUser();
+      return true;
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(
+        err.response?.data?.detail ||
+        'Не удалось выполнить вход. Проверьте ваши учетные данные.'
+      );
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loginWithGoogle = (googleUserInfo: GoogleUserInfo) => {
@@ -130,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('googleUser');
     setUser(null);
   };
@@ -171,6 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isAuthenticated: !!user,
         login,
         loginWithGoogle,

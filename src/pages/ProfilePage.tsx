@@ -66,6 +66,13 @@ const ProfilePage: React.FC = () => {
     setSuccess(null);
 
     try {
+      // Проверяем, авторизован ли пользователь
+      if (!user || !isAuthenticated) {
+        setError('Необходимо войти в систему для обновления профиля');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Данные для обновления пользовательской информации
       const userData = {
         first_name: formData.first_name,
@@ -89,13 +96,40 @@ const ProfilePage: React.FC = () => {
       setSuccess('Данные профиля успешно обновлены');
       setIsEditing(false);
 
-      // Обновляем страницу для получения обновленных данных
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Обновляем состояние пользователя
+      if (user) {
+        const updatedUser = {
+          ...user,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          profile: {
+            ...user.profile,
+            phone: formData.phone,
+            address: formData.address,
+            telegram: formData.telegram,
+            offers_home_service: formData.offers_home_service
+          }
+        };
+
+        // Обновляем пользователя в контексте (нужно добавить setUser в AuthContext)
+        // setUser(updatedUser);
+      }
     } catch (err: any) {
       console.error('Failed to update profile:', err);
-      setError(err.response?.data?.detail || 'Произошла ошибка при обновлении профиля');
+      let errorMessage = 'Произошла ошибка при обновлении профиля';
+
+      if (err.response?.status === 401) {
+        errorMessage = 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data) {
+        const errorsArray = Object.entries(err.response.data)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('; ');
+        errorMessage = errorsArray || errorMessage;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -383,21 +417,32 @@ const ProfilePage: React.FC = () => {
                               Telegram для уведомлений
                             </label>
                             <p className="text-gray-900">
-                              {user.profile?.telegram ? (
-
-                                  href={`https://t.me/${user.profile.telegram}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline flex items-center"
+                            {user.profile?.telegram ? (
+                              <a
+                                href={`https://t.me/${user.profile.telegram}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center"
+                              >
+                                @{user.profile.telegram}
+                                <svg
+                                  className="h-4 w-4 ml-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
                                 >
-                                  @{user.profile.telegram}
-                                  <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                  </svg>
-                                </a>
-                              ) : (
-                                'Не указан'
-                              )}
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                  />
+                                </svg>
+                              </a>
+                            ) : (
+                              'Не указан'
+                            )}
                             </p>
                           </div>
                         </div>

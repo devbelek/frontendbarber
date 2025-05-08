@@ -13,7 +13,7 @@ import { profileAPI } from '../api/services';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, setUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
   const [isEditing, setIsEditing] = useState(false);

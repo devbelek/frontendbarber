@@ -155,7 +155,7 @@ export const bookingsAPI = {
   getAvailableSlots: (barberId, date) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
 
-  // Создать бронирование
+  // Создать бронирование (перемещено из servicesAPI)
   createBooking: (data) => apiClient.post('/bookings/', data),
 };
 
@@ -184,8 +184,7 @@ export const servicesAPI = {
   create: (data) => apiClient.post('/services/', data),
   update: (id, data) => apiClient.patch(`/services/${id}/`, data),
   delete: (id) => apiClient.delete(`/services/${id}/`),
-  // Добавляем метод для бронирования сервиса
-  createBooking: (data) => apiClient.post('/bookings/', data),
+  // Удален метод createBooking, так как он перемещен в bookingsAPI
 };
 
 // API для избранного

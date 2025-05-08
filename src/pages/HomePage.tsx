@@ -7,7 +7,7 @@ import Card from '../components/ui/Card';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { servicesAPI } from '../api/services';
+import { servicesAPI, bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
 import BookingModal from '../components/booking/BookingModal';
 import LocationBasedRecommendations from '../components/location/LocationBasedRecommendations';
@@ -94,7 +94,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         notes: contactInfo?.notes || ''
       };
 
-      await servicesAPI.createBooking(bookingData);
+      await bookingsAPI.createBooking(bookingData);
       setIsBookingModalOpen(false);
 
       // Показать сообщение об успешном бронировании

@@ -31,11 +31,19 @@ const ProfilePage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Эффект для обновления данных при загрузке компонента
-  useEffect(() => {
-    if (isAuthenticated && refreshUserData) {
-      refreshUserData();
-    }
-  }, [isAuthenticated, refreshUserData]);
+useEffect(() => {
+  if (isAuthenticated && refreshUserData) {
+    // Единоразовый вызов при монтировании компонента
+    const initialFetch = async () => {
+      try {
+        await refreshUserData();
+      } catch (error) {
+        console.error('Ошибка при обновлении данных пользователя:', error);
+      }
+    };
+    initialFetch();
+  }
+}, []);
 
   // Инициализация данных формы из данных пользователя
   useEffect(() => {
@@ -414,7 +422,7 @@ const ProfilePage: React.FC = () => {
                             <p className="text-gray-900">
                               {user.profile?.telegram ? (
 
-                                  href={`https://t.me/${user.profile.telegram}`}
+                                <a href={`https://t.me/${user.profile.telegram}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline flex items-center"
@@ -452,7 +460,7 @@ const ProfilePage: React.FC = () => {
                             <p className="text-gray-900">
                               {user.profile?.whatsapp ? (
 
-                                  href={`https://wa.me/${user.profile.whatsapp.replace(/\s+/g, '')}`}
+                                 <a href={`https://wa.me/${user.profile.whatsapp.replace(/\s+/g, '')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-green-600 hover:underline flex items-center"

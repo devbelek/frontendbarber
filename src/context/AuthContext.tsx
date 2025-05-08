@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
 import axios from 'axios';
@@ -23,7 +23,7 @@ type AuthContextType = {
   toggleFavorite: (haircutId: string) => Promise<void>;
   loading: boolean;
   error: string | null;
-  refreshUserData: () => Promise<void>; // Новая функция
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -131,7 +131,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const refreshUserData = async () => {
+  // Используем useCallback для предотвращения пересоздания функции
+  const refreshUserData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -173,7 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);  // Пустой массив зависимостей
 
   const login = async (userData: any): Promise<boolean> => {
     setError(null);
@@ -232,7 +233,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ИСПРАВЛЕНО: Обновленный метод loginWithGoogle
   const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
     try {
       setLoading(true);

@@ -228,16 +228,16 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
       </div>
     </div>
 
-    {loadingState === 'error' && (
-      <div className="bg-red-50 p-3 rounded-md">
-        <p className="text-red-700 text-sm">{errorMessage}</p>
-      </div>
-    )}
+{loadingState === 'error' && (
+  <div className="bg-red-50 p-3 rounded-md">
+    <p className="text-red-700 text-sm">{errorMessage}</p>
+  </div>
+)}
 
-    <Button
-      type="submit"
-      variant="primary"
-      disabled={loadingState === 'loading'}
-    >
-      {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
-    </Button>
+<Button
+  type="submit"
+  variant="primary"
+  disabled={loadingState === 'loading'}
+>
+  {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
+</Button>

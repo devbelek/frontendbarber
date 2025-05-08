@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
+import axios from 'axios';
 
 type GoogleUserInfo = {
   email: string;
@@ -160,48 +161,131 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
-  try {
-    // Сначала регистрируем/обновляем пользователя на сервере
-    const response = await axios.post(`${API_URL}/users/register-google/`, {
-      email: googleUserInfo.email,
-      first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
-      last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
-      picture: googleUserInfo.picture
-    });
+  // Implementing the missing register function
+  const register = async (userData: any): Promise<void> => {
+    setError(null);
+    try {
+      setLoading(true);
+      await authAPI.register(userData);
 
-    console.log('Регистрация через Google успешна:', response.data);
+      // After successful registration, user needs to login
+      // We don't automatically log them in for security reasons
+      return;
+    } catch (err: any) {
+      console.error('Registration failed:', err);
+      let errorMessage = 'Failed to register. Please try again.';
 
-    // Генерируем временный JWT-подобный токен на стороне клиента
-    const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      if (err.response && err.response.data) {
+        // Format error message from API response if available
+        const errorData = err.response.data;
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (typeof errorData === 'object') {
+          const errorMessages = Object.entries(errorData)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('; ');
+          errorMessage = errorMessages || errorMessage;
+        }
+      }
 
-    // Сохраняем токен в localStorage
-    localStorage.setItem('token', tempToken);
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Создаем объект пользователя на основе данных с сервера
-    const userData: User = {
-      id: response.data.id,
-      username: response.data.username,
-      email: response.data.email,
-      first_name: response.data.first_name,
-      last_name: response.data.last_name,
-      profile: response.data.profile,
-      favorites: []
-    };
+  const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
+    try {
+      // Get the API URL from the environment or use a default
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-    // Сохраняем данные пользователя в localStorage
-    localStorage.setItem('googleUser', JSON.stringify(userData));
+      // Сначала регистрируем/обновляем пользователя на сервере
+      const response = await axios.post(`${API_URL}/users/register-google/`, {
+        email: googleUserInfo.email,
+        first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
+        last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+        picture: googleUserInfo.picture
+      });
 
-    // Обновляем состояние
-    setUser(userData);
+      console.log('Регистрация через Google успешна:', response.data);
 
-    // Обновляем страницу, чтобы список барберов обновился
-    window.location.reload();
-  } catch (error) {
-    console.error('Ошибка при регистрации через Google:', error);
-    alert('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
-  }
-};
+      // Генерируем временный JWT-подобный токен на стороне клиента
+      const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
+      // Сохраняем токен в localStorage
+      localStorage.setItem('token', tempToken);
+
+      // Создаем объект пользователя на основе данных с сервера
+      const userData: User = {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        profile: response.data.profile,
+        favorites: []
+      };
+
+      // Сохраняем данные пользователя в localStorage
+      localStorage.setItem('googleUser', JSON.stringify(userData));
+
+      // Обновляем состояние
+      setUser(userData);
+
+      // Обновляем страницу, чтобы список барберов обновился
+      window.location.reload();
+    } catch (error) {
+      console.error('Ошибка при регистрации через Google:', error);
+      alert('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
+    }
+  };
+
+  const logout = () => {
+    // Удаляем все данные аутентификации
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('googleUser');
+    setUser(null);
+  };
+
+  const toggleFavorite = async (haircutId: string): Promise<void> => {
+    try {
+      if (!user) {
+        throw new Error('Необходимо войти в систему для добавления в избранное');
+      }
+
+      // Проверяем, есть ли уже эта услуга в избранном
+      const isFavorite = user.favorites?.includes(haircutId) || false;
+
+      if (isFavorite) {
+        // Удаляем из избранного
+        await favoritesAPI.remove(haircutId);
+        // Обновляем список избранного в состоянии пользователя
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            favorites: prevUser.favorites.filter(id => id !== haircutId)
+          };
+        });
+      } else {
+        // Добавляем в избранное
+        await favoritesAPI.add(haircutId);
+        // Обновляем список избранного в состоянии пользователя
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            favorites: [...(prevUser.favorites || []), haircutId]
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      throw err;
+    }
+  };
 
   return (
     <AuthContext.Provider

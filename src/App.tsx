@@ -30,7 +30,15 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppRoutes = () => {
+  const { refreshUserData, isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // Эффект для загрузки данных пользователя при инициализации
+  useEffect(() => {
+    if (isAuthenticated && refreshUserData) {
+      refreshUserData();
+    }
+  }, [isAuthenticated, refreshUserData]);
 
   const openLoginModal = () => {
     setIsLoginModalOpen(true);

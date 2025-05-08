@@ -9,6 +9,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   children: React.ReactNode;
   className?: string;
+  disabled?: boolean; // Явно указываем этот параметр
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -17,10 +18,11 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   children,
   className = '',
+  disabled = false, // Добавляем значение по умолчанию
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50';
+
   const variantClasses = {
     primary: 'bg-[#9A0F34] text-white hover:bg-[#7b0c29] focus:ring-[#9A0F34]',
     secondary: 'bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-800',
@@ -35,10 +37,12 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const widthClass = fullWidth ? 'w-full' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${disabledClass} ${className}`}
+      disabled={disabled}
       {...props}
     >
       {children}

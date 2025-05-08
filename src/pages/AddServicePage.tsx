@@ -9,7 +9,7 @@ import { servicesAPI } from '../api/services';
 
 const AddServicePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUserData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -129,32 +129,21 @@ const AddServicePage: React.FC = () => {
       serviceData.append('style', formData.style);
       serviceData.append('location', formData.location.trim());
       serviceData.append('description', formData.description.trim());
-
-      // Важно: добавляем ID барбера
       serviceData.append('barber', user.id.toString());
 
-      // Создаем безопасное имя файла
-      const fileExtension = image.name.split('.').pop();
-      const safeFileName = `service_image_${Date.now()}.${fileExtension}`;
+      // ИСПРАВЛЕНО: Добавляем файл напрямую без создания нового File объекта
+      serviceData.append('image', image);
 
-      // Создаем новый File объект с безопасным именем
-      const safeFile = new File([image], safeFileName, {
-        type: image.type,
-        lastModified: new Date().getTime()
-      });
-
-      // Добавляем файл в FormData
-      serviceData.append('image', safeFile);
-
-      console.log('Sending file:', {
-        name: safeFile.name,
-        type: safeFile.type,
-        size: safeFile.size
-      });
+      console.log('Отправка файла:', image.name);
 
       // Отправляем на сервер
       const response = await servicesAPI.create(serviceData);
       console.log('Успешный ответ:', response);
+
+      // Обновляем данные пользователя, чтобы отобразить новую услугу
+      if (refreshUserData) {
+        await refreshUserData();
+      }
 
       setSuccess('Услуга успешно добавлена!');
 

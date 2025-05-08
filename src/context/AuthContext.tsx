@@ -23,6 +23,7 @@ type AuthContextType = {
   toggleFavorite: (haircutId: string) => Promise<void>;
   loading: boolean;
   error: string | null;
+  refreshUserData: () => Promise<void>; // Новая функция
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -125,6 +126,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Failed to fetch user:', err);
       throw err; // Передаем ошибку дальше для обработки в checkAuth
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshUserData = async () => {
+    try {
+      setLoading(true);
+
+      // Проверяем, не является ли пользователь Google-пользователем
+      const googleUser = localStorage.getItem('googleUser');
+      if (googleUser) {
+        // Просто восстанавливаем данные Google-пользователя
+        const userData = JSON.parse(googleUser);
+        setUser(userData);
+        return;
+      }
+
+      // Получаем актуальные данные пользователя
+      const response = await authAPI.getCurrentUser();
+
+      // Получаем избранные услуги
+      let favorites: string[] = [];
+      try {
+        const favoritesResponse = await favoritesAPI.getAll();
+        favorites = favoritesResponse.data.map((favorite: any) => favorite.service);
+      } catch (err) {
+        console.warn('Failed to fetch favorites:', err);
+      }
+
+      // Преобразуем данные пользователя
+      const userData: User = {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        profile: response.data.profile,
+        favorites: favorites
+      };
+
+      setUser(userData);
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
     } finally {
       setLoading(false);
     }
@@ -325,7 +370,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         toggleFavorite,
         loading,
-        error
+        error,
+        refreshUserData
       }}
     >
       {children}

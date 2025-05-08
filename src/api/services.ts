@@ -129,12 +129,16 @@ export const profileAPI = {
   },
 
   // Обновить информацию пользователя
-  updateUserInfo: (data) => {
-    return apiClient.patch('/auth/users/me/', data);
+  updateUserInfo: async (data) => {
+    const response = await apiClient.patch('/auth/users/me/', data);
+    return response;
   },
 
   // Обновить профиль пользователя
-  updateProfile: (data) => apiClient.patch('/profiles/update/', data),
+  updateProfile: async (data) => {
+    const response = await apiClient.patch('/profiles/update/', data);
+    return response;
+  },
 
   // Получить профиль барбера по ID
   getBarberProfile: (id) => {
@@ -200,7 +204,6 @@ export const servicesAPI = {
   },
 
   // ИСПРАВЛЕНО: правильная обработка FormData без явного установления Content-Type
-  // (axios автоматически установит правильный Content-Type для FormData)
   create: (data) => {
     // Проверяем, что данные - это FormData
     if (data instanceof FormData) {

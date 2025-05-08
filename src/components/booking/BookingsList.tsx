@@ -48,6 +48,19 @@ const BookingsList: React.FC = () => {
     setRefreshCounter(prev => prev + 1);
   };
 
+  // Эффект для обновления списка при монтировании компонента
+  useEffect(() => {
+    // Немедленно обновляем при монтировании
+    refreshBookings();
+
+    // Устанавливаем интервал для периодического обновления данных (каждые 30 секунд)
+    const intervalId = setInterval(() => {
+      refreshBookings();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {

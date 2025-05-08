@@ -113,8 +113,8 @@ export const profileAPI = {
     return apiClient.patch('/auth/users/me/', data);
   },
 
-  // Обновить профиль пользователя
-  updateProfile: (data) => apiClient.patch('/profiles/profile/update/', data),
+  // Обновить профиль пользователя - ИСПРАВЛЕНО
+  updateProfile: (data) => apiClient.patch('/profiles/update/', data),
 
   // Получить профиль барбера по ID
   getBarberProfile: (id) => {

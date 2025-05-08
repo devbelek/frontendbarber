@@ -99,17 +99,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="mb-6">
-            <GoogleLogin
-              onSuccess={handleGoogleLoginSuccess}
-              onError={handleGoogleLoginError}
-              useOneTap
-              theme="outline"
-              shape="rectangular"
-              logo_alignment="center"
-              text="signin_with"
-              locale="ru"
-              width="100%"
-            />
+                <GoogleLogin
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={handleGoogleLoginError}
+                  useOneTap
+                  theme="outline"
+                  shape="rectangular"
+                  logo_alignment="center"
+                  text="signin_with"
+                  locale="ru"
+                  width="300" // Изменено с "100%" на "300"
+                />
           </div>
 
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">

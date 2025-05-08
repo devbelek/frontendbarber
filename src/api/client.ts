@@ -10,7 +10,7 @@ const apiClient = axios.create({
   },
 });
 
-// Обновим интерцептор для обнаружения Google-аутентификации
+// Обновляем интерцептор для обнаружения Google-аутентификации
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -21,18 +21,21 @@ apiClient.interceptors.request.use(
         // Это Google аутентификация
         console.log('Используется Google аутентификация');
 
-        // Добавим специальный заголовок для Google-аутентификации
+        // Добавляем специальные заголовки для Google-аутентификации
         config.headers['X-Google-Auth'] = 'true';
 
-        // Если есть данные пользователя Google, добавим их в заголовок
+        // Если есть данные пользователя Google, добавляем их в заголовок
         if (googleUser) {
           const user = JSON.parse(googleUser);
           config.headers['X-Google-Email'] = user.email;
         }
-      }
 
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('Токен добавлен к запросу');
+        // Для Google аутентификации НЕ добавляем заголовок Authorization
+      } else {
+        // Стандартная JWT аутентификация
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('Токен добавлен к запросу');
+      }
     } else {
       console.log('Запрос без авторизации');
     }

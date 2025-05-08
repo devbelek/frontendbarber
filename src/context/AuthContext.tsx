@@ -195,49 +195,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-    const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
-      try {
-        // Get the API URL from the environment or use a default
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
+    try {
+      // Get the API URL from the environment or use a default
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-        // Сначала регистрируем/обновляем пользователя на сервере
-        const response = await axios.post(`${API_URL}/users/register-google/`, {
-          email: googleUserInfo.email,
-          first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
-          last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
-          picture: googleUserInfo.picture
-        });
+      // Сначала регистрируем/обновляем пользователя на сервере
+      const response = await axios.post(`${API_URL}/users/register-google/`, {
+        email: googleUserInfo.email,
+        first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
+        last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+        picture: googleUserInfo.picture
+      });
 
-        console.log('Регистрация через Google успешна:', response.data);
+      console.log('Регистрация через Google успешна:', response.data);
 
-        // Создаем объект пользователя на основе данных с сервера
-        const userData: User = {
-          id: response.data.id,
-          username: response.data.username,
-          email: response.data.email,
-          first_name: response.data.first_name,
-          last_name: response.data.last_name,
-          profile: response.data.profile,
-          favorites: []
-        };
+      // Создаем объект пользователя на основе данных с сервера
+      const userData: User = {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        profile: response.data.profile,
+        favorites: []
+      };
 
-        // Генерируем временный JWT-подобный токен на стороне клиента
-        const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      // Генерируем временный JWT-подобный токен на стороне клиента
+      const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
-        // Сохраняем токен и данные пользователя
-        localStorage.setItem('token', tempToken);
-        localStorage.setItem('googleUser', JSON.stringify(userData));
+      // Сохраняем токен и данные пользователя
+      localStorage.setItem('token', tempToken);
+      localStorage.setItem('googleUser', JSON.stringify(userData));
 
-        // Обновляем состояние
-        setUser(userData);
+      // Обновляем состояние
+      setUser(userData);
 
-        // Принудительно обновляем страницу для применения нового токена
-        window.location.href = '/profile';
-      } catch (error) {
-        console.error('Ошибка при регистрации через Google:', error);
-        alert('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
-      }
-    };
+      // Перенаправляем на профиль с помощью window.location
+      window.location.href = '/profile';
+    } catch (error) {
+      console.error('Ошибка при регистрации через Google:', error);
+      alert('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
+    }
+  };
 
   const logout = () => {
     // Удаляем все данные аутентификации

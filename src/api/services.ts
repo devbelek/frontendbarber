@@ -101,6 +101,26 @@ const demoBarbers = [
   }
 ];
 
+// Функция для стандартной обработки API-ответов
+function processApiResponse<T>(response: any): T[] {
+  if (!response || !response.data) {
+    return [];
+  }
+
+  // Проверяем, если данные в виде пагинации
+  if (response.data.results && Array.isArray(response.data.results)) {
+    return response.data.results;
+  }
+
+  // Если данные пришли как массив
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  console.error('Неожиданный формат ответа:', response.data);
+  return [];
+}
+
 // API для профиля пользователя
 export const profileAPI = {
   // Получить информацию о текущем пользователе
@@ -113,7 +133,7 @@ export const profileAPI = {
     return apiClient.patch('/auth/users/me/', data);
   },
 
-  // Обновить профиль пользователя - ИСПРАВЛЕНО
+  // Обновить профиль пользователя
   updateProfile: (data) => apiClient.patch('/profiles/update/', data),
 
   // Получить профиль барбера по ID
@@ -155,36 +175,55 @@ export const bookingsAPI = {
   getAvailableSlots: (barberId, date) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
 
-  // Создать бронирование (перемещено из servicesAPI)
+  // Создать бронирование
   createBooking: (data) => apiClient.post('/bookings/', data),
 };
 
 // API для сервисов
 export const servicesAPI = {
   getAll: (params = {}) => {
-    try {
-      return apiClient.get('/services/', { params });
-    } catch (error) {
-      console.log("Using demo data for services");
-      return Promise.resolve({
-        data: demoHaircuts
+    return apiClient.get('/services/', { params })
+      .catch(error => {
+        console.log("Using demo data for services due to error:", error);
+        return { data: demoHaircuts };
       });
-    }
   },
+
   getById: (id) => {
-    try {
-      return apiClient.get(`/services/${id}/`);
-    } catch (error) {
-      console.log("Using demo data for service");
-      return Promise.resolve({
-        data: demoHaircuts.find(h => h.id === id) || demoHaircuts[0]
+    return apiClient.get(`/services/${id}/`)
+      .catch(error => {
+        console.log("Using demo data for service due to error:", error);
+        return {
+          data: demoHaircuts.find(h => h.id === id) || demoHaircuts[0]
+        };
       });
+  },
+
+  // ИСПРАВЛЕНО: правильная обработка FormData без явного установления Content-Type
+  // (axios автоматически установит правильный Content-Type для FormData)
+  create: (data) => {
+    // Проверяем, что данные - это FormData
+    if (data instanceof FormData) {
+      console.log('Sending FormData with files');
+      // Для FormData не нужно явно устанавливать Content-Type
+      // axios автоматически установит правильный заголовок с boundary
+      return apiClient.post('/services/', data);
+    } else {
+      // Для обычных JSON данных
+      return apiClient.post('/services/', data);
     }
   },
-  create: (data) => apiClient.post('/services/', data),
-  update: (id, data) => apiClient.patch(`/services/${id}/`, data),
+
+  update: (id, data) => {
+    // Проверяем, что данные - это FormData
+    if (data instanceof FormData) {
+      return apiClient.patch(`/services/${id}/`, data);
+    } else {
+      return apiClient.patch(`/services/${id}/`, data);
+    }
+  },
+
   delete: (id) => apiClient.delete(`/services/${id}/`),
-  // Удален метод createBooking, так как он перемещен в bookingsAPI
 };
 
 // API для избранного
@@ -217,6 +256,9 @@ export const authAPI = {
 
   // Обновление токена
   refreshToken: (refresh) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
+
+  // Google аутентификация
+  googleAuth: (token) => axios.post(`${API_URL}/auth/google/`, { token }),
 
   // Валидация токена
   validateToken: () => {

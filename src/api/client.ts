@@ -1,26 +1,25 @@
 // src/api/client.ts
 import axios from 'axios';
 
+// Исправляем базовый URL, чтобы он правильно ссылался на API
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL, // Теперь включает /api в базовом URL
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Обновляем интерцептор для обнаружения Google-аутентификации
+// Обновляем интерцептор для правильной работы с Google-аутентификацией
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     const googleUser = localStorage.getItem('googleUser');
 
     if (token) {
+      // Если токен начинается с google-auth, значит это Google аутентификация
       if (token.startsWith('google-auth-')) {
-        // Это Google аутентификация
-        console.log('Используется Google аутентификация');
-
         // Добавляем специальные заголовки для Google-аутентификации
         config.headers['X-Google-Auth'] = 'true';
 
@@ -29,15 +28,10 @@ apiClient.interceptors.request.use(
           const user = JSON.parse(googleUser);
           config.headers['X-Google-Email'] = user.email;
         }
-
-        // Для Google аутентификации НЕ добавляем заголовок Authorization
       } else {
         // Стандартная JWT аутентификация
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Токен добавлен к запросу');
       }
-    } else {
-      console.log('Запрос без авторизации');
     }
 
     return config;

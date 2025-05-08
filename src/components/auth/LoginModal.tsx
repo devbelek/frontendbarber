@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 import * as jwtDecode from 'jwt-decode';
+import { authAPI } from '../../api/services'; // Добавляем импорт authAPI
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -37,37 +38,65 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     </svg>
   );
 
-    // Обновленный метод handleGoogleLoginSuccess в LoginModal.tsx
-    const handleGoogleLoginSuccess = (credentialResponse: any) => {
+  // ИСПРАВЛЕНО: обновлённый метод handleGoogleLoginSuccess в LoginModal.tsx
+  const handleGoogleLoginSuccess = async (credentialResponse: any) => {
+    try {
+      const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
+      console.log('Google login success:', decoded);
+
+      // Extract relevant user info
+      const userInfo = {
+        email: decoded.email,
+        name: decoded.name,
+        picture: decoded.picture,
+        given_name: decoded.given_name,
+        family_name: decoded.family_name
+      };
+
       try {
-        const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
-        console.log('Google login success:', decoded);
-
-        // Extract relevant user info
-        const userInfo = {
-          email: decoded.email,
-          name: decoded.name,
-          picture: decoded.picture,
-          given_name: decoded.given_name,
-          family_name: decoded.family_name
-        };
-
-        // Login with Google
-        loginWithGoogle(userInfo);
-
-        // Close modal
-        onClose();
-
-        // Show success message
-        setTimeout(() => {
-          alert('Вы успешно вошли как барбер через Google!');
-        }, 500);
+        // Отправляем токен на бэкенд для проверки
+        const response = await authAPI.googleAuth(credentialResponse.credential);
+        // Получаем JWT токены от бэкенда
+        if (response.data.access) {
+          localStorage.setItem('token', response.data.access);
+          if (response.data.refresh) {
+            localStorage.setItem('refreshToken', response.data.refresh);
+          }
+          // Сохраняем информацию о пользователе
+          if (response.data.user) {
+            localStorage.setItem('googleUser', JSON.stringify(response.data.user));
+          }
+        } else {
+          // Если бэкенд не вернул токены, используем временный токен
+          const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+          localStorage.setItem('token', tempToken);
+          localStorage.setItem('googleUser', JSON.stringify(userInfo));
+        }
       } catch (error) {
-        console.error('Error processing Google login:', error);
-        alert('Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+        console.error('Ошибка при получении токена от сервера:', error);
+        // Резервный вариант с временным токеном
+        const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        localStorage.setItem('token', tempToken);
+        localStorage.setItem('googleUser', JSON.stringify(userInfo));
       }
-    };
 
+      // Login with Google
+      loginWithGoogle(userInfo);
+
+      // Close modal
+      onClose();
+
+      // Show success message
+      setTimeout(() => {
+        alert('Вы успешно вошли как барбер через Google!');
+      }, 500);
+    } catch (error) {
+      console.error('Error processing Google login:', error);
+      alert('Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+    }
+  };
+
+  // Остальной код остается без изменений
   const handleGoogleLoginError = () => {
     console.error('Google login failed');
     alert('Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');

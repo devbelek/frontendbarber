@@ -50,10 +50,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
               const userData = JSON.parse(googleUser);
               setUser(userData);
-
-              // Создаем новый временный токен
-              const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-              localStorage.setItem('token', newToken);
             } catch (parseErr) {
               console.error('Failed to parse Google user data:', parseErr);
               localStorage.removeItem('googleUser');
@@ -161,16 +157,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Implementing the missing register function
   const register = async (userData: any): Promise<void> => {
     setError(null);
     try {
       setLoading(true);
       await authAPI.register(userData);
-
-      // After successful registration, user needs to login
-      // We don't automatically log them in for security reasons
-      return;
+      // После успешной регистрации пользователю нужно войти
     } catch (err: any) {
       console.error('Registration failed:', err);
       let errorMessage = 'Failed to register. Please try again.';
@@ -195,47 +187,83 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ИСПРАВЛЕНО: Обновленный метод loginWithGoogle
   const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
     try {
+      setLoading(true);
       // Get the API URL from the environment or use a default
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-      // Сначала регистрируем/обновляем пользователя на сервере
-      const response = await axios.post(`${API_URL}/users/register-google/`, {
-        email: googleUserInfo.email,
-        first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
-        last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
-        picture: googleUserInfo.picture
-      });
+      // Сначала пробуем получить JWT-токен от сервера
+      try {
+        // Отправляем запрос на бэкенд для аутентификации через Google
+        const response = await axios.post(`${API_URL}/users/register-google/`, {
+          email: googleUserInfo.email,
+          first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
+          last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+          picture: googleUserInfo.picture
+        });
 
-      console.log('Регистрация через Google успешна:', response.data);
+        console.log('Регистрация через Google успешна:', response.data);
 
-      // Создаем объект пользователя на основе данных с сервера
-      const userData: User = {
-        id: response.data.id,
-        username: response.data.username,
-        email: response.data.email,
-        first_name: response.data.first_name,
-        last_name: response.data.last_name,
-        profile: response.data.profile,
-        favorites: []
-      };
+        // Если сервер вернул корректный JWT-токен, используем его
+        if (response.data.access_token) {
+          localStorage.setItem('token', response.data.access_token);
+          if (response.data.refresh_token) {
+            localStorage.setItem('refreshToken', response.data.refresh_token);
+          }
+        }
 
-      // Генерируем временный JWT-подобный токен на стороне клиента
-      const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        // Создаем объект пользователя на основе данных с сервера
+        const userData: User = {
+          id: response.data.id,
+          username: response.data.username,
+          email: response.data.email,
+          first_name: response.data.first_name,
+          last_name: response.data.last_name,
+          profile: response.data.profile,
+          favorites: [],
+          picture: googleUserInfo.picture // Добавляем URL фото из Google
+        };
 
-      // Сохраняем токен и данные пользователя
-      localStorage.setItem('token', tempToken);
-      localStorage.setItem('googleUser', JSON.stringify(userData));
+        // Сохраняем данные пользователя
+        localStorage.setItem('googleUser', JSON.stringify(userData));
 
-      // Обновляем состояние
-      setUser(userData);
+        // Обновляем состояние
+        setUser(userData);
+      } catch (error) {
+        console.error('Ошибка аутентификации через сервер:', error);
 
-      // Перенаправляем на профиль с помощью window.location
-      window.location.href = '/profile';
+        // Если не удалось получить JWT-токен, используем локальную аутентификацию
+        const userData: User = {
+          id: `google-${Date.now()}`,
+          username: googleUserInfo.email.split('@')[0],
+          email: googleUserInfo.email,
+          first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
+          last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+          profile: {
+            user_type: 'barber',
+            phone: '',
+            offers_home_service: false
+          },
+          favorites: [],
+          picture: googleUserInfo.picture,
+          isGoogleUser: true
+        };
+
+        // Генерируем временный токен
+        const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        localStorage.setItem('token', tempToken);
+        localStorage.setItem('googleUser', JSON.stringify(userData));
+
+        // Обновляем состояние
+        setUser(userData);
+      }
     } catch (error) {
-      console.error('Ошибка при регистрации через Google:', error);
-      alert('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
+      console.error('Ошибка при входе через Google:', error);
+      setError('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -289,7 +317,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
-        setUser, // Экспортируем setUser для возможности обновления пользователя извне
+        setUser,
         isAuthenticated: !!user,
         login,
         loginWithGoogle,

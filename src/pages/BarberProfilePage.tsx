@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, ChevronRight, Phone, Mail, MessageSquare, ExternalLink } from 'lucide-react';
+import { MapPin, Calendar, Clock, ChevronRight, Phone, Mail, MessageSquare, ExternalLink, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI, bookingsAPI } from '../api/services';
-import axios from 'axios';
-import { Barber, Haircut } from '../types';
-import { useLanguage } from '../context/LanguageContext';
+import { servicesAPI, profileAPI } from '../api/services';
+import { Barber, Haircut } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 import ImageWithFallback from '../components/ui/ImageWithFallback';
+import apiClient from '../api/client';
 
 const BarberProfilePage: React.FC = () => {
   const { t } = useLanguage();
@@ -30,18 +30,23 @@ const BarberProfilePage: React.FC = () => {
       try {
         setLoading(true);
 
-        // Получаем данные о барбере с API
-        const barberResponse = await axios.get(`/api/profiles/barbers/${id}/`);
+        // Используем правильное API для получения данных барбера
+        const barberResponse = await profileAPI.getBarberProfile(id);
         const barberData = barberResponse.data;
         console.log('Barber data response:', barberData);
+
+        // Проверяем наличие данных
+        if (!barberData || !barberData.profile) {
+          throw new Error('Некорректный формат данных от сервера');
+        }
 
         // Преобразуем данные в формат Barber
         const barberInfo: Barber = {
           id: barberData.id,
-          name: `${barberData.first_name} ${barberData.last_name}`,
+          name: `${barberData.first_name || ''} ${barberData.last_name || ''}`.trim() || barberData.username,
           avatar: barberData.profile.photo || 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-          rating: 0, // We're removing ratings
-          reviewCount: 0,
+          rating: barberData.avg_rating || 0,
+          reviewCount: barberData.review_count || 0,
           specialization: barberData.profile.specialization || [],
           location: barberData.profile.address || 'Бишкек',
           workingHours: {
@@ -62,35 +67,38 @@ const BarberProfilePage: React.FC = () => {
         const haircutsResponse = await servicesAPI.getAll({ barber: id });
         console.log('Barber haircuts response:', haircutsResponse);
 
-        // Handle both array and pagination object responses
-        let haircuts_data = haircutsResponse.data;
+        // Обрабатываем разные форматы данных
+        if (haircutsResponse.data) {
+          let haircuts: Haircut[] = [];
+          let haircutsData = haircutsResponse.data;
 
-        // If data is a pagination object with results property
-        if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
-          haircuts_data = haircutsResponse.data.results;
-        } else if (!Array.isArray(haircuts_data)) {
-          console.error('Unexpected response format:', haircutsResponse.data);
-          setBarberHaircuts([]);
-          return;
+          // Если данные в формате пагинации
+          if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
+            haircutsData = haircutsResponse.data.results;
+          }
+
+          // Только если данные в формате массива
+          if (Array.isArray(haircutsData)) {
+            haircutsData.forEach((service: any) => {
+              haircuts.push({
+                id: service.id,
+                image: service.image,
+                title: service.title,
+                price: service.price,
+                barber: service.barber_details?.full_name || 'Unknown',
+                barberId: service.barber,
+                type: service.type,
+                length: service.length,
+                style: service.style,
+                location: service.location,
+                duration: service.duration,
+                isFavorite: service.is_favorite
+              });
+            });
+          }
+
+          setBarberHaircuts(haircuts);
         }
-
-        // Преобразуем данные API в формат Haircut
-        const haircuts: Haircut[] = haircuts_data.map((service: any) => ({
-          id: service.id,
-          image: service.image,
-          title: service.title,
-          price: service.price,
-          barber: service.barber_details?.full_name || 'Unknown',
-          barberId: service.barber,
-          type: service.type,
-          length: service.length,
-          style: service.style,
-          location: service.location,
-          duration: service.duration,
-          isFavorite: service.is_favorite
-        }));
-
-        setBarberHaircuts(haircuts);
 
       } catch (err) {
         console.error('Failed to fetch barber data:', err);
@@ -289,7 +297,10 @@ const BarberProfilePage: React.FC = () => {
               {barberHaircuts.length > 0 ? (
                 <HaircutGrid
                   haircuts={barberHaircuts}
-                  onBookClick={() => {}}
+                  onBookClick={(haircut) => {
+                    setSelectedHaircut(haircut);
+                    setIsBookingModalOpen(true);
+                  }}
                 />
               ) : (
                 <Card>
@@ -353,7 +364,7 @@ const BarberProfilePage: React.FC = () => {
                         onClick={() => handleContactClick('whatsapp', barber.whatsapp || '')}
                       >
                         <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2 text-green-500">
-                          <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                          <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         </svg>
                         <span>WhatsApp: {barber.whatsapp}</span>
                       </div>
@@ -384,6 +395,14 @@ const BarberProfilePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        haircut={selectedHaircut}
+        onConfirm={() => {}}
+      />
     </Layout>
   );
 };

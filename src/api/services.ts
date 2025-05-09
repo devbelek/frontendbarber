@@ -136,8 +136,11 @@ export const profileAPI = {
 
   // Обновить профиль пользователя
   updateProfile: async (data) => {
-    const response = await apiClient.patch('/profiles/update/', data);
-    return response;
+    // Если загружается файл, используем FormData
+    if (data instanceof FormData) {
+      return apiClient.patch('/users/profile/update/', data);
+    }
+    return apiClient.patch('/users/profile/update/', data);
   },
 
   // Получить профиль барбера по ID
@@ -203,13 +206,10 @@ export const servicesAPI = {
       });
   },
 
-  // ИСПРАВЛЕНО: правильная обработка FormData без явного установления Content-Type
   create: (data) => {
     // Проверяем, что данные - это FormData
     if (data instanceof FormData) {
       console.log('Sending FormData with files');
-      // Для FormData не нужно явно устанавливать Content-Type
-      // axios автоматически установит правильный заголовок с boundary
       return apiClient.post('/services/', data);
     } else {
       // Для обычных JSON данных

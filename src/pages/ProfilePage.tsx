@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -13,7 +13,7 @@ import { profileAPI } from '../api/services';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
-  const { user, logout, isAuthenticated, setUser, refreshUserData } = useAuth();
+  const { user, logout, isAuthenticated, refreshUserData } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
   const [isEditing, setIsEditing] = useState(false);
@@ -26,24 +26,29 @@ const ProfilePage: React.FC = () => {
     address: '',
     offers_home_service: false
   });
+
+  // Состояние для загрузки изображения профиля
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   // Эффект для обновления данных при загрузке компонента
-useEffect(() => {
-  if (isAuthenticated && refreshUserData) {
-    // Единоразовый вызов при монтировании компонента
-    const initialFetch = async () => {
-      try {
-        await refreshUserData();
-      } catch (error) {
-        console.error('Ошибка при обновлении данных пользователя:', error);
-      }
-    };
-    initialFetch();
-  }
-}, []);
+  useEffect(() => {
+    if (isAuthenticated && refreshUserData) {
+      // Единоразовый вызов при монтировании компонента
+      const initialFetch = async () => {
+        try {
+          await refreshUserData();
+        } catch (error) {
+          console.error('Ошибка при обновлении данных пользователя:', error);
+        }
+      };
+      initialFetch();
+    }
+  }, []);
 
   // Инициализация данных формы из данных пользователя
   useEffect(() => {
@@ -66,6 +71,32 @@ useEffect(() => {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // Функция для обработки выбора файла
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      // Проверяем тип файла
+      if (!file.type.startsWith('image/')) {
+        setError('Пожалуйста, загрузите изображение');
+        return;
+      }
+      // Проверяем размер файла (не более 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Размер файла не должен превышать 5MB');
+        return;
+      }
+
+      setProfileImage(file);
+
+      // Создаем URL для предпросмотра
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -97,27 +128,32 @@ useEffect(() => {
         last_name: formData.last_name
       };
 
-      // Данные для обновления профиля
-      const profileData = {
-        whatsapp: formData.whatsapp,
-        telegram: formData.telegram,
-        address: formData.address,
-        offers_home_service: formData.offers_home_service
-      };
-
-      // Проверка наличия токена перед запросом
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.');
-        setIsSubmitting(false);
-        return;
-      }
-
       // Обновляем данные пользователя
       await profileAPI.updateUserInfo(userData);
 
-      // Обновляем данные профиля
-      await profileAPI.updateProfile(profileData);
+      // Если есть новое изображение профиля, создаем FormData
+      if (profileImage) {
+        const profileFormData = new FormData();
+        profileFormData.append('photo', profileImage);
+        profileFormData.append('whatsapp', formData.whatsapp);
+        profileFormData.append('telegram', formData.telegram);
+        profileFormData.append('address', formData.address);
+        profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+
+        // Обновляем профиль с изображением
+        await profileAPI.updateProfile(profileFormData);
+      } else {
+        // Данные для обновления профиля без изображения
+        const profileData = {
+          whatsapp: formData.whatsapp,
+          telegram: formData.telegram,
+          address: formData.address,
+          offers_home_service: formData.offers_home_service
+        };
+
+        // Обновляем данные профиля
+        await profileAPI.updateProfile(profileData);
+      }
 
       // Обновляем данные пользователя
       if (refreshUserData) {
@@ -126,13 +162,16 @@ useEffect(() => {
 
       setSuccess('Данные профиля успешно обновлены');
       setIsEditing(false);
+
+      // Сбрасываем состояние изображения после успешного обновления
+      setProfileImage(null);
+      setPreviewUrl(null);
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       let errorMessage = 'Произошла ошибка при обновлении профиля';
 
       if (err.response?.status === 401) {
         errorMessage = 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.';
-        // Если 401, перенаправляем на страницу входа
         setTimeout(() => {
           logout();
           navigate('/login');
@@ -141,7 +180,7 @@ useEffect(() => {
         errorMessage = err.response.data.detail;
       } else if (err.response?.data) {
         const errorsArray = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${value}`)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
           .join('; ');
         errorMessage = errorsArray || errorMessage;
       }
@@ -198,15 +237,20 @@ useEffect(() => {
                     <User className="h-5 w-5 mr-3" />
                     {t('personalInfo')}
                   </button>
-                  <button
-                    onClick={() => setActiveTab('bookings')}
-                    className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
-                      activeTab === 'bookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Clock className="h-5 w-5 mr-3" />
-                    {t('myBookings')}
-                  </button>
+
+                  {/* Показываем кнопку "Мои записи" только клиентам */}
+                  {user?.profile?.user_type !== 'barber' && (
+                    <button
+                      onClick={() => setActiveTab('bookings')}
+                      className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                        activeTab === 'bookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Clock className="h-5 w-5 mr-3" />
+                      {t('myBookings')}
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setActiveTab('favorites')}
                     className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
@@ -261,6 +305,59 @@ useEffect(() => {
                     <CardContent>
                       {isEditing ? (
                         <form onSubmit={handleSubmit} className="space-y-4">
+                          {/* Добавляем компонент для загрузки изображения */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Фото профиля
+                            </label>
+                            <div className="mt-1 flex items-center">
+                              {previewUrl ? (
+                                <div className="relative inline-block">
+                                  <img
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="h-24 w-24 rounded-full object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setProfileImage(null);
+                                      setPreviewUrl(null);
+                                    }}
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-sm"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                  {user?.profile?.photo || user?.picture ? (
+                                    <img
+                                      src={user.profile?.photo || user.picture}
+                                      alt={user.username}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <User className="h-12 w-12 text-gray-400" />
+                                  )}
+                                </div>
+                              )}
+                              <label htmlFor="photo-upload" className="ml-5 cursor-pointer">
+                                <span className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none">
+                                  Загрузить фото
+                                </span>
+                                <input
+                                  id="photo-upload"
+                                  name="photo"
+                                  type="file"
+                                  className="sr-only"
+                                  onChange={handleImageChange}
+                                  accept="image/*"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -509,25 +606,18 @@ useEffect(() => {
                 </div>
               )}
 
-              {activeTab === 'bookings' && (
-                <div>
-                  <h3 className="text-xl font-bold mb-4">{t('myBookings')}</h3>
-                  <BookingsList />
-                </div>
-              )}
+                {activeTab === 'favorites' && (
+                                <div>
+                                  <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
+                                  <FavoritesList />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Layout>
+                  );
+                };
 
-              {activeTab === 'favorites' && (
-                <div>
-                  <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
-                  <FavoritesList />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
-};
-
-export default ProfilePage;
+                export default ProfilePage;

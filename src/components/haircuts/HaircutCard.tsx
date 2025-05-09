@@ -63,20 +63,23 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           onLoad={() => setIsImageLoaded(true)}
         />
 
-        <button
-          className={`absolute top-2 right-2 p-2 rounded-full ${
-            isFavorite
-              ? 'bg-[#9A0F34] text-white'
-              : 'bg-white text-gray-800 hover:bg-gray-100'
-          } transition-colors shadow-md`}
-          onClick={handleFavoriteClick}
-          aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
-        >
-          <Heart
-            size={20}
-            className={isFavorite ? 'fill-current' : ''}
-          />
-        </button>
+        {/* Показываем кнопку избранного только авторизованным пользователям */}
+        {isAuthenticated && (
+          <button
+            className={`absolute top-2 right-2 p-2 rounded-full ${
+              isFavorite
+                ? 'bg-[#9A0F34] text-white'
+                : 'bg-white text-gray-800 hover:bg-gray-100'
+            } transition-colors shadow-md`}
+            onClick={handleFavoriteClick}
+            aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
+          >
+            <Heart
+              size={20}
+              className={isFavorite ? 'fill-current' : ''}
+            />
+          </button>
+        )}
       </div>
 
       <div className="p-4">
@@ -130,7 +133,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-              <a
+
                 href={`https://wa.me/+996700123456?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -139,7 +142,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 WhatsApp
               </a>
 
-              <a
+
                 href={`https://t.me/barber123`}
                 target="_blank"
                 rel="noopener noreferrer"

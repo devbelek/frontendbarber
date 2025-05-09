@@ -104,7 +104,8 @@ const FavoritesList: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <Link to={`/services/${favorite.service}`} className="block">
+                {/* Изменение: используем /gallery вместо несуществующего маршрута */}
+                <Link to={`/gallery`} className="block">
                   <h3 className="font-medium text-lg mb-1 hover:text-[#9A0F34] transition-colors flex items-center">
                     <Scissors className="h-4 w-4 mr-2" />
                     {favorite.service_details?.title}
@@ -130,7 +131,7 @@ const FavoritesList: React.FC = () => {
               </div>
 
               {favorite.service_details?.image && (
-                <Link to={`/services/${favorite.service}`} className="block">
+                <Link to={`/gallery`} className="block">
                   <div className="w-20 h-20 rounded-md overflow-hidden">
                     <ImageWithFallback
                       src={favorite.service_details.image}

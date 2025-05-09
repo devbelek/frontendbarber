@@ -136,15 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
 
-      // Проверяем, не является ли пользователь Google-пользователем
-      const googleUser = localStorage.getItem('googleUser');
-      if (googleUser) {
-        // Просто восстанавливаем данные Google-пользователя
-        const userData = JSON.parse(googleUser);
-        setUser(userData);
-        return;
-      }
-
       // Получаем актуальные данные пользователя
       const response = await authAPI.getCurrentUser();
 
@@ -152,7 +143,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let favorites: string[] = [];
       try {
         const favoritesResponse = await favoritesAPI.getAll();
-        favorites = favoritesResponse.data.map((favorite: any) => favorite.service);
+        favorites = Array.isArray(favoritesResponse.data)
+          ? favoritesResponse.data.map((favorite: any) => favorite.service)
+          : (favoritesResponse.data.results
+              ? favoritesResponse.data.results.map((favorite: any) => favorite.service)
+              : []);
       } catch (err) {
         console.warn('Failed to fetch favorites:', err);
       }
@@ -165,8 +160,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         first_name: response.data.first_name,
         last_name: response.data.last_name,
         profile: response.data.profile,
-        favorites: favorites
+        favorites: favorites,
+        // Для Google-пользователей сохраняем фото
+        picture: localStorage.getItem('googleUser')
+          ? JSON.parse(localStorage.getItem('googleUser') || '{}').picture
+          : undefined
       };
+
+      // Обновляем информацию о пользователе в localStorage для Google-пользователей
+      if (localStorage.getItem('googleUser')) {
+        const googleUser = JSON.parse(localStorage.getItem('googleUser') || '{}');
+        // Обновляем информацию
+        googleUser.first_name = userData.first_name;
+        googleUser.last_name = userData.last_name;
+        googleUser.profile = userData.profile;
+        localStorage.setItem('googleUser', JSON.stringify(googleUser));
+      }
 
       setUser(userData);
     } catch (err) {
@@ -174,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, []);  // Пустой массив зависимостей
+  }, []);
 
   const login = async (userData: any): Promise<boolean> => {
     setError(null);
@@ -193,10 +202,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (err: any) {
       console.error('Login failed:', err);
-      setError(
-        err.response?.data?.detail ||
-        'Не удалось выполнить вход. Проверьте ваши учетные данные.'
-      );
+
+      // Отображаем ошибку
+      if (err.response && err.response.data) {
+        if (err.response.data.detail) {
+          setError(err.response.data.detail);
+        } else if (err.response.data.non_field_errors) {
+          setError(err.response.data.non_field_errors.join(', '));
+        } else {
+          setError('Ошибка входа. Проверьте свои учетные данные.');
+        }
+      } else {
+        setError('Не удалось соединиться с сервером. Пожалуйста, проверьте свое подключение.');
+      }
       return false;
     } finally {
       setLoading(false);

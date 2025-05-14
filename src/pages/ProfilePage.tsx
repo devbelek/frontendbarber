@@ -9,39 +9,39 @@ import FavoritesList from '../components/favorites/FavoritesList';
 import TelegramRegistration from '../components/profile/TelegramRegistration';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotification } from '../context/NotificationContext';
 import { profileAPI } from '../api/services';
 import { debounce } from 'lodash';
 import apiClient from '../api/client';
 import ImageCropper from '../components/ui/ImageCropper';
 
-
-const [showImageCropper, setShowImageCropper] = useState(false);
-const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
-
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated, refreshUserData } = useAuth();
+  const { success: notificationSuccess, error: notificationError } = useNotification();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showImageCropper, setShowImageCropper] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
 
-const [formData, setFormData] = useState({
-  first_name: '',
-  last_name: '',
-  email: '',
-  whatsapp: '',
-  telegram: '',
-  address: '',
-  offers_home_service: false,
-  latitude: null as number | null,
-  longitude: null as number | null,
-  bio: '',
-  working_hours_from: '09:00',
-  working_hours_to: '18:00',
-  working_days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as string[]
-});
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    whatsapp: '',
+    telegram: '',
+    address: '',
+    offers_home_service: false,
+    latitude: null as number | null,
+    longitude: null as number | null,
+    bio: '',
+    working_hours_from: '09:00',
+    working_hours_to: '18:00',
+    working_days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as string[]
+  });
 
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -86,7 +86,11 @@ const [formData, setFormData] = useState({
         address: user.profile?.address || '',
         offers_home_service: user.profile?.offers_home_service || false,
         latitude: user.profile?.latitude || null,
-        longitude: user.profile?.longitude || null
+        longitude: user.profile?.longitude || null,
+        bio: user.profile?.bio || '',
+        working_hours_from: user.profile?.working_hours_from || '09:00',
+        working_hours_to: user.profile?.working_hours_to || '18:00',
+        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
       });
 
       if (user.profile?.photo) {
@@ -103,41 +107,39 @@ const [formData, setFormData] = useState({
     }
   }, [isAuthenticated, navigate]);
 
-const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files && e.target.files[0]) {
-    const file = e.target.files[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
 
-    if (!file.type.startsWith('image/')) {
-      setError('Пожалуйста, загрузите изображение');
-      return;
+      if (!file.type.startsWith('image/')) {
+        notificationError('Ошибка', 'Пожалуйста, загрузите изображение');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        notificationError('Ошибка', 'Размер файла не должен превышать 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setTempImageUrl(reader.result as string);
+        setShowImageCropper(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Размер файла не должен превышать 5MB');
-      return;
-    }
-
-    setError(null);
-
+  const handleCropComplete = (croppedImage: File) => {
+    setProfileImage(croppedImage);
     const reader = new FileReader();
     reader.onload = () => {
-      setTempImageUrl(reader.result as string);
-      setShowImageCropper(true);
+      setPreviewUrl(reader.result as string);
     };
-    reader.readAsDataURL(file);
-  }
-};
-
-const handleCropComplete = (croppedImage: File) => {
-  setProfileImage(croppedImage);
-  const reader = new FileReader();
-  reader.onload = () => {
-    setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(croppedImage);
+    setShowImageCropper(false);
+    setTempImageUrl(null);
   };
-  reader.readAsDataURL(croppedImage);
-  setShowImageCropper(false);
-  setTempImageUrl(null);
-};
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -217,7 +219,7 @@ const handleCropComplete = (croppedImage: File) => {
 
     try {
       if (!user || !isAuthenticated) {
-        setError('Необходимо войти в систему для обновления профиля');
+        notificationError('Ошибка', 'Необходимо войти в систему для обновления профиля');
         setIsSubmitting(false);
         return;
       }
@@ -261,6 +263,23 @@ const handleCropComplete = (croppedImage: File) => {
         profileFormData.append('longitude', formData.longitude?.toString() || '');
       }
 
+      // Добавляем новые поля для барберов
+      if (formData.bio !== user.profile?.bio) {
+        profileFormData.append('bio', formData.bio);
+      }
+
+      if (formData.working_hours_from !== user.profile?.working_hours_from) {
+        profileFormData.append('working_hours_from', formData.working_hours_from);
+      }
+
+      if (formData.working_hours_to !== user.profile?.working_hours_to) {
+        profileFormData.append('working_hours_to', formData.working_hours_to);
+      }
+
+      if (JSON.stringify(formData.working_days) !== JSON.stringify(user.profile?.working_days)) {
+        profileFormData.append('working_days', JSON.stringify(formData.working_days));
+      }
+
       const entries = Array.from(profileFormData.entries());
       if (entries.length > 0) {
         await profileAPI.updateProfile(profileFormData);
@@ -274,7 +293,7 @@ const handleCropComplete = (croppedImage: File) => {
         }
       }
 
-      setSuccess('Данные профиля успешно обновлены');
+      notificationSuccess('Успешно!', 'Данные профиля успешно обновлены');
       setIsEditing(false);
 
       setProfileImage(null);
@@ -300,7 +319,7 @@ const handleCropComplete = (croppedImage: File) => {
         if (errorsArray) errorMessage = errorsArray;
       }
 
-      setError(errorMessage);
+      notificationError('Ошибка!', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -318,7 +337,11 @@ const handleCropComplete = (croppedImage: File) => {
         address: user.profile?.address || '',
         offers_home_service: user.profile?.offers_home_service || false,
         latitude: user.profile?.latitude || null,
-        longitude: user.profile?.longitude || null
+        longitude: user.profile?.longitude || null,
+        bio: user.profile?.bio || '',
+        working_hours_from: user.profile?.working_hours_from || '09:00',
+        working_hours_to: user.profile?.working_hours_to || '18:00',
+        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
       });
 
       setProfileImage(null);
@@ -343,10 +366,10 @@ const handleCropComplete = (croppedImage: File) => {
       await apiClient.delete('/users/delete-account/');
       logout();
       navigate('/');
-      alert('Ваш аккаунт был успешно удален.');
+      notificationSuccess('Аккаунт удален', 'Ваш аккаунт был успешно удален.');
     } catch (error) {
       console.error('Ошибка при удалении аккаунта:', error);
-      alert('Не удалось удалить аккаунт. Пожалуйста, попробуйте позже.');
+      notificationError('Ошибка', 'Не удалось удалить аккаунт. Пожалуйста, попробуйте позже.');
     }
   };
 
@@ -356,17 +379,6 @@ const handleCropComplete = (croppedImage: File) => {
         <div className="container mx-auto px-4 py-12 text-center">
           <p className="text-lg">Пожалуйста, войдите в систему, чтобы просмотреть профиль</p>
         </div>
-
-   {showImageCropper && tempImageUrl && (
-  <ImageCropper
-    imageSrc={tempImageUrl}
-    onCropComplete={handleCropComplete}
-    onCancel={() => {
-      setShowImageCropper(false);
-      setTempImageUrl(null);
-    }}
-  />
-)}
       </Layout>
     );
   }
@@ -660,6 +672,86 @@ const handleCropComplete = (croppedImage: File) => {
                             </label>
                           </div>
 
+                          {user.profile?.user_type === 'barber' && (
+                            <>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  О себе
+                                </label>
+                                <textarea
+                                  name="bio"
+                                  value={formData.bio}
+                                  onChange={handleChange}
+                                  placeholder="Расскажите о себе, своем опыте и услугах"
+                                  rows={4}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Время работы с
+                                  </label>
+                                  <input
+                                    type="time"
+                                    name="working_hours_from"
+                                    value={formData.working_hours_from}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Время работы до
+                                  </label>
+                                  <input
+                                    type="time"
+                                    name="working_hours_to"
+                                    value={formData.working_hours_to}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Рабочие дни
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                  {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => (
+                                    <label
+                                      key={day}
+                                      className="flex items-center"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        value={day}
+                                        checked={formData.working_days.includes(day)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              working_days: [...prev.working_days, day]
+                                            }));
+                                          } else {
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              working_days: prev.working_days.filter(d => d !== day)
+                                            }));
+                                          }
+                                        }}
+                                        className="mr-2 h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
+                                      />
+                                      <span className="text-sm">{day}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+
                           <div className="flex space-x-3 pt-4">
                             <Button
                               type="submit"
@@ -772,6 +864,35 @@ const handleCropComplete = (croppedImage: File) => {
                           </div>
 
                           {user.profile?.user_type === 'barber' && (
+                            <>
+                              <div className="border-b pb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  О себе
+                                </label>
+                                <p className="text-gray-900">{user.profile?.bio || 'Не указано'}</p>
+                              </div>
+
+                              <div className="border-b pb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Часы работы
+                                </label>
+                                <p className="text-gray-900">
+                                  {user.profile?.working_hours_from || '09:00'} - {user.profile?.working_hours_to || '18:00'}
+                                </p>
+                              </div>
+
+                              <div className="border-b pb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Рабочие дни
+                                </label>
+                                <p className="text-gray-900">
+                                  {user.profile?.working_days?.join(', ') || 'Пн, Вт, Ср, Чт, Пт'}
+                                </p>
+                              </div>
+                            </>
+                          )}
+
+                          {user.profile?.user_type === 'barber' && (
                             <div className="mt-6">
                               <TelegramRegistration />
                             </div>
@@ -813,6 +934,17 @@ const handleCropComplete = (croppedImage: File) => {
           </div>
         </div>
       </div>
+
+      {showImageCropper && tempImageUrl && (
+        <ImageCropper
+          imageSrc={tempImageUrl}
+          onCropComplete={handleCropComplete}
+          onCancel={() => {
+            setShowImageCropper(false);
+            setTempImageUrl(null);
+          }}
+        />
+      )}
     </Layout>
   );
 };

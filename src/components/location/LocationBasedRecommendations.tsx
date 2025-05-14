@@ -131,8 +131,8 @@ const LocationBasedBarbers: React.FC = () => {
           id: user.id,
           name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
           avatar: user.profile?.photo || null,
-          rating: user.avg_rating || 0,
-          reviewCount: user.review_count || 0,
+          rating: 0, // Убрали рейтинг
+          reviewCount: 0, // Убрали количество отзывов
           specialization: user.profile?.specialization || [],
           location: user.profile?.address || 'Не указано',
           workingHours: {
@@ -297,13 +297,8 @@ const LocationBasedBarbers: React.FC = () => {
                   <div className="p-4">
                     <h3 className="font-medium text-lg">{barber.name}</h3>
                     <p className="text-gray-600">{barber.location}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[#9A0F34] font-bold">
-                        ⭐ {barber.rating || '0'}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {barber.reviewCount || 0} отзывов
-                      </span>
+                    <div className="mt-2 text-sm text-gray-500">
+                      {barber.workingHours.from} - {barber.workingHours.to}
                     </div>
                   </div>
                 </div>

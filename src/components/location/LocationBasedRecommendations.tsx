@@ -1,19 +1,14 @@
-// src/components/location/LocationBasedRecommendations.tsx
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Scissors } from 'lucide-react';
+import { MapPin, Navigation, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card, { CardHeader, CardContent } from '../ui/Card';
 import Button from '../ui/Button';
-import { locationAPI } from '../../api/services';
-import { Haircut } from '../../types';
-import axios from 'axios';
+import { profileAPI } from '../../api/services';
+import { Barber } from '../../types';
+import ImageWithFallback from '../ui/ImageWithFallback';
 
-interface HaircutWithDistance extends Haircut {
-  distance?: number;
-}
-
-const LocationBasedRecommendations: React.FC = () => {
-  const [recommendations, setRecommendations] = useState<HaircutWithDistance[]>([]);
+const LocationBasedBarbers: React.FC = () => {
+  const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -28,27 +23,22 @@ const LocationBasedRecommendations: React.FC = () => {
   const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
 
-  // Получаем местоположение пользователя при загрузке компонента
   useEffect(() => {
     checkLocationPermission();
   }, []);
 
-  // Проверяем разрешение на определение местоположения
   const checkLocationPermission = async () => {
     try {
-      // Проверяем, есть ли у нас доступ к геолокации
       if ('permissions' in navigator) {
         const permission = await navigator.permissions.query({
           name: 'geolocation' as PermissionName,
         });
         setLocationPermission(permission.state as 'granted' | 'denied' | 'prompt');
 
-        // Если разрешение предоставлено, получаем местоположение
         if (permission.state === 'granted') {
           getUserLocation();
         }
       } else {
-        // Если API разрешений не поддерживается, пробуем получить местоположение напрямую
         getUserLocation();
       }
     } catch (err) {
@@ -56,7 +46,6 @@ const LocationBasedRecommendations: React.FC = () => {
     }
   };
 
-  // Получаем местоположение пользователя
   const getUserLocation = () => {
     if (!navigator.geolocation) {
       setError('Геолокация не поддерживается вашим браузером');
@@ -68,21 +57,18 @@ const LocationBasedRecommendations: React.FC = () => {
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        // Сохраняем координаты
         setUserLocation({
           latitude,
           longitude,
           locationName: null,
         });
 
-        // Получаем название местоположения через Nominatim (OpenStreetMap)
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
           );
           const data = await response.json();
 
-          // Извлекаем название местоположения
           let locationName = '';
           if (data.address) {
             if (data.address.city) {
@@ -101,8 +87,7 @@ const LocationBasedRecommendations: React.FC = () => {
             locationName: locationName || 'Ваше местоположение',
           }));
 
-          // Загружаем рекомендации на основе местоположения
-          getRecommendations(latitude, longitude);
+          getBarbers();
         } catch (err) {
           console.error('Ошибка при получении названия местоположения:', err);
           setUserLocation(prev => ({
@@ -110,121 +95,75 @@ const LocationBasedRecommendations: React.FC = () => {
             locationName: 'Ваше местоположение',
           }));
 
-          // Даже если не удалось получить название, загружаем рекомендации
-          getRecommendations(latitude, longitude);
+          getBarbers();
         }
       },
       (error) => {
         console.error('Ошибка при получении геолокации:', error);
         setLoading(false);
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationPermission('denied');
-            setError('Для получения рекомендаций поблизости разрешите доступ к геолокации');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setError('Информация о местоположении недоступна');
-            break;
-          case error.TIMEOUT:
-            setError('Превышено время ожидания при получении местоположения');
-            break;
-          default:
-            setError('Произошла ошибка при определении местоположения');
-        }
+        setLocationPermission('denied');
+        setError('Для получения рекомендаций поблизости разрешите доступ к геолокации');
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 600000, // 10 минут
+        maximumAge: 600000,
       }
     );
   };
 
-  // Получаем рекомендации на основе местоположения
-  const getRecommendations = async (latitude: number, longitude: number) => {
+  const getBarbers = async () => {
     try {
       setLoading(true);
 
-      // В реальном приложении вызываем API
-      try {
-        const response = await axios.get(`/api/services/recommendations/?latitude=${latitude}&longitude=${longitude}`);
-        if (response.data && Array.isArray(response.data)) {
-          setRecommendations(response.data);
-        } else {
-          // Если API не вернуло данные, используем демо-данные
-          setRecommendations(getDemoRecommendations());
+      const response = await profileAPI.getAllBarbers();
+
+      if (response.data) {
+        let barbersData = [];
+
+        if (response.data.results && Array.isArray(response.data.results)) {
+          barbersData = response.data.results;
+        } else if (Array.isArray(response.data)) {
+          barbersData = response.data;
         }
-      } catch (error) {
-        console.error('Error fetching recommendations from API:', error);
-        // В случае ошибки используем демо-данные
-        setRecommendations(getDemoRecommendations());
+
+        const barbersWithProfile = barbersData.map((user: any) => ({
+          id: user.id,
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+          avatar: user.profile?.photo || null,
+          rating: user.avg_rating || 0,
+          reviewCount: user.review_count || 0,
+          specialization: user.profile?.specialization || [],
+          location: user.profile?.address || 'Не указано',
+          workingHours: {
+            from: user.profile?.working_hours_from || '09:00',
+            to: user.profile?.working_hours_to || '18:00',
+            days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+          },
+          portfolio: [],
+          description: user.profile?.bio || 'Информация о барбере',
+          whatsapp: user.profile?.whatsapp || '',
+          telegram: user.profile?.telegram || '',
+          offerHomeService: user.profile?.offers_home_service || false
+        }));
+
+        setNearbyBarbers(barbersWithProfile);
       }
 
       setShowRecommendations(true);
       setLoading(false);
     } catch (e) {
-      console.error('Error getting recommendations:', e);
-      setError('Не удалось загрузить рекомендации');
+      console.error('Error getting barbers:', e);
+      setError('Не удалось загрузить барберов');
       setLoading(false);
     }
   };
 
-  // Демо-данные для примера
-  const getDemoRecommendations = (): HaircutWithDistance[] => {
-    return [
-      {
-        id: '101',
-        image: 'https://images.pexels.com/photos/1570807/pexels-photo-1570807.jpeg',
-        title: 'Стильный кроп',
-        price: 600,
-        barber: 'Максим К.',
-        barberId: '2',
-        type: 'crop',
-        length: 'short',
-        style: 'modern',
-        location: 'Бишкек, рядом с вами',
-        duration: 45,
-        distance: 0.5
-      },
-      {
-        id: '102',
-        image: 'https://images.pexels.com/photos/1805600/pexels-photo-1805600.jpeg',
-        title: 'Классический фейд',
-        price: 500,
-        barber: 'Александр П.',
-        barberId: '1',
-        type: 'fade',
-        length: 'short',
-        style: 'business',
-        location: 'Бишкек, 2.5 км от вас',
-        duration: 30,
-        distance: 2.5
-      },
-      {
-        id: '103',
-        image: 'https://images.pexels.com/photos/1319460/pexels-photo-1319460.jpeg',
-        title: 'Текстурный андеркат',
-        price: 700,
-        barber: 'Руслан Д.',
-        barberId: '3',
-        type: 'undercut',
-        length: 'medium',
-        style: 'trendy',
-        location: 'Бишкек, 3 км от вас',
-        duration: 60,
-        distance: 3.0
-      }
-    ];
-  };
-
-  // Кнопка для повторного запроса разрешения на геолокацию
   const handleRequestLocation = () => {
     setError(null);
     getUserLocation();
   };
 
-  // Если рекомендации не показываются, отображаем кнопку "Показать барберов рядом"
   if (!showRecommendations) {
     return (
       <Card className="w-full mb-8">
@@ -267,8 +206,7 @@ const LocationBasedRecommendations: React.FC = () => {
     );
   }
 
-  // Если ошибка и рекомендации показываются, но их нет
-  if (error && recommendations.length === 0) {
+  if (error && nearbyBarbers.length === 0) {
     return (
       <Card className="w-full mb-8">
         <CardHeader>
@@ -290,8 +228,7 @@ const LocationBasedRecommendations: React.FC = () => {
     );
   }
 
-  // Если нет рекомендаций, но местоположение определено
-  if (recommendations.length === 0 && userLocation.latitude) {
+  if (nearbyBarbers.length === 0 && userLocation.latitude) {
     return (
       <Card className="w-full mb-8">
         <CardHeader>
@@ -312,7 +249,6 @@ const LocationBasedRecommendations: React.FC = () => {
     );
   }
 
-  // Отображаем рекомендации
   return (
     <Card className="w-full mb-8">
       <CardHeader>
@@ -340,36 +276,33 @@ const LocationBasedRecommendations: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recommendations.map((service) => (
+            {nearbyBarbers.map((barber) => (
               <Link
-                key={service.id}
-                to={`/services/${service.id}`}
+                key={barber.id}
+                to={`/barber/${barber.id}`}
                 className="block h-full"
               >
                 <div className="border rounded-md overflow-hidden h-full hover:shadow-md transition-shadow">
-                  {service.image ? (
-                    <div className="h-40 overflow-hidden">
-                      <img
-                        src={service.image}
-                        alt={service.title}
+                  <div className="h-40 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {barber.avatar ? (
+                      <ImageWithFallback
+                        src={barber.avatar}
+                        alt={barber.name}
                         className="w-full h-full object-cover"
                       />
-                    </div>
-                  ) : (
-                    <div className="h-40 bg-gray-100 flex items-center justify-center">
-                      <Scissors className="h-12 w-12 text-gray-300" />
-                    </div>
-                  )}
+                    ) : (
+                      <User className="h-12 w-12 text-gray-300" />
+                    )}
+                  </div>
                   <div className="p-4">
-                    <h3 className="font-medium text-lg">{service.title}</h3>
-                    <p className="text-gray-600">{service.barber}</p>
+                    <h3 className="font-medium text-lg">{barber.name}</h3>
+                    <p className="text-gray-600">{barber.location}</p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-[#9A0F34] font-bold">
-                        {service.price} сом
+                        ⭐ {barber.rating || '0'}
                       </span>
-                      <span className="text-sm text-gray-500 flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {service.distance ? `${service.distance} км` : service.location}
+                      <span className="text-sm text-gray-500">
+                        {barber.reviewCount || 0} отзывов
                       </span>
                     </div>
                   </div>
@@ -383,4 +316,4 @@ const LocationBasedRecommendations: React.FC = () => {
   );
 };
 
-export default LocationBasedRecommendations;
+export default LocationBasedBarbers;

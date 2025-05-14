@@ -25,7 +25,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Если пользователь не авторизован, просто показываем подсказку
     if (!isAuthenticated) {
       alert('Чтобы добавить в избранное, необходимо войти как барбер');
       return;
@@ -40,7 +39,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     setShowConsultModal(true);
   };
 
-  // Прямой переход к бронированию без проверки авторизации
   const handleBookClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -63,7 +61,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           onLoad={() => setIsImageLoaded(true)}
         />
 
-        {/* Показываем кнопку избранного только авторизованным пользователям */}
         {isAuthenticated && (
           <button
             className={`absolute top-2 right-2 p-2 rounded-full ${
@@ -93,6 +90,12 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             {haircut.barber}
           </Link>
         </div>
+
+        {haircut.description && (
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            {haircut.description}
+          </p>
+        )}
 
         <div className="flex items-center text-sm text-gray-600 mb-2">
           <Clock className="h-4 w-4 mr-1" />
@@ -133,7 +136,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-
               <a href={`https://wa.me/+996700123456?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -142,8 +144,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 WhatsApp
               </a>
 
-
-              <a  href={`https://t.me/barber123`}
+              <a href={`https://t.me/barber123`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"

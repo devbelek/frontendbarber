@@ -38,12 +38,12 @@ const FavoritesList: React.FC = () => {
     }
   };
 
-  const handleRemoveFromFavorites = async (serviceId: string) => {
+  const handleRemoveFromFavorites = async (favoriteId: string, serviceId: string) => {
     try {
       await toggleFavorite(serviceId);
       // Обновляем список избранного
       setFavorites(prevFavorites =>
-        prevFavorites.filter(fav => fav.service !== serviceId)
+        prevFavorites.filter(fav => fav.id !== favoriteId)
       );
     } catch (error) {
       console.error('Ошибка при удалении из избранного:', error);
@@ -104,7 +104,6 @@ const FavoritesList: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                {/* Изменение: используем /gallery вместо несуществующего маршрута */}
                 <Link to={`/gallery`} className="block">
                   <h3 className="font-medium text-lg mb-1 hover:text-[#9A0F34] transition-colors flex items-center">
                     <Scissors className="h-4 w-4 mr-2" />
@@ -122,7 +121,7 @@ const FavoritesList: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => handleRemoveFromFavorites(favorite.service)}
+                  onClick={() => handleRemoveFromFavorites(favorite.id, favorite.service)}
                   className="mt-3 inline-flex items-center text-sm text-gray-500 hover:text-red-600"
                 >
                   <Heart className="h-4 w-4 mr-1 fill-current" />

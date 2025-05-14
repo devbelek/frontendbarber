@@ -77,7 +77,7 @@ const TelegramRegistration: React.FC = () => {
               href={`https://t.me/${username}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline flex items-center"
+              className="text-blue-600 hover:underline inline-flex items-center"
             >
               @{username}
               <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

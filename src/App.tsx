@@ -13,6 +13,7 @@ import LoginModal from './components/auth/LoginModal';
 import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
 import AddServicePage from './pages/AddServicePage';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Тип для пропсов с openLoginModal
 interface RouteProps {
@@ -79,7 +80,9 @@ function App() {
     <LanguageProvider>
       <AuthProvider>
         <LocationProvider>
-          <AppRoutes />
+          <NotificationProvider>
+            <AppRoutes />
+          </NotificationProvider>
         </LocationProvider>
       </AuthProvider>
     </LanguageProvider>

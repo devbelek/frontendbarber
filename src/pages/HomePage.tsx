@@ -10,8 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { servicesAPI, bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
 import BookingModal from '../components/booking/BookingModal';
-import LocationBasedRecommendations from '../components/location/LocationBasedRecommendations';
-
+import LocationBasedBarbers from '../components/location/LocationBasedBarbers';
 interface HomePageProps {
   openLoginModal: () => void;
 }
@@ -141,11 +140,11 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
       </section>
 
       {/* Рекомендации на основе местоположения */}
-      <section className="py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <LocationBasedRecommendations />
-        </div>
-      </section>
+    <section className="py-12 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <LocationBasedBarbers />
+      </div>
+    </section>
 
       {/* Популярные стрижки */}
       <section className="py-12">

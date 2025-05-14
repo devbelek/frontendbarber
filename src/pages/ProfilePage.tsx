@@ -1,4 +1,3 @@
-// src/pages/ProfilePage.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation } from 'lucide-react';
@@ -12,6 +11,12 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { profileAPI } from '../api/services';
 import { debounce } from 'lodash';
+import apiClient from '../api/client';
+import ImageCropper from '../components/ui/ImageCropper';
+
+
+const [showImageCropper, setShowImageCropper] = useState(false);
+const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
@@ -22,17 +27,21 @@ const ProfilePage: React.FC = () => {
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    whatsapp: '',
-    telegram: '',
-    address: '',
-    offers_home_service: false,
-    latitude: null as number | null,
-    longitude: null as number | null
-  });
+const [formData, setFormData] = useState({
+  first_name: '',
+  last_name: '',
+  email: '',
+  whatsapp: '',
+  telegram: '',
+  address: '',
+  offers_home_service: false,
+  latitude: null as number | null,
+  longitude: null as number | null,
+  bio: '',
+  working_hours_from: '09:00',
+  working_hours_to: '18:00',
+  working_days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as string[]
+});
 
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -44,12 +53,10 @@ const ProfilePage: React.FC = () => {
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
 
-  // Загрузка данных при монтировании с защитой от повторных вызовов
   useEffect(() => {
     mountedRef.current = true;
 
     const loadUserData = async () => {
-      // Проверяем, что компонент смонтирован, пользователь авторизован и данные еще не загружались
       if (mountedRef.current && isAuthenticated && refreshUserData && !hasLoadedRef.current) {
         try {
           hasLoadedRef.current = true;
@@ -60,16 +67,14 @@ const ProfilePage: React.FC = () => {
       }
     };
 
-    // Добавляем небольшую задержку для избежания гонки
     const timeoutId = setTimeout(loadUserData, 100);
 
     return () => {
       clearTimeout(timeoutId);
       mountedRef.current = false;
     };
-  }, [isAuthenticated]); // Убираем refreshUserData из зависимостей
+  }, [isAuthenticated]);
 
-  // Инициализация данных формы
   useEffect(() => {
     if (user) {
       setFormData({
@@ -84,7 +89,6 @@ const ProfilePage: React.FC = () => {
         longitude: user.profile?.longitude || null
       });
 
-      // Если есть фото профиля, устанавливаем превью
       if (user.profile?.photo) {
         setPreviewUrl(user.profile.photo);
       } else if (user.picture) {
@@ -93,37 +97,47 @@ const ProfilePage: React.FC = () => {
     }
   }, [user]);
 
-  // Проверка авторизации с защитой от лишних редиректов
   useEffect(() => {
     if (!isAuthenticated && mountedRef.current) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0];
 
-      if (!file.type.startsWith('image/')) {
-        setError('Пожалуйста, загрузите изображение');
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Размер файла не должен превышать 5MB');
-        return;
-      }
-
-      setProfileImage(file);
-      setError(null);
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) {
+      setError('Пожалуйста, загрузите изображение');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    setError(null);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTempImageUrl(reader.result as string);
+      setShowImageCropper(true);
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const handleCropComplete = (croppedImage: File) => {
+  setProfileImage(croppedImage);
+  const reader = new FileReader();
+  reader.onload = () => {
+    setPreviewUrl(reader.result as string);
   };
+  reader.readAsDataURL(croppedImage);
+  setShowImageCropper(false);
+  setTempImageUrl(null);
+};
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -149,7 +163,6 @@ const ProfilePage: React.FC = () => {
         try {
           const { latitude, longitude } = position.coords;
 
-          // Получаем адрес по координатам через Nominatim (OpenStreetMap)
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
           );
@@ -209,7 +222,6 @@ const ProfilePage: React.FC = () => {
         return;
       }
 
-      // Обновляем базовую информацию пользователя только если изменилась
       if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
         const userData = {
           first_name: formData.first_name,
@@ -219,14 +231,12 @@ const ProfilePage: React.FC = () => {
         await profileAPI.updateUserInfo(userData);
       }
 
-      // Обновляем профиль
       const profileFormData = new FormData();
 
       if (profileImage) {
         profileFormData.append('photo', profileImage);
       }
 
-      // Добавляем только если значения изменились
       if (formData.whatsapp !== user.profile?.whatsapp) {
         profileFormData.append('whatsapp', formData.whatsapp || '');
       }
@@ -243,7 +253,6 @@ const ProfilePage: React.FC = () => {
         profileFormData.append('offers_home_service', formData.offers_home_service.toString());
       }
 
-      // Добавляем геолокацию если она изменилась
       if (formData.latitude !== user.profile?.latitude) {
         profileFormData.append('latitude', formData.latitude?.toString() || '');
       }
@@ -252,13 +261,11 @@ const ProfilePage: React.FC = () => {
         profileFormData.append('longitude', formData.longitude?.toString() || '');
       }
 
-      // Отправляем только если есть изменения
       const entries = Array.from(profileFormData.entries());
       if (entries.length > 0) {
         await profileAPI.updateProfile(profileFormData);
       }
 
-      // Обновляем данные пользователя после успешного сохранения
       if (refreshUserData) {
         try {
           await refreshUserData();
@@ -270,7 +277,6 @@ const ProfilePage: React.FC = () => {
       setSuccess('Данные профиля успешно обновлены');
       setIsEditing(false);
 
-      // Очищаем временные данные
       setProfileImage(null);
 
     } catch (err: any) {
@@ -300,10 +306,8 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Обработка отмены редактирования
   const handleCancelEdit = () => {
     setIsEditing(false);
-    // Восстанавливаем данные из user
     if (user) {
       setFormData({
         first_name: user.first_name || '',
@@ -317,7 +321,6 @@ const ProfilePage: React.FC = () => {
         longitude: user.profile?.longitude || null
       });
 
-      // Сбрасываем изображение
       setProfileImage(null);
       if (user.profile?.photo) {
         setPreviewUrl(user.profile.photo);
@@ -327,12 +330,43 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) {
+      return;
+    }
+
+    if (!window.confirm('Это действительно удалит ВСЕ ваши данные. Вы уверены?')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete('/users/delete-account/');
+      logout();
+      navigate('/');
+      alert('Ваш аккаунт был успешно удален.');
+    } catch (error) {
+      console.error('Ошибка при удалении аккаунта:', error);
+      alert('Не удалось удалить аккаунт. Пожалуйста, попробуйте позже.');
+    }
+  };
+
   if (!user) {
     return (
       <Layout openLoginModal={() => {}}>
         <div className="container mx-auto px-4 py-12 text-center">
           <p className="text-lg">Пожалуйста, войдите в систему, чтобы просмотреть профиль</p>
         </div>
+
+   {showImageCropper && tempImageUrl && (
+  <ImageCropper
+    imageSrc={tempImageUrl}
+    onCropComplete={handleCropComplete}
+    onCancel={() => {
+      setShowImageCropper(false);
+      setTempImageUrl(null);
+    }}
+  />
+)}
       </Layout>
     );
   }
@@ -397,6 +431,7 @@ const ProfilePage: React.FC = () => {
                     <Heart className="h-5 w-5 mr-3" />
                     {t('favorites')}
                   </button>
+
                   <button
                     onClick={() => {
                       logout();
@@ -406,6 +441,14 @@ const ProfilePage: React.FC = () => {
                   >
                     <LogOut className="h-5 w-5 mr-3" />
                     {t('logout')}
+                  </button>
+
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="flex items-center w-full mt-2 p-3 rounded-md text-left text-red-700 hover:bg-red-100"
+                  >
+                    <X className="h-5 w-5 mr-3" />
+                    Удалить аккаунт
                   </button>
                 </div>
               </div>

@@ -15,6 +15,7 @@ export interface Haircut {
   location: string;
   duration?: number;
   isFavorite?: boolean;
+  description?: string;
 }
 
 export interface Barber {
@@ -64,6 +65,10 @@ export interface UserProfile {
   latitude?: number | null;
   longitude?: number | null;
   location_updated_at?: string;
+  bio?: string;
+  working_hours_from?: string;
+  working_hours_to?: string;
+  working_days?: string[];
 }
 
 export interface Booking {

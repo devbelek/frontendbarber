@@ -44,12 +44,13 @@ const ProfilePage: React.FC = () => {
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
 
-  // Загрузка данных при монтировании
+  // Загрузка данных при монтировании с защитой от повторных вызовов
   useEffect(() => {
     mountedRef.current = true;
 
     const loadUserData = async () => {
-      if (isAuthenticated && refreshUserData && !hasLoadedRef.current) {
+      // Проверяем, что компонент смонтирован, пользователь авторизован и данные еще не загружались
+      if (mountedRef.current && isAuthenticated && refreshUserData && !hasLoadedRef.current) {
         try {
           hasLoadedRef.current = true;
           await refreshUserData();
@@ -59,12 +60,14 @@ const ProfilePage: React.FC = () => {
       }
     };
 
-    loadUserData();
+    // Добавляем небольшую задержку для избежания гонки
+    const timeoutId = setTimeout(loadUserData, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       mountedRef.current = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated]); // Убираем refreshUserData из зависимостей
 
   // Инициализация данных формы
   useEffect(() => {
@@ -90,9 +93,9 @@ const ProfilePage: React.FC = () => {
     }
   }, [user]);
 
-  // Проверка авторизации
+  // Проверка авторизации с защитой от лишних редиректов
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && mountedRef.current) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
@@ -257,7 +260,11 @@ const ProfilePage: React.FC = () => {
 
       // Обновляем данные пользователя после успешного сохранения
       if (refreshUserData) {
-        await refreshUserData();
+        try {
+          await refreshUserData();
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
       }
 
       setSuccess('Данные профиля успешно обновлены');

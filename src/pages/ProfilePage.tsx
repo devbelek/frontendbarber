@@ -61,7 +61,7 @@ const ProfilePage: React.FC = () => {
     };
   }, [isAuthenticated]);
 
-  // Инициализация данных формы из данных пользователя
+  // ВАЖНОЕ ИЗМЕНЕНИЕ: Улучшенная инициализация данных формы
   useEffect(() => {
     if (user) {
       setFormData({
@@ -77,6 +77,8 @@ const ProfilePage: React.FC = () => {
       // Если есть фото профиля, устанавливаем превью
       if (user.profile?.photo) {
         setPreviewUrl(user.profile.photo);
+      } else if (user.picture) {
+        setPreviewUrl(user.picture);
       }
     }
   }, [user]);
@@ -139,29 +141,47 @@ const ProfilePage: React.FC = () => {
         return;
       }
 
-      // Обновляем базовую информацию пользователя
-      const userData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name
-      };
+      // Обновляем базовую информацию пользователя только если изменилась
+      if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
+        const userData = {
+          first_name: formData.first_name,
+          last_name: formData.last_name
+        };
 
-      await profileAPI.updateUserInfo(userData);
+        await profileAPI.updateUserInfo(userData);
+      }
 
-      // Обновляем профиль с фото или без
+      // Обновляем профиль
       const profileFormData = new FormData();
 
       if (profileImage) {
         profileFormData.append('photo', profileImage);
       }
 
-      profileFormData.append('whatsapp', formData.whatsapp);
-      profileFormData.append('telegram', formData.telegram);
-      profileFormData.append('address', formData.address);
-      profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+      // Добавляем только если значения изменились
+      if (formData.whatsapp !== user.profile?.whatsapp) {
+        profileFormData.append('whatsapp', formData.whatsapp || '');
+      }
 
-      const profileResponse = await profileAPI.updateProfile(profileFormData);
+      if (formData.telegram !== user.profile?.telegram) {
+        profileFormData.append('telegram', formData.telegram || '');
+      }
 
-      // Обновляем данные пользователя в контексте
+      if (formData.address !== user.profile?.address) {
+        profileFormData.append('address', formData.address || '');
+      }
+
+      if (formData.offers_home_service !== user.profile?.offers_home_service) {
+        profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+      }
+
+      // Отправляем только если есть изменения
+      const entries = Array.from(profileFormData.entries());
+      if (entries.length > 0) {
+        await profileAPI.updateProfile(profileFormData);
+      }
+
+      // ВАЖНОЕ ИЗМЕНЕНИЕ: Обновляем данные пользователя после успешного сохранения
       if (refreshUserData) {
         await refreshUserData();
       }
@@ -199,6 +219,31 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // ДОБАВЛЕНО: Обработка отмены редактирования
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // Восстанавливаем данные из user
+    if (user) {
+      setFormData({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        whatsapp: user.profile?.whatsapp || '',
+        telegram: user.profile?.telegram || '',
+        address: user.profile?.address || '',
+        offers_home_service: user.profile?.offers_home_service || false
+      });
+
+      // Сбрасываем изображение
+      setProfileImage(null);
+      if (user.profile?.photo) {
+        setPreviewUrl(user.profile.photo);
+      } else if (user.picture) {
+        setPreviewUrl(user.picture);
+      }
+    }
+  };
+
   if (!user) {
     return (
       <Layout openLoginModal={() => {}}>
@@ -209,7 +254,7 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  const photoUrl = user.profile?.photo || user.picture;
+  const photoUrl = previewUrl || user.profile?.photo || user.picture;
 
   return (
     <Layout openLoginModal={() => {}}>
@@ -329,10 +374,8 @@ const ProfilePage: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (!user?.profile?.photo || profileImage) {
-                                        setProfileImage(null);
-                                        setPreviewUrl(null);
-                                      }
+                                      setProfileImage(null);
+                                      setPreviewUrl(null);
                                     }}
                                     className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-sm"
                                   >
@@ -418,9 +461,6 @@ const ProfilePage: React.FC = () => {
                                 className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
                               />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              На этот профиль будут отправляться уведомления о бронированиях
-                            </p>
                           </div>
 
                           <div>
@@ -440,9 +480,6 @@ const ProfilePage: React.FC = () => {
                                 className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
                               />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              WhatsApp номер для связи с клиентами
-                            </p>
                           </div>
 
                           <div>
@@ -488,7 +525,7 @@ const ProfilePage: React.FC = () => {
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => setIsEditing(false)}
+                              onClick={handleCancelEdit}
                               disabled={isSubmitting}
                             >
                               Отмена
@@ -501,7 +538,7 @@ const ProfilePage: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Имя и фамилия
                             </label>
-                            <p className="text-gray-900">{user.first_name} {user.last_name}</p>
+                            <p className="text-gray-900">{user.first_name || 'Не указано'} {user.last_name || ''}</p>
                           </div>
 
                           <div className="border-b pb-3">
@@ -529,7 +566,6 @@ const ProfilePage: React.FC = () => {
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg"
                                   >
                                     <path
                                       strokeLinecap="round"
@@ -560,7 +596,7 @@ const ProfilePage: React.FC = () => {
                                   className="text-green-600 hover:underline flex items-center"
                                 >
                                   {user.profile.whatsapp}
-                                  <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                   </svg>
                                 </a>
@@ -582,12 +618,18 @@ const ProfilePage: React.FC = () => {
                               </div>
                             )}
                           </div>
+
+                          {user.profile?.user_type === 'barber' && (
+                            <div className="mt-6">
+                              <TelegramRegistration />
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
                   </Card>
 
-                  {user.profile?.user_type === 'barber' && (
+                  {user.profile?.user_type === 'barber' && !isEditing && (
                     <div className="mt-6">
                       <Button
                         variant="primary"

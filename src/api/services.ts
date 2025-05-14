@@ -121,9 +121,7 @@ function processApiResponse<T>(response: any): T[] {
   return [];
 }
 
-// API для профиля пользователя
 export const profileAPI = {
-  // Получить информацию о текущем пользователе
   getCurrentUser: () => {
     return apiClient.get('/auth/users/me/');
   },

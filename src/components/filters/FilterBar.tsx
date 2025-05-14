@@ -1,3 +1,4 @@
+// src/components/filters/FilterBar.tsx
 import React, { useState } from 'react';
 import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,13 +24,13 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   const toggleFilter = (category: keyof typeof selectedFilters, value: string) => {
     setSelectedFilters(prev => {
       const updatedFilters = { ...prev };
-      
+
       if (updatedFilters[category].includes(value)) {
         updatedFilters[category] = updatedFilters[category].filter(item => item !== value);
       } else {
         updatedFilters[category] = [...updatedFilters[category], value];
       }
-      
+
       return updatedFilters;
     });
   };
@@ -197,7 +198,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
               onClick={applyFilters}
               className="ml-auto"
             >
-              {t('search')}
+              {t('applyFilters')}
             </Button>
           </div>
         </div>

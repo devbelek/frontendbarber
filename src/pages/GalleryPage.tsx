@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import FilterBar from '../components/filters/FilterBar';
 import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI } from '../api/services';
+import { servicesAPI, bookingsAPI } from '../api/services'; // ДОБАВЛЕН ИМПОРТ bookingsAPI
 import { Haircut } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 

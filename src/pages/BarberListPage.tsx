@@ -1,5 +1,4 @@
-// Файл: src/pages/BarberListPage.tsx
-
+// src/pages/BarberListPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, User } from 'lucide-react';
@@ -21,6 +20,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filteredBarbers, setFilteredBarbers] = useState([]);
 
   useEffect(() => {
     const fetchBarbers = async () => {
@@ -38,12 +38,10 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
 
           // Если данные в формате пагинации с полем results
           if (response.data.results && Array.isArray(response.data.results)) {
-            console.log('Извлекаем барберов из поля results:', response.data.results);
             barbersData = response.data.results;
           }
           // Если данные пришли сразу как массив
           else if (Array.isArray(response.data)) {
-            console.log('Данные пришли как массив:', response.data);
             barbersData = response.data;
           }
 
@@ -68,7 +66,23 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
     };
 
     fetchBarbers();
-  }, [currentRegion]);
+  }, []);
+
+  // Фильтрация барберов по региону
+  useEffect(() => {
+    if (barbers.length > 0) {
+      const filtered = barbers.filter(barber => {
+        // Проверяем по адресу барбера
+        const barberAddress = barber.profile?.address || '';
+        const regionName = currentRegion.name.toLowerCase();
+
+        // Проверяем, содержит ли адрес барбера название региона
+        return barberAddress.toLowerCase().includes(regionName);
+      });
+
+      setFilteredBarbers(filtered);
+    }
+  }, [barbers, currentRegion]);
 
   const getFullName = (barber) => {
     if (barber.first_name || barber.last_name) {
@@ -76,6 +90,8 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
     }
     return barber.username;
   };
+
+  const barbersToDisplay = filteredBarbers.length > 0 ? filteredBarbers : barbers;
 
   return (
     <Layout openLoginModal={openLoginModal}>
@@ -86,6 +102,11 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           <p className="text-gray-600">
             Выбранный регион: <span className="font-medium">{currentRegion.name}</span>
           </p>
+          {filteredBarbers.length === 0 && barbers.length > 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              Показаны все барберы, так как в выбранном регионе барберов не найдено
+            </p>
+          )}
         </div>
 
         {loading ? (
@@ -108,9 +129,9 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
               Попробовать снова
             </Button>
           </div>
-        ) : barbers.length > 0 ? (
+        ) : barbersToDisplay.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {barbers.map((barber) => (
+            {barbersToDisplay.map((barber) => (
               <Card key={barber.id} className="h-full transition-transform hover:-translate-y-1 hover:shadow-lg">
                 <div className="relative">
                   <div className="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -151,7 +172,12 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           </div>
         ) : (
           <div className="bg-gray-50 p-6 rounded-lg text-center">
-            <p className="text-gray-600 mb-4">Барберы не найдены. Попробуйте изменить регион поиска.</p>
+            <p className="text-gray-600 mb-4">
+              {filteredBarbers.length === 0 && barbers.length > 0
+                ? `В регионе "${currentRegion.name}" барберы не найдены.`
+                : 'Барберы не найдены.'
+              }
+            </p>
           </div>
         )}
       </div>

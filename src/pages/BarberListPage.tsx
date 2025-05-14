@@ -1,7 +1,6 @@
-// src/pages/BarberListPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Star, User } from 'lucide-react';
+import { MapPin, User, Clock } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -32,16 +31,12 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
         const response = await profileAPI.getAllBarbers();
         console.log('Ответ API барберов:', response);
 
-        // Проверка наличия данных в ответе
         if (response && response.data) {
           let barbersData = [];
 
-          // Если данные в формате пагинации с полем results
           if (response.data.results && Array.isArray(response.data.results)) {
             barbersData = response.data.results;
-          }
-          // Если данные пришли сразу как массив
-          else if (Array.isArray(response.data)) {
+          } else if (Array.isArray(response.data)) {
             barbersData = response.data;
           }
 
@@ -68,15 +63,11 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
     fetchBarbers();
   }, []);
 
-  // Фильтрация барберов по региону
   useEffect(() => {
     if (barbers.length > 0) {
       const filtered = barbers.filter(barber => {
-        // Проверяем по адресу барбера
         const barberAddress = barber.profile?.address || '';
         const regionName = currentRegion.name.toLowerCase();
-
-        // Проверяем, содержит ли адрес барбера название региона
         return barberAddress.toLowerCase().includes(regionName);
       });
 
@@ -150,16 +141,17 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                 <div className="p-4">
                   <h3 className="text-lg font-semibold mb-1">{getFullName(barber)}</h3>
 
-                  <div className="flex items-center mb-2">
-                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                    <span className="text-sm font-medium">{barber.avg_rating || '5.0'}</span>
-                    <span className="text-sm text-gray-500 ml-1">({barber.review_count || '0'})</span>
-                  </div>
-
                   <div className="flex items-center text-sm text-gray-600 mb-3">
                     <MapPin className="h-4 w-4 mr-1 text-gray-400" />
                     <span>{barber.profile?.address || 'Локация не указана'}</span>
                   </div>
+
+                  {barber.profile?.working_hours_from && barber.profile?.working_hours_to && (
+                    <div className="flex items-center text-sm text-gray-500 mb-3">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>{barber.profile.working_hours_from} - {barber.profile.working_hours_to}</span>
+                    </div>
+                  )}
 
                   <Link to={`/barber/${barber.id}`}>
                     <Button variant="outline" fullWidth>

@@ -7,12 +7,16 @@ import Card, { CardContent } from '../components/ui/Card';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
 import { servicesAPI, profileAPI } from '../api/services';
-import { Barber, Haircut } from '../../types';
+import { Barber, Haircut } from '../types';
 import { useLanguage } from "../context/LanguageContext";
 import ImageWithFallback from '../components/ui/ImageWithFallback';
 import apiClient from '../api/client';
 
-const BarberProfilePage: React.FC = () => {
+interface BarberProfilePageProps {
+  openLoginModal: () => void;
+}
+
+const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [barber, setBarber] = useState<Barber | null>(null);
@@ -30,23 +34,20 @@ const BarberProfilePage: React.FC = () => {
       try {
         setLoading(true);
 
-        // Используем правильное API для получения данных барбера
         const barberResponse = await profileAPI.getBarberProfile(id);
         const barberData = barberResponse.data;
         console.log('Barber data response:', barberData);
 
-        // Проверяем наличие данных
         if (!barberData || !barberData.profile) {
           throw new Error('Некорректный формат данных от сервера');
         }
 
-        // Преобразуем данные в формат Barber
         const barberInfo: Barber = {
           id: barberData.id,
           name: `${barberData.first_name || ''} ${barberData.last_name || ''}`.trim() || barberData.username,
           avatar: barberData.profile.photo || 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-          rating: barberData.avg_rating || 0,
-          reviewCount: barberData.review_count || 0,
+          rating: 0,
+          reviewCount: 0,
           specialization: barberData.profile.specialization || [],
           location: barberData.profile.address || 'Бишкек',
           workingHours: {
@@ -63,21 +64,17 @@ const BarberProfilePage: React.FC = () => {
 
         setBarber(barberInfo);
 
-        // Получаем стрижки барбера
         const haircutsResponse = await servicesAPI.getAll({ barber: id });
         console.log('Barber haircuts response:', haircutsResponse);
 
-        // Обрабатываем разные форматы данных
         if (haircutsResponse.data) {
           let haircuts: Haircut[] = [];
           let haircutsData = haircutsResponse.data;
 
-          // Если данные в формате пагинации
           if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
             haircutsData = haircutsResponse.data.results;
           }
 
-          // Только если данные в формате массива
           if (Array.isArray(haircutsData)) {
             haircutsData.forEach((service: any) => {
               haircuts.push({
@@ -92,6 +89,7 @@ const BarberProfilePage: React.FC = () => {
                 style: service.style,
                 location: service.location,
                 duration: service.duration,
+                description: service.description,
                 isFavorite: service.is_favorite
               });
             });
@@ -126,7 +124,7 @@ const BarberProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout openLoginModal={() => {}}>
+      <Layout openLoginModal={openLoginModal}>
         <div className="container mx-auto px-4 py-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34] mx-auto mb-4"></div>
           <p>{t('loading')}</p>
@@ -137,7 +135,7 @@ const BarberProfilePage: React.FC = () => {
 
   if (error || !barber) {
     return (
-      <Layout openLoginModal={() => {}}>
+      <Layout openLoginModal={openLoginModal}>
         <div className="container mx-auto px-4 py-12 text-center">
           <div className="bg-red-50 p-4 rounded-md mb-4">
             <p className="text-red-700">{error || 'Барбер не найден'}</p>
@@ -150,7 +148,6 @@ const BarberProfilePage: React.FC = () => {
     );
   }
 
-  // Custom Comb Icon for Profile
   const CombIcon = ({ className = "" }) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -173,9 +170,8 @@ const BarberProfilePage: React.FC = () => {
   );
 
   return (
-    <Layout openLoginModal={() => {}}>
+    <Layout openLoginModal={openLoginModal}>
       <div className="container mx-auto px-4 py-8">
-        {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
           <div className="md:flex">
             <div className="md:w-1/3">
@@ -262,7 +258,6 @@ const BarberProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="border-b mb-6">
           <div className="flex">
             <button
@@ -288,7 +283,6 @@ const BarberProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="mb-8">
           {activeTab === 'portfolio' && (
             <div>
@@ -396,7 +390,6 @@ const BarberProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Booking Modal */}
       <BookingModal
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}

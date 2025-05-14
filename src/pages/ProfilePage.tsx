@@ -18,7 +18,7 @@ import ImageCropper from '../components/ui/ImageCropper';
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated, refreshUserData } = useAuth();
-  const { success: notificationSuccess, error: notificationError } = useNotification();
+  const notification = useNotification();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
   const [isEditing, setIsEditing] = useState(false);
@@ -47,8 +47,6 @@ const ProfilePage: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
@@ -112,12 +110,12 @@ const ProfilePage: React.FC = () => {
       const file = e.target.files[0];
 
       if (!file.type.startsWith('image/')) {
-        notificationError('Ошибка', 'Пожалуйста, загрузите изображение');
+        notification.error('Ошибка', 'Пожалуйста, загрузите изображение');
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        notificationError('Ошибка', 'Размер файла не должен превышать 5MB');
+        notification.error('Ошибка', 'Размер файла не должен превышать 5MB');
         return;
       }
 
@@ -214,12 +212,10 @@ const ProfilePage: React.FC = () => {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       if (!user || !isAuthenticated) {
-        notificationError('Ошибка', 'Необходимо войти в систему для обновления профиля');
+        notification.error('Ошибка', 'Необходимо войти в систему для обновления профиля');
         setIsSubmitting(false);
         return;
       }
@@ -263,7 +259,6 @@ const ProfilePage: React.FC = () => {
         profileFormData.append('longitude', formData.longitude?.toString() || '');
       }
 
-      // Добавляем новые поля для барберов
       if (formData.bio !== user.profile?.bio) {
         profileFormData.append('bio', formData.bio);
       }
@@ -293,7 +288,7 @@ const ProfilePage: React.FC = () => {
         }
       }
 
-      notificationSuccess('Успешно!', 'Данные профиля успешно обновлены');
+      notification.success('Успешно!', 'Данные профиля успешно обновлены');
       setIsEditing(false);
 
       setProfileImage(null);
@@ -319,7 +314,7 @@ const ProfilePage: React.FC = () => {
         if (errorsArray) errorMessage = errorsArray;
       }
 
-      notificationError('Ошибка!', errorMessage);
+      notification.error('Ошибка!', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -366,10 +361,10 @@ const ProfilePage: React.FC = () => {
       await apiClient.delete('/users/delete-account/');
       logout();
       navigate('/');
-      notificationSuccess('Аккаунт удален', 'Ваш аккаунт был успешно удален.');
+      notification.success('Аккаунт удален', 'Ваш аккаунт был успешно удален.');
     } catch (error) {
       console.error('Ошибка при удалении аккаунта:', error);
-      notificationError('Ошибка', 'Не удалось удалить аккаунт. Пожалуйста, попробуйте позже.');
+      notification.error('Ошибка', 'Не удалось удалить аккаунт. Пожалуйста, попробуйте позже.');
     }
   };
 
@@ -480,18 +475,6 @@ const ProfilePage: React.FC = () => {
                       </Button>
                     )}
                   </div>
-
-                  {error && (
-                    <div className="bg-red-50 p-4 rounded-md mb-4">
-                      <p className="text-red-700 text-sm">{error}</p>
-                    </div>
-                  )}
-
-                  {success && (
-                    <div className="bg-green-50 p-4 rounded-md mb-4">
-                      <p className="text-green-700 text-sm">{success}</p>
-                    </div>
-                  )}
 
                   <Card>
                     <CardContent>

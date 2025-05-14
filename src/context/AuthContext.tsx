@@ -36,6 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Используем ref для отслеживания активных запросов
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
+  const lastFetchTime = useRef<number>(0);
+  const MIN_FETCH_INTERVAL = 5000; // Минимальный интервал между запросами (5 секунд)
 
   // Проверяем аутентификацию при загрузке
   useEffect(() => {
@@ -45,11 +47,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('token');
       const googleUser = localStorage.getItem('googleUser');
 
+      // Проверяем минимальный интервал между запросами
+      const now = Date.now();
+      if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
+        console.log('Слишком частые запросы, пропускаем');
+        setLoading(false);
+        return;
+      }
+
       if (token && !fetchingRef.current) {
         try {
           await fetchCurrentUser();
-        } catch (err) {
+        } catch (err: any) {
           console.error('Error fetching user:', err);
+
+          // Обработка 429 ошибки
+          if (err?.response?.status === 429 || err?.isRateLimited) {
+            const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
+            console.log(`Получена ошибка 429, ждем ${retryAfter} секунд`);
+            setTimeout(() => {
+              if (mountedRef.current) {
+                fetchingRef.current = false;
+              }
+            }, retryAfter * 1000);
+          }
 
           if (googleUser) {
             try {
@@ -103,8 +124,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchCurrentUser = async () => {
     if (fetchingRef.current) return;
 
+    // Проверяем минимальный интервал
+    const now = Date.now();
+    if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
+      console.log('Слишком частые запросы к fetchCurrentUser, пропускаем');
+      return;
+    }
+
     try {
       fetchingRef.current = true;
+      lastFetchTime.current = now;
       setLoading(true);
 
       const googleUser = localStorage.getItem('googleUser');
@@ -127,8 +156,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               ? favoritesResponse.data.map((favorite: any) => favorite.service)
               : [];
           }
-        } catch (err) {
+        } catch (err: any) {
           console.warn('Failed to fetch favorites:', err);
+          // Обработка 429 для избранного
+          if (err?.response?.status === 429 || err?.isRateLimited) {
+            console.log('Получена ошибка 429 при загрузке избранного');
+          }
         }
       }
 
@@ -160,8 +193,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUserData = useCallback(async () => {
     if (fetchingRef.current || loading) return;
 
+    // Проверяем минимальный интервал
+    const now = Date.now();
+    if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
+      console.log('Слишком частое обновление данных пользователя, пропускаем');
+      return;
+    }
+
     try {
       fetchingRef.current = true;
+      lastFetchTime.current = now;
       setLoading(true);
 
       const response = await authAPI.getCurrentUser();
@@ -177,8 +218,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   ? favoritesResponse.data.results.map((favorite: any) => favorite.service)
                   : []);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.warn('Failed to fetch favorites:', err);
+          if (err?.response?.status === 429 || err?.isRateLimited) {
+            console.log('Получена ошибка 429 при обновлении избранного');
+          }
         }
       }
 
@@ -221,8 +265,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (mountedRef.current) {
         setUser(userData);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to refresh user data:', err);
+      if (err?.response?.status === 429 || err?.isRateLimited) {
+        const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
+        console.log(`Получена ошибка 429 при обновлении данных пользователя, ждем ${retryAfter} секунд`);
+      }
       throw err;
     } finally {
       if (mountedRef.current) {
@@ -402,8 +450,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           };
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
+      if (err?.response?.status === 429 || err?.isRateLimited) {
+        const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
+        console.log(`Получена ошибка 429 при изменении избранного, ждем ${retryAfter} секунд`);
+      }
       throw err;
     }
   };

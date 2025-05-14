@@ -182,6 +182,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // Получаем данные из localStorage для сохранения picture
+      let picture = undefined;
+      const googleUser = localStorage.getItem('googleUser');
+      if (googleUser) {
+        try {
+          const parsedGoogleUser = JSON.parse(googleUser);
+          picture = parsedGoogleUser.picture;
+        } catch (e) {
+          console.error('Failed to parse googleUser from localStorage:', e);
+        }
+      }
+
       const userData: User = {
         id: response.data.id,
         username: response.data.username,
@@ -190,17 +202,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         last_name: response.data.last_name,
         profile: response.data.profile,
         favorites: favorites,
-        picture: localStorage.getItem('googleUser')
-          ? JSON.parse(localStorage.getItem('googleUser') || '{}').picture
-          : undefined
+        picture: response.data.profile?.photo || picture
       };
 
-      if (localStorage.getItem('googleUser')) {
-        const googleUser = JSON.parse(localStorage.getItem('googleUser') || '{}');
-        googleUser.first_name = userData.first_name;
-        googleUser.last_name = userData.last_name;
-        googleUser.profile = userData.profile;
-        localStorage.setItem('googleUser', JSON.stringify(googleUser));
+      // Обновляем googleUser в localStorage если он есть
+      if (googleUser) {
+        try {
+          const parsedGoogleUser = JSON.parse(googleUser);
+          parsedGoogleUser.first_name = userData.first_name;
+          parsedGoogleUser.last_name = userData.last_name;
+          parsedGoogleUser.profile = userData.profile;
+          localStorage.setItem('googleUser', JSON.stringify(parsedGoogleUser));
+        } catch (e) {
+          console.error('Failed to update googleUser in localStorage:', e);
+        }
       }
 
       if (mountedRef.current) {
@@ -208,13 +223,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error('Failed to refresh user data:', err);
+      throw err;
     } finally {
       if (mountedRef.current) {
         setLoading(false);
         fetchingRef.current = false;
       }
     }
-  }, []);
+  }, [loading]);
 
   const login = async (userData: any): Promise<boolean> => {
     setError(null);

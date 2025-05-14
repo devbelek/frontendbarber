@@ -1,4 +1,4 @@
-// src/components/location/LocationBasedRecommendations.tsx (полный код)
+// src/components/location/LocationBasedRecommendations.tsx
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Scissors } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -8,8 +8,12 @@ import { locationAPI } from '../../api/services';
 import { Haircut } from '../../types';
 import axios from 'axios';
 
+interface HaircutWithDistance extends Haircut {
+  distance?: number;
+}
+
 const LocationBasedRecommendations: React.FC = () => {
-  const [recommendations, setRecommendations] = useState<Haircut[]>([]);
+  const [recommendations, setRecommendations] = useState<HaircutWithDistance[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -21,8 +25,8 @@ const LocationBasedRecommendations: React.FC = () => {
     longitude: null,
     locationName: null,
   });
-const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
-const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
 
   // Получаем местоположение пользователя при загрузке компонента
   useEffect(() => {
@@ -167,7 +171,7 @@ const [locationPermission, setLocationPermission] = useState<'granted' | 'denied
   };
 
   // Демо-данные для примера
-  const getDemoRecommendations = (): Haircut[] => {
+  const getDemoRecommendations = (): HaircutWithDistance[] => {
     return [
       {
         id: '101',
@@ -180,7 +184,8 @@ const [locationPermission, setLocationPermission] = useState<'granted' | 'denied
         length: 'short',
         style: 'modern',
         location: 'Бишкек, рядом с вами',
-        duration: 45
+        duration: 45,
+        distance: 0.5
       },
       {
         id: '102',
@@ -193,7 +198,8 @@ const [locationPermission, setLocationPermission] = useState<'granted' | 'denied
         length: 'short',
         style: 'business',
         location: 'Бишкек, 2.5 км от вас',
-        duration: 30
+        duration: 30,
+        distance: 2.5
       },
       {
         id: '103',
@@ -206,7 +212,8 @@ const [locationPermission, setLocationPermission] = useState<'granted' | 'denied
         length: 'medium',
         style: 'trendy',
         location: 'Бишкек, 3 км от вас',
-        duration: 60
+        duration: 60,
+        distance: 3.0
       }
     ];
   };
@@ -358,11 +365,11 @@ const [locationPermission, setLocationPermission] = useState<'granted' | 'denied
                     <p className="text-gray-600">{service.barber}</p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-[#9A0F34] font-bold">
-                        {service.price} ₽
+                        {service.price} сом
                       </span>
                       <span className="text-sm text-gray-500 flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        {service.location}
+                        {service.distance ? `${service.distance} км` : service.location}
                       </span>
                     </div>
                   </div>

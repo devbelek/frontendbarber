@@ -61,6 +61,9 @@ export interface UserProfile {
   telegram?: string;
   address?: string;
   offers_home_service: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_updated_at?: string;
 }
 
 export interface Booking {

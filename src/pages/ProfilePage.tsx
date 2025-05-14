@@ -1,7 +1,7 @@
 // src/pages/ProfilePage.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -19,6 +19,9 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
   const [isEditing, setIsEditing] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -26,7 +29,9 @@ const ProfilePage: React.FC = () => {
     whatsapp: '',
     telegram: '',
     address: '',
-    offers_home_service: false
+    offers_home_service: false,
+    latitude: null as number | null,
+    longitude: null as number | null
   });
 
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -61,7 +66,7 @@ const ProfilePage: React.FC = () => {
     };
   }, [isAuthenticated]);
 
-  // ВАЖНОЕ ИЗМЕНЕНИЕ: Улучшенная инициализация данных формы
+  // Инициализация данных формы
   useEffect(() => {
     if (user) {
       setFormData({
@@ -71,7 +76,9 @@ const ProfilePage: React.FC = () => {
         whatsapp: user.profile?.whatsapp || '',
         telegram: user.profile?.telegram || '',
         address: user.profile?.address || '',
-        offers_home_service: user.profile?.offers_home_service || false
+        offers_home_service: user.profile?.offers_home_service || false,
+        latitude: user.profile?.latitude || null,
+        longitude: user.profile?.longitude || null
       });
 
       // Если есть фото профиля, устанавливаем превью
@@ -125,6 +132,64 @@ const ProfilePage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Геолокация не поддерживается вашим браузером');
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+
+          // Получаем адрес по координатам через Nominatim (OpenStreetMap)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await response.json();
+
+          let address = '';
+          if (data.address) {
+            const parts = [];
+            if (data.address.city || data.address.town) {
+              parts.push(data.address.city || data.address.town);
+            }
+            if (data.address.road) parts.push(data.address.road);
+            if (data.address.house_number) parts.push(data.address.house_number);
+            address = parts.join(', ');
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            address: address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            latitude,
+            longitude
+          }));
+
+          setLocationLoading(false);
+        } catch (err) {
+          console.error('Error fetching address:', err);
+          setLocationError('Не удалось получить адрес');
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setLocationError('Не удалось определить местоположение');
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -175,13 +240,22 @@ const ProfilePage: React.FC = () => {
         profileFormData.append('offers_home_service', formData.offers_home_service.toString());
       }
 
+      // Добавляем геолокацию если она изменилась
+      if (formData.latitude !== user.profile?.latitude) {
+        profileFormData.append('latitude', formData.latitude?.toString() || '');
+      }
+
+      if (formData.longitude !== user.profile?.longitude) {
+        profileFormData.append('longitude', formData.longitude?.toString() || '');
+      }
+
       // Отправляем только если есть изменения
       const entries = Array.from(profileFormData.entries());
       if (entries.length > 0) {
         await profileAPI.updateProfile(profileFormData);
       }
 
-      // ВАЖНОЕ ИЗМЕНЕНИЕ: Обновляем данные пользователя после успешного сохранения
+      // Обновляем данные пользователя после успешного сохранения
       if (refreshUserData) {
         await refreshUserData();
       }
@@ -219,7 +293,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // ДОБАВЛЕНО: Обработка отмены редактирования
+  // Обработка отмены редактирования
   const handleCancelEdit = () => {
     setIsEditing(false);
     // Восстанавливаем данные из user
@@ -231,7 +305,9 @@ const ProfilePage: React.FC = () => {
         whatsapp: user.profile?.whatsapp || '',
         telegram: user.profile?.telegram || '',
         address: user.profile?.address || '',
-        offers_home_service: user.profile?.offers_home_service || false
+        offers_home_service: user.profile?.offers_home_service || false,
+        latitude: user.profile?.latitude || null,
+        longitude: user.profile?.longitude || null
       });
 
       // Сбрасываем изображение
@@ -494,9 +570,30 @@ const ProfilePage: React.FC = () => {
                                 value={formData.address}
                                 onChange={handleChange}
                                 placeholder="Например: Бишкек, ул. Киевская 95"
-                                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                                className="w-full pl-10 pr-32 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
                               />
+                              <button
+                                type="button"
+                                onClick={handleGetLocation}
+                                disabled={locationLoading}
+                                className="absolute right-1 top-1 bottom-1 px-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              >
+                                <Navigation className="h-4 w-4" />
+                                {locationLoading ? (
+                                  <span className="ml-1 hidden sm:inline">Определение...</span>
+                                ) : (
+                                  <span className="ml-1 hidden sm:inline">Определить</span>
+                                )}
+                              </button>
                             </div>
+                            {formData.latitude && formData.longitude && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Координаты: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                              </p>
+                            )}
+                            {locationError && (
+                              <p className="text-xs text-red-500 mt-1">{locationError}</p>
+                            )}
                           </div>
 
                           <div className="flex items-center">
@@ -612,6 +709,11 @@ const ProfilePage: React.FC = () => {
                               Адрес барбершопа
                             </label>
                             <p className="text-gray-900">{user.profile?.address || 'Не указан'}</p>
+                            {user.profile?.latitude && user.profile?.longitude && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Координаты: {user.profile.latitude.toFixed(6)}, {user.profile.longitude.toFixed(6)}
+                              </p>
+                            )}
                             {user.profile?.offers_home_service && (
                               <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 Выезд на дом

@@ -1,3 +1,4 @@
+// Основной импорт остается прежним, добавим только lodash
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X } from 'lucide-react';
@@ -10,6 +11,7 @@ import TelegramRegistration from '../components/profile/TelegramRegistration';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { profileAPI } from '../api/services';
+import { debounce } from 'lodash'; // Добавляем импорт для debounce
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
@@ -34,21 +36,23 @@ const ProfilePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [dataFetched, setDataFetched] = useState(false); // Добавляем флаг для отслеживания первой загрузки
 
-  // Эффект для обновления данных при загрузке компонента
+  // Эффект для обновления данных при загрузке компонента - ТОЛЬКО ОДИН РАЗ
   useEffect(() => {
-    if (isAuthenticated && refreshUserData) {
-      // Единоразовый вызов при монтировании компонента
+    // Предотвращаем повторную загрузку
+    if (isAuthenticated && refreshUserData && !dataFetched) {
       const initialFetch = async () => {
         try {
           await refreshUserData();
+          setDataFetched(true); // Отмечаем, что данные загружены
         } catch (error) {
           console.error('Ошибка при обновлении данных пользователя:', error);
         }
       };
       initialFetch();
     }
-  }, []);
+  }, [isAuthenticated, refreshUserData, dataFetched]);
 
   // Инициализация данных формы из данных пользователя
   useEffect(() => {
@@ -108,8 +112,13 @@ const ProfilePage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Оборачиваем handleSubmit в debounce, чтобы избежать множественных запросов
+  const handleSubmit = debounce(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Защита от повторных отправок
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -155,9 +164,16 @@ const ProfilePage: React.FC = () => {
         await profileAPI.updateProfile(profileData);
       }
 
-      // Обновляем данные пользователя
+      // Обновляем данные пользователя - ждем перед запросом
       if (refreshUserData) {
-        await refreshUserData();
+        // Используем setTimeout, чтобы дать время серверу обработать предыдущие запросы
+        setTimeout(async () => {
+          try {
+            await refreshUserData();
+          } catch (refreshError) {
+            console.error("Ошибка при обновлении данных пользователя:", refreshError);
+          }
+        }, 1000);
       }
 
       setSuccess('Данные профиля успешно обновлены');
@@ -176,6 +192,8 @@ const ProfilePage: React.FC = () => {
           logout();
           navigate('/login');
         }, 2000);
+      } else if (err.response?.status === 429) {
+        errorMessage = 'Слишком много запросов. Пожалуйста, подождите несколько минут и попробуйте снова.';
       } else if (err.response?.data?.detail) {
         errorMessage = err.response.data.detail;
       } else if (err.response?.data) {
@@ -189,7 +207,7 @@ const ProfilePage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, 500); // Устанавливаем задержку 500ms
 
   if (!user) {
     return (

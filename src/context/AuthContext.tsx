@@ -32,6 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Добавляем флаг для предотвращения повторных запросов
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Проверяем аутентификацию при загрузке
   useEffect(() => {
@@ -87,8 +89,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchCurrentUser = async () => {
+    if (isRefreshing) return; // Защита от повторных запросов
+
     try {
       setLoading(true);
+      setIsRefreshing(true);
 
       // Проверяем, не является ли пользователь Google-пользователем
       const googleUser = localStorage.getItem('googleUser');
@@ -102,13 +107,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Для обычных пользователей получаем данные с сервера
       const response = await authAPI.getCurrentUser();
 
-      // Получаем избранные услуги
+      // Получаем избранные услуги - с защитой от ошибок
       let favorites: string[] = [];
-      try {
-        const favoritesResponse = await favoritesAPI.getAll();
-        favorites = favoritesResponse.data.map((favorite: any) => favorite.service);
-      } catch (err) {
-        console.warn('Failed to fetch favorites:', err);
+      // Только если пользователь авторизован и у нас есть его данные
+      if (response && response.data && response.data.id) {
+        try {
+          const favoritesResponse = await favoritesAPI.getAll();
+          if (favoritesResponse && favoritesResponse.data) {
+            favorites = Array.isArray(favoritesResponse.data)
+              ? favoritesResponse.data.map((favorite: any) => favorite.service)
+              : [];
+          }
+        } catch (err) {
+          console.warn('Failed to fetch favorites:', err);
+          // НЕ выбрасываем ошибку дальше, только логируем
+        }
       }
 
       // Преобразуем данные пользователя
@@ -128,28 +141,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw err; // Передаем ошибку дальше для обработки в checkAuth
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   // Используем useCallback для предотвращения пересоздания функции
   const refreshUserData = useCallback(async () => {
+    if (isRefreshing || loading) return; // Добавляем защиту от параллельных запросов
+
     try {
+      setIsRefreshing(true);
       setLoading(true);
 
       // Получаем актуальные данные пользователя
       const response = await authAPI.getCurrentUser();
 
-      // Получаем избранные услуги
+      // Получаем избранные услуги с защитой от ошибок
       let favorites: string[] = [];
-      try {
-        const favoritesResponse = await favoritesAPI.getAll();
-        favorites = Array.isArray(favoritesResponse.data)
-          ? favoritesResponse.data.map((favorite: any) => favorite.service)
-          : (favoritesResponse.data.results
-              ? favoritesResponse.data.results.map((favorite: any) => favorite.service)
-              : []);
-      } catch (err) {
-        console.warn('Failed to fetch favorites:', err);
+      if (response && response.data && response.data.id) {
+        try {
+          const favoritesResponse = await favoritesAPI.getAll();
+          if (favoritesResponse && favoritesResponse.data) {
+            favorites = Array.isArray(favoritesResponse.data)
+              ? favoritesResponse.data.map((favorite: any) => favorite.service)
+              : (favoritesResponse.data.results
+                  ? favoritesResponse.data.results.map((favorite: any) => favorite.service)
+                  : []);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch favorites:', err);
+          // Не выбрасываем ошибку, просто продолжаем с пустым списком
+        }
       }
 
       // Преобразуем данные пользователя
@@ -182,8 +204,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to refresh user data:', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, []);
+  }, [loading, isRefreshing]);
 
   const login = async (userData: any): Promise<boolean> => {
     setError(null);
@@ -339,6 +362,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toggleFavorite = async (haircutId: string): Promise<void> => {
+    if (loading || isRefreshing) return; // Защита от параллельных запросов
+
     try {
       if (!user) {
         throw new Error('Необходимо войти в систему для добавления в избранное');

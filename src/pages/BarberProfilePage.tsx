@@ -8,7 +8,7 @@ import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
 import { servicesAPI, profileAPI } from '../api/services';
 import { Barber, Haircut } from '../../types';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from "../context/LanguageContext";
 import ImageWithFallback from '../components/ui/ImageWithFallback';
 import apiClient from '../api/client';
 

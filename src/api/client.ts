@@ -48,13 +48,23 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Добавляем интерцептор ответа для обработки ошибок аутентификации
+// Добавляем интерцептор ответа для обработки ошибок аутентификации и ограничения запросов
 apiClient.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
 
-    // Если получаем 401 и у нас есть refreshToken
+    // Добавляем обработку ошибки 429 (Too Many Requests)
+    if (error.response?.status === 429) {
+      // Извлекаем информацию о времени ожидания, если она есть
+      const retryAfterSeconds = error.response.headers['retry-after'] || 60;
+      console.error(`Слишком много запросов. Пожалуйста, подождите ${retryAfterSeconds} секунд перед повторной попыткой.`);
+
+      // Здесь можно добавить показ пользовательского сообщения или уведомления
+      return Promise.reject(error);
+    }
+
+    // Если получаем 401 и у нас есть refreshToken и еще не было попытки обновления
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 

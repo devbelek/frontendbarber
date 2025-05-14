@@ -1,5 +1,5 @@
-// Основной импорт остается прежним, добавим только lodash
-import React, { useState, useEffect } from 'react';
+// src/pages/ProfilePage.tsx
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
@@ -11,7 +11,7 @@ import TelegramRegistration from '../components/profile/TelegramRegistration';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { profileAPI } from '../api/services';
-import { debounce } from 'lodash'; // Добавляем импорт для debounce
+import { debounce } from 'lodash';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
@@ -29,30 +29,37 @@ const ProfilePage: React.FC = () => {
     offers_home_service: false
   });
 
-  // Состояние для загрузки изображения профиля
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [dataFetched, setDataFetched] = useState(false); // Добавляем флаг для отслеживания первой загрузки
 
-  // Эффект для обновления данных при загрузке компонента - ТОЛЬКО ОДИН РАЗ
+  const mountedRef = useRef(true);
+  const hasLoadedRef = useRef(false);
+
+  // Загрузка данных при монтировании
   useEffect(() => {
-    // Предотвращаем повторную загрузку
-    if (isAuthenticated && refreshUserData && !dataFetched) {
-      const initialFetch = async () => {
+    mountedRef.current = true;
+
+    const loadUserData = async () => {
+      if (isAuthenticated && refreshUserData && !hasLoadedRef.current) {
         try {
+          hasLoadedRef.current = true;
           await refreshUserData();
-          setDataFetched(true); // Отмечаем, что данные загружены
         } catch (error) {
           console.error('Ошибка при обновлении данных пользователя:', error);
         }
-      };
-      initialFetch();
-    }
-  }, [isAuthenticated, refreshUserData, dataFetched]);
+      }
+    };
+
+    loadUserData();
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [isAuthenticated]);
 
   // Инициализация данных формы из данных пользователя
   useEffect(() => {
@@ -66,6 +73,11 @@ const ProfilePage: React.FC = () => {
         address: user.profile?.address || '',
         offers_home_service: user.profile?.offers_home_service || false
       });
+
+      // Если есть фото профиля, устанавливаем превью
+      if (user.profile?.photo) {
+        setPreviewUrl(user.profile.photo);
+      }
     }
   }, [user]);
 
@@ -76,24 +88,23 @@ const ProfilePage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Функция для обработки выбора файла
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Проверяем тип файла
+
       if (!file.type.startsWith('image/')) {
         setError('Пожалуйста, загрузите изображение');
         return;
       }
-      // Проверяем размер файла (не более 5MB)
+
       if (file.size > 5 * 1024 * 1024) {
         setError('Размер файла не должен превышать 5MB');
         return;
       }
 
       setProfileImage(file);
+      setError(null);
 
-      // Создаем URL для предпросмотра
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewUrl(reader.result as string);
@@ -112,11 +123,9 @@ const ProfilePage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
-  // Оборачиваем handleSubmit в debounce, чтобы избежать множественных запросов
-  const handleSubmit = debounce(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Защита от повторных отправок
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -124,64 +133,45 @@ const ProfilePage: React.FC = () => {
     setSuccess(null);
 
     try {
-      // Проверяем, авторизован ли пользователь
       if (!user || !isAuthenticated) {
         setError('Необходимо войти в систему для обновления профиля');
         setIsSubmitting(false);
         return;
       }
 
-      // Данные для обновления пользовательской информации
+      // Обновляем базовую информацию пользователя
       const userData = {
         first_name: formData.first_name,
         last_name: formData.last_name
       };
 
-      // Обновляем данные пользователя
       await profileAPI.updateUserInfo(userData);
 
-      // Если есть новое изображение профиля, создаем FormData
+      // Обновляем профиль с фото или без
+      const profileFormData = new FormData();
+
       if (profileImage) {
-        const profileFormData = new FormData();
         profileFormData.append('photo', profileImage);
-        profileFormData.append('whatsapp', formData.whatsapp);
-        profileFormData.append('telegram', formData.telegram);
-        profileFormData.append('address', formData.address);
-        profileFormData.append('offers_home_service', formData.offers_home_service.toString());
-
-        // Обновляем профиль с изображением
-        await profileAPI.updateProfile(profileFormData);
-      } else {
-        // Данные для обновления профиля без изображения
-        const profileData = {
-          whatsapp: formData.whatsapp,
-          telegram: formData.telegram,
-          address: formData.address,
-          offers_home_service: formData.offers_home_service
-        };
-
-        // Обновляем данные профиля
-        await profileAPI.updateProfile(profileData);
       }
 
-      // Обновляем данные пользователя - ждем перед запросом
+      profileFormData.append('whatsapp', formData.whatsapp);
+      profileFormData.append('telegram', formData.telegram);
+      profileFormData.append('address', formData.address);
+      profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+
+      const profileResponse = await profileAPI.updateProfile(profileFormData);
+
+      // Обновляем данные пользователя в контексте
       if (refreshUserData) {
-        // Используем setTimeout, чтобы дать время серверу обработать предыдущие запросы
-        setTimeout(async () => {
-          try {
-            await refreshUserData();
-          } catch (refreshError) {
-            console.error("Ошибка при обновлении данных пользователя:", refreshError);
-          }
-        }, 1000);
+        await refreshUserData();
       }
 
       setSuccess('Данные профиля успешно обновлены');
       setIsEditing(false);
 
-      // Сбрасываем состояние изображения после успешного обновления
+      // Очищаем временные данные
       setProfileImage(null);
-      setPreviewUrl(null);
+
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       let errorMessage = 'Произошла ошибка при обновлении профиля';
@@ -200,14 +190,14 @@ const ProfilePage: React.FC = () => {
         const errorsArray = Object.entries(err.response.data)
           .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
           .join('; ');
-        errorMessage = errorsArray || errorMessage;
+        if (errorsArray) errorMessage = errorsArray;
       }
 
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, 500); // Устанавливаем задержку 500ms
+  };
 
   if (!user) {
     return (
@@ -219,6 +209,8 @@ const ProfilePage: React.FC = () => {
     );
   }
 
+  const photoUrl = user.profile?.photo || user.picture;
+
   return (
     <Layout openLoginModal={() => {}}>
       <div className="container mx-auto px-4 py-8">
@@ -227,11 +219,11 @@ const ProfilePage: React.FC = () => {
             <div className="p-6 md:w-1/3 border-r border-gray-200">
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 bg-gray-300 rounded-full mb-4 flex items-center justify-center overflow-hidden">
-                  {user.profile?.photo || user.picture ? (
+                  {photoUrl ? (
                     <img
-                      src={user.profile?.photo || user.picture}
+                      src={photoUrl}
                       alt={user.username}
-                      className="w-full h-full object-cover rounded-full"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <User className="h-12 w-12 text-gray-500" />
@@ -256,7 +248,6 @@ const ProfilePage: React.FC = () => {
                     {t('personalInfo')}
                   </button>
 
-                  {/* Показываем кнопку "Мои записи" только клиентам */}
                   {user?.profile?.user_type !== 'barber' && (
                     <button
                       onClick={() => setActiveTab('bookings')}
@@ -323,7 +314,6 @@ const ProfilePage: React.FC = () => {
                     <CardContent>
                       {isEditing ? (
                         <form onSubmit={handleSubmit} className="space-y-4">
-                          {/* Добавляем компонент для загрузки изображения */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Фото профиля
@@ -339,8 +329,10 @@ const ProfilePage: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setProfileImage(null);
-                                      setPreviewUrl(null);
+                                      if (!user?.profile?.photo || profileImage) {
+                                        setProfileImage(null);
+                                        setPreviewUrl(null);
+                                      }
                                     }}
                                     className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-sm"
                                   >
@@ -349,15 +341,7 @@ const ProfilePage: React.FC = () => {
                                 </div>
                               ) : (
                                 <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                                  {user?.profile?.photo || user?.picture ? (
-                                    <img
-                                      src={user.profile?.photo || user.picture}
-                                      alt={user.username}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <User className="h-12 w-12 text-gray-400" />
-                                  )}
+                                  <User className="h-12 w-12 text-gray-400" />
                                 </div>
                               )}
                               <label htmlFor="photo-upload" className="ml-5 cursor-pointer">
@@ -419,7 +403,6 @@ const ProfilePage: React.FC = () => {
                             </p>
                           </div>
 
-                          {/* Замена поля телефона на Telegram и WhatsApp */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Telegram профиль
@@ -528,7 +511,6 @@ const ProfilePage: React.FC = () => {
                             <p className="text-gray-900">{user.email}</p>
                           </div>
 
-                          {/* Отображение Telegram */}
                           <div className="border-b pb-3">
                             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                               <MessageCircle className="h-4 w-4 mr-1 text-blue-500" />
@@ -536,7 +518,6 @@ const ProfilePage: React.FC = () => {
                             </label>
                             <p className="text-gray-900">
                               {user.profile?.telegram ? (
-
                                 <a href={`https://t.me/${user.profile.telegram}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -564,7 +545,6 @@ const ProfilePage: React.FC = () => {
                             </p>
                           </div>
 
-                          {/* Отображение WhatsApp */}
                           <div className="border-b pb-3">
                             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                               <svg viewBox="0 0 24 24" className="h-4 w-4 mr-1 text-green-500">
@@ -574,8 +554,7 @@ const ProfilePage: React.FC = () => {
                             </label>
                             <p className="text-gray-900">
                               {user.profile?.whatsapp ? (
-
-                                 <a href={`https://wa.me/${user.profile.whatsapp.replace(/\s+/g, '')}`}
+                                <a href={`https://wa.me/${user.profile.whatsapp.replace(/\s+/g, '')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-green-600 hover:underline flex items-center"
@@ -608,7 +587,6 @@ const ProfilePage: React.FC = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Добавляем кнопку для барберов, чтобы добавить услугу */}
                   {user.profile?.user_type === 'barber' && (
                     <div className="mt-6">
                       <Button
@@ -624,18 +602,25 @@ const ProfilePage: React.FC = () => {
                 </div>
               )}
 
-                {activeTab === 'favorites' && (
-                                <div>
-                                  <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
-                                  <FavoritesList />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Layout>
-                  );
-                };
+              {activeTab === 'bookings' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">{t('myBookings')}</h3>
+                  <BookingsList />
+                </div>
+              )}
 
-                export default ProfilePage;
+              {activeTab === 'favorites' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">{t('favorites')}</h3>
+                  <FavoritesList />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default ProfilePage;

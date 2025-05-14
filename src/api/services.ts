@@ -129,13 +129,13 @@ export const profileAPI = {
   },
 
   // Обновить информацию пользователя
-  updateUserInfo: async (data) => {
+  updateUserInfo: async (data: any) => {
     const response = await apiClient.patch('/auth/users/me/', data);
     return response;
   },
 
   // Обновить профиль пользователя
-  updateProfile: async (data) => {
+  updateProfile: async (data: any) => {
     // Если загружается файл, используем FormData
     if (data instanceof FormData) {
       return apiClient.patch('/users/profile/update/', data);
@@ -144,7 +144,7 @@ export const profileAPI = {
   },
 
   // Получить профиль барбера по ID
-  getBarberProfile: (id) => {
+  getBarberProfile: (id: string) => {
     return apiClient.get(`/profiles/barbers/${id}/`);
   },
 
@@ -158,7 +158,7 @@ export const profileAPI = {
 // API для уведомлений Telegram
 export const notificationsAPI = {
   // Регистрация телеграм-аккаунта барбера
-  registerTelegramAccount: (data) => apiClient.post('/notifications/register-telegram/', data),
+  registerTelegramAccount: (data: any) => apiClient.post('/notifications/register-telegram/', data),
 
   // Проверка статуса регистрации в телеграм
   checkTelegramStatus: () => apiClient.get('/notifications/telegram-status/'),
@@ -170,35 +170,35 @@ export const bookingsAPI = {
   getAll: () => apiClient.get('/bookings/'),
 
   // Создать новое бронирование
-  create: (data) => apiClient.post('/bookings/', data),
+  create: (data: any) => apiClient.post('/bookings/', data),
 
   // Обновить статус бронирования
-  updateStatus: (id, status) => apiClient.patch(`/bookings/${id}/`, { status }),
+  updateStatus: (id: string, status: string) => apiClient.patch(`/bookings/${id}/`, { status }),
 
   // Отменить бронирование
-  cancel: (id) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
+  cancel: (id: string) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
 
   // Получить доступные слоты времени для барбера на определенную дату
-  getAvailableSlots: (barberId, date) =>
+  getAvailableSlots: (barberId: string, date: string) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
 
   // Создать бронирование
-  createBooking: (data) => apiClient.post('/bookings/', data),
+  createBooking: (data: any) => apiClient.post('/bookings/', data),
 };
 
 // API для сервисов
 export const servicesAPI = {
-  getAll: (params = {}) => {
+  getAll: (params: any = {}) => {
     return apiClient.get('/services/', { params })
-      .catch(error => {
+      .catch((error: any) => {
         console.log("Using demo data for services due to error:", error);
         return { data: demoHaircuts };
       });
   },
 
-  getById: (id) => {
+  getById: (id: string) => {
     return apiClient.get(`/services/${id}/`)
-      .catch(error => {
+      .catch((error: any) => {
         console.log("Using demo data for service due to error:", error);
         return {
           data: demoHaircuts.find(h => h.id === id) || demoHaircuts[0]
@@ -206,7 +206,7 @@ export const servicesAPI = {
       });
   },
 
-  create: (data) => {
+  create: (data: any) => {
     // Проверяем, что данные - это FormData
     if (data instanceof FormData) {
       console.log('Sending FormData with files');
@@ -217,7 +217,7 @@ export const servicesAPI = {
     }
   },
 
-  update: (id, data) => {
+  update: (id: string, data: any) => {
     // Проверяем, что данные - это FormData
     if (data instanceof FormData) {
       return apiClient.patch(`/services/${id}/`, data);
@@ -226,42 +226,43 @@ export const servicesAPI = {
     }
   },
 
-  delete: (id) => apiClient.delete(`/services/${id}/`),
+  delete: (id: string) => apiClient.delete(`/services/${id}/`),
 };
 
 // API для избранного
 export const favoritesAPI = {
   getAll: () => apiClient.get('/profiles/favorites/'),
-  add: (serviceId) => apiClient.post('/profiles/favorites/', { service: serviceId }),
-  remove: (serviceId) => apiClient.delete(`/profiles/favorites/${serviceId}/remove/`),
+  add: (serviceId: string) => apiClient.post('/profiles/favorites/', { service: serviceId }),
+  remove: (serviceId: string) => apiClient.delete(`/profiles/favorites/${serviceId}/remove/`),
 };
 
 // API для отзывов
 export const reviewsAPI = {
-  getForBarber: (barberId) => apiClient.get(`/profiles/reviews/?barber=${barberId}`),
-  create: (data) => apiClient.post('/profiles/reviews/', data),
+  getForBarber: (barberId: string) => apiClient.get(`/profiles/reviews/?barber=${barberId}`),
+  create: (data: any) => apiClient.post('/profiles/reviews/', data),
 };
 
 // API для геолокации
 export const locationAPI = {
-  getNearbyBarbers: (latitude, longitude, radius = 5) =>
+  getNearbyBarbers: (latitude: number, longitude: number, radius: number = 5) =>
     apiClient.get(`/services/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
 
-  getRecommendations: (latitude, longitude) =>
+  getRecommendations: (latitude: number, longitude: number) =>
     apiClient.get(`/services/recommendations/?latitude=${latitude}&longitude=${longitude}`),
 };
 
+// API для аутентификации
 export const authAPI = {
-  login: (credentials) => axios.post(`${API_URL}/auth/jwt/create/`, credentials),
-  register: (userData) => axios.post(`${API_URL}/auth/users/`, userData),
+  login: (credentials: any) => axios.post(`${API_URL}/auth/jwt/create/`, credentials),
+  register: (userData: any) => axios.post(`${API_URL}/auth/users/`, userData),
   getCurrentUser: () => apiClient.get('/auth/users/me/'),
-  resetPassword: (email) => axios.post(`${API_URL}/auth/users/reset_password/`, { email }),
+  resetPassword: (email: string) => axios.post(`${API_URL}/auth/users/reset_password/`, { email }),
 
   // Обновление токена
-  refreshToken: (refresh) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
+  refreshToken: (refresh: string) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
 
   // Google аутентификация
-  googleAuth: (token) => axios.post(`${API_URL}/auth/google/`, { token }),
+  googleAuth: (token: string) => axios.post(`${API_URL}/auth/google/`, { token }),
 
   // Валидация токена
   validateToken: () => {
@@ -270,4 +271,4 @@ export const authAPI = {
 
     return apiClient.post('/auth/jwt/verify/', { token });
   }
-}
+};

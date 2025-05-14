@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -14,31 +14,32 @@ import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
 import AddServicePage from './pages/AddServicePage';
 
+// Тип для пропсов с openLoginModal
+interface RouteProps {
+  children: React.ReactNode;
+}
+
 // Защищенный маршрут - только для авторизованных пользователей
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div>Загрузка...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34]"></div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { refreshUserData, isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
-  // Эффект для загрузки данных пользователя при инициализации
-  useEffect(() => {
-    if (isAuthenticated && refreshUserData) {
-      refreshUserData();
-    }
-  }, [isAuthenticated, refreshUserData]);
 
   const openLoginModal = () => {
     setIsLoginModalOpen(true);
@@ -57,7 +58,7 @@ const AppRoutes = () => {
         <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
         <Route path="/profile" element={
           <ProtectedRoute>
-            <ProfilePage openLoginModal={openLoginModal} />
+            <ProfilePage />
           </ProtectedRoute>
         } />
         <Route path="/barbers" element={<BarberListPage openLoginModal={openLoginModal} />} />

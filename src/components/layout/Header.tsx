@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Globe, MessageSquare, LogOut } from 'lucide-react';
+import { Menu, X, User, Globe, MessageSquare, LogOut, MapPin } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Logo from '../ui/Logo';
-import RegionSelector from '../ui/RegionSelector';
 import { Language } from '../../types';
 import { motion } from 'framer-motion';
 
@@ -19,6 +18,8 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
   const { isAuthenticated, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const [userCity, setUserCity] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -40,6 +41,43 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
+  }, []);
+
+  // Определяем местоположение пользователя
+  useEffect(() => {
+    const getCurrentLocation = () => {
+      if ('geolocation' in navigator) {
+        setLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1`
+              );
+              const data = await response.json();
+
+              if (data.address) {
+                const city = data.address.city ||
+                            data.address.town ||
+                            data.address.village ||
+                            'Местоположение';
+                setUserCity(city);
+              }
+            } catch (error) {
+              console.error('Ошибка при определении города:', error);
+            } finally {
+              setLocationLoading(false);
+            }
+          },
+          (error) => {
+            console.error('Ошибка геолокации:', error);
+            setLocationLoading(false);
+          }
+        );
+      }
+    };
+
+    getCurrentLocation();
   }, []);
 
   // Определяем, находимся ли мы на главной странице
@@ -111,7 +149,11 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             <motion.div variants={itemVariants}>
               <Link
                 to="/gallery"
-className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-2 rounded-md hover:bg-gray-100 transition-colors`}
+                className={`font-medium hover:text-[#9A0F34] transition-colors ${
+                  location.pathname === '/gallery'
+                    ? (isHomePage && !isScrolled ? 'text-white' : 'text-[#9A0F34]')
+                    : (isHomePage && !isScrolled ? 'text-gray-200' : 'text-gray-700')
+                }`}
               >
                 {t('gallery')}
               </Link>
@@ -137,10 +179,20 @@ className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-
             animate="visible"
             variants={navVariants}
           >
-            {/* Region Selector */}
-            <motion.div variants={itemVariants}>
-              <RegionSelector />
-            </motion.div>
+            {/* Location Display */}
+            {userCity && (
+              <motion.div
+                variants={itemVariants}
+                className={`flex items-center px-3 py-1 rounded-full ${
+                  isHomePage && !isScrolled
+                    ? 'bg-white/10 backdrop-blur text-white'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <MapPin className="h-4 w-4 mr-1" />
+                <span className="text-sm font-medium">{userCity}</span>
+              </motion.div>
+            )}
 
             <motion.button
               variants={itemVariants}
@@ -236,17 +288,22 @@ className={`bg-white text-[#9A0F34] border border-[#9A0F34] font-medium px-4 py-
               {t('barbers')}
             </Link>
 
-            <div className="pt-2 border-t flex justify-between">
-              <div className="flex space-x-2">
-                <RegionSelector />
-                <button
-                  onClick={toggleLanguage}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label="Switch Language"
-                >
-                  <Globe className="h-5 w-5 text-gray-700" />
-                </button>
+            {/* Mobile location display */}
+            {userCity && (
+              <div className="px-2 py-2 flex items-center text-gray-600">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span className="text-sm">{userCity}</span>
               </div>
+            )}
+
+            <div className="pt-2 border-t flex justify-between">
+              <button
+                onClick={toggleLanguage}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Switch Language"
+              >
+                <Globe className="h-5 w-5 text-gray-700" />
+              </button>
 
               {isAuthenticated ? (
                 <div className="flex space-x-2">

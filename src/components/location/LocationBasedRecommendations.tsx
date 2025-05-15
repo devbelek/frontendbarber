@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import { profileAPI } from '../../api/services';
 import { Barber } from '../../types';
 import ImageWithFallback from '../ui/ImageWithFallback';
+import { PageLoader } from '../ui/GlobalLoader';
 
 const LocationBasedBarbers: React.FC = () => {
   const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
@@ -14,11 +15,15 @@ const LocationBasedBarbers: React.FC = () => {
   const [userLocation, setUserLocation] = useState<{
     latitude: number | null;
     longitude: number | null;
-    locationName: string | null;
+    address: string | null;
+    city: string | null;
+    district: string | null;
   }>({
     latitude: null,
     longitude: null,
-    locationName: null,
+    address: null,
+    city: null,
+    district: null,
   });
   const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
@@ -57,11 +62,11 @@ const LocationBasedBarbers: React.FC = () => {
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        setUserLocation({
+        setUserLocation(prev => ({
+          ...prev,
           latitude,
           longitude,
-          locationName: null,
-        });
+        }));
 
         try {
           const response = await fetch(
@@ -69,30 +74,63 @@ const LocationBasedBarbers: React.FC = () => {
           );
           const data = await response.json();
 
-          let locationName = '';
+          let locationDetails = {
+            address: null as string | null,
+            city: null as string | null,
+            district: null as string | null,
+          };
+
           if (data.address) {
-            if (data.address.city) {
-              locationName = data.address.city;
-            } else if (data.address.town) {
-              locationName = data.address.town;
-            } else if (data.address.village) {
-              locationName = data.address.village;
-            } else if (data.address.suburb) {
-              locationName = data.address.suburb;
+            // Определяем город
+            locationDetails.city = data.address.city ||
+                                  data.address.town ||
+                                  data.address.village ||
+                                  data.address.municipality ||
+                                  'Неизвестный город';
+
+            // Определяем район или микрорайон
+            locationDetails.district = data.address.suburb ||
+                                      data.address.neighbourhood ||
+                                      data.address.district ||
+                                      data.address.quarter ||
+                                      null;
+
+            // Формируем полный адрес
+            const parts = [];
+
+            if (data.address.city || data.address.town) {
+              parts.push(data.address.city || data.address.town);
             }
+
+            if (locationDetails.district) {
+              parts.push(locationDetails.district);
+            }
+
+            if (data.address.road) {
+              parts.push(data.address.road);
+              if (data.address.house_number) {
+                parts.push(data.address.house_number);
+              }
+            }
+
+            locationDetails.address = parts.join(', ');
           }
 
           setUserLocation(prev => ({
             ...prev,
-            locationName: locationName || 'Ваше местоположение',
+            address: locationDetails.address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            city: locationDetails.city,
+            district: locationDetails.district,
           }));
 
           getBarbers();
         } catch (err) {
-          console.error('Ошибка при получении названия местоположения:', err);
+          console.error('Ошибка при получении адреса:', err);
           setUserLocation(prev => ({
             ...prev,
-            locationName: 'Ваше местоположение',
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            city: 'Неизвестный город',
+            district: null,
           }));
 
           getBarbers();
@@ -131,8 +169,8 @@ const LocationBasedBarbers: React.FC = () => {
           id: user.id,
           name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
           avatar: user.profile?.photo || null,
-          rating: 0, // Убрали рейтинг
-          reviewCount: 0, // Убрали количество отзывов
+          rating: 0,
+          reviewCount: 0,
           specialization: user.profile?.specialization || [],
           location: user.profile?.address || 'Не указано',
           workingHours: {
@@ -146,6 +184,8 @@ const LocationBasedBarbers: React.FC = () => {
           telegram: user.profile?.telegram || '',
           offerHomeService: user.profile?.offers_home_service || false
         }));
+
+        // Здесь можно добавить фильтрацию по расстоянию, если у барберов есть координаты
 
         setNearbyBarbers(barbersWithProfile);
       }
@@ -162,6 +202,21 @@ const LocationBasedBarbers: React.FC = () => {
   const handleRequestLocation = () => {
     setError(null);
     getUserLocation();
+  };
+
+  // Формируем строку местоположения для отображения
+  const getLocationDisplay = () => {
+    if (!userLocation.latitude) return '';
+
+    if (userLocation.district && userLocation.city) {
+      return `${userLocation.city}, ${userLocation.district}`;
+    } else if (userLocation.city) {
+      return userLocation.city;
+    } else if (userLocation.address) {
+      return userLocation.address;
+    }
+
+    return 'Ваше местоположение';
   };
 
   if (!showRecommendations) {
@@ -206,56 +261,18 @@ const LocationBasedBarbers: React.FC = () => {
     );
   }
 
-  if (error && nearbyBarbers.length === 0) {
-    return (
-      <Card className="w-full mb-8">
-        <CardHeader>
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с вами
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Navigation className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">{error}</p>
-            <Button variant="primary" onClick={handleRequestLocation}>
-              Повторить поиск
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (nearbyBarbers.length === 0 && userLocation.latitude) {
-    return (
-      <Card className="w-full mb-8">
-        <CardHeader>
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с {userLocation.locationName || 'вами'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
-              К сожалению, рядом с вами не найдено барберов. Попробуйте расширить область поиска.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="w-full mb-8">
       <CardHeader>
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold flex items-center">
             <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с {userLocation.locationName || 'вами'}
+            Барберы рядом с вами
+            {getLocationDisplay() && (
+              <span className="text-base font-normal text-gray-600 ml-2">
+                • {getLocationDisplay()}
+              </span>
+            )}
           </h2>
           <Button variant="text" size="sm" onClick={handleRequestLocation}>
             <Navigation className="w-4 h-4 mr-1" />
@@ -265,14 +282,13 @@ const LocationBasedBarbers: React.FC = () => {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-40 bg-gray-200 rounded-md mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
+          <PageLoader />
+        ) : nearbyBarbers.length === 0 ? (
+          <div className="text-center py-8">
+            <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">
+              К сожалению, рядом с вами не найдено барберов. Попробуйте расширить область поиска.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

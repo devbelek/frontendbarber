@@ -71,14 +71,11 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     fetchPopularHaircuts();
   }, []);
 
-  const handleBookClick = (haircut: Haircut) => {
-    if (!isAuthenticated) {
-      openLoginModal();
-    } else {
-      setSelectedHaircut(haircut);
-      setIsBookingModalOpen(true);
-    }
-  };
+const handleBookClick = (haircut: Haircut) => {
+  // Убираем проверку авторизации - все пользователи могут бронировать
+  setSelectedHaircut(haircut);
+  setIsBookingModalOpen(true);
+};
 
   const handleBookingConfirm = async (date: string, time: string, contactInfo: any) => {
     if (!selectedHaircut) return;

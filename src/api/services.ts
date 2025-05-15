@@ -231,7 +231,8 @@ export const servicesAPI = {
 export const favoritesAPI = {
   getAll: () => apiClient.get('/profiles/favorites/'),
   add: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
-  remove: (serviceId: string) => apiClient.delete('/profiles/favorites/toggle/', { data: { service: serviceId } }),
+  remove: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
+  toggle: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
 };
 
 // API для отзывов

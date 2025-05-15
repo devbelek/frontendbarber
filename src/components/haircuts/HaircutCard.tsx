@@ -72,22 +72,22 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           onLoad={() => setIsImageLoaded(true)}
         />
 
-        {isAuthenticated && (
-          <button
-            className={`absolute top-2 right-2 p-2 rounded-full ${
-              isFavorite
-                ? 'bg-[#9A0F34] text-white'
-                : 'bg-white text-gray-800 hover:bg-gray-100'
-            } transition-colors shadow-md`}
-            onClick={handleFavoriteClick}
-            aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
-          >
-            <Heart
-              size={20}
-              className={isFavorite ? 'fill-current' : ''}
-            />
-          </button>
-        )}
+            {isAuthenticated && user?.profile?.user_type === 'barber' && (
+              <button
+                className={`absolute top-2 right-2 p-2 rounded-full ${
+                  isFavorite
+                    ? 'bg-[#9A0F34] text-white'
+                    : 'bg-white text-gray-800 hover:bg-gray-100'
+                } transition-colors shadow-md`}
+                onClick={handleFavoriteClick}
+                aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
+              >
+                <Heart
+                  size={20}
+                  className={isFavorite ? 'fill-current' : ''}
+                />
+              </button>
+            )}
       </div>
 
       <div className="p-4">

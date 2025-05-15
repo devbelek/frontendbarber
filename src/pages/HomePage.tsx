@@ -7,10 +7,12 @@ import Button from '../components/ui/Button';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import LocationBasedBarbers from '../components/location/LocationBasedRecommendations';
+import BookingModal from '../components/booking/BookingModal';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocation } from '../context/LocationContext';
-import { servicesAPI } from '../api/services';
+import { useNotification } from '../context/NotificationContext';
+import { servicesAPI, bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
 
 interface HomePageProps {
@@ -21,8 +23,11 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
   const { currentRegion } = useLocation();
+  const notification = useNotification();
   const [popularHaircuts, setPopularHaircuts] = useState<Haircut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
 
   useEffect(() => {
     const fetchPopularHaircuts = async () => {
@@ -66,6 +71,44 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     fetchPopularHaircuts();
   }, []);
 
+  const handleBookClick = (haircut: Haircut) => {
+    if (!isAuthenticated) {
+      openLoginModal();
+    } else {
+      setSelectedHaircut(haircut);
+      setIsBookingModalOpen(true);
+    }
+  };
+
+  const handleBookingConfirm = async (date: string, time: string, contactInfo: any) => {
+    if (!selectedHaircut) return;
+
+    try {
+      const bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || '',
+        client_name: contactInfo.name,
+        client_phone: contactInfo.phone
+      };
+
+      await bookingsAPI.create(bookingData);
+      setIsBookingModalOpen(false);
+
+      notification.success(
+        'Бронирование создано',
+        `Услуга "${selectedHaircut.title}" успешно забронирована на ${date} в ${time}`
+      );
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      notification.error(
+        'Ошибка бронирования',
+        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+      );
+    }
+  };
+
   const fadeInUp = {
     initial: { y: 60, opacity: 0 },
     animate: { y: 0, opacity: 1 },
@@ -76,7 +119,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     animate: { transition: { staggerChildren: 0.1 } }
   };
 
-  // SVG Ножницы с анимацией
   const AnimatedScissors = () => (
     <motion.svg
       width="60"
@@ -107,7 +149,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         initial="initial"
         animate="animate"
       >
-        {/* Video Background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black/50 z-10"></div>
           <video
@@ -124,7 +165,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
           </video>
         </div>
 
-        {/* Hero Content */}
         <div className="relative z-20 flex items-center h-full">
           <div className="container mx-auto px-4">
             <motion.div {...fadeInUp} className="text-center text-white">
@@ -146,7 +186,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white"
           animate={{ y: [0, 10, 0] }}
@@ -158,7 +197,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         </motion.div>
       </motion.section>
 
-      {/* How It Works с иконками */}
+      {/* How It Works */}
       <motion.section
         className="py-20 bg-white"
         variants={staggerContainer}
@@ -246,7 +285,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
             <motion.div variants={staggerContainer}>
               <HaircutGrid
                 haircuts={popularHaircuts}
-                onBookClick={() => !isAuthenticated && openLoginModal()}
+                onBookClick={handleBookClick}
               />
             </motion.div>
           )}
@@ -304,6 +343,14 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
           </motion.div>
         </div>
       </motion.section>
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        haircut={selectedHaircut}
+        onConfirm={handleBookingConfirm}
+      />
     </Layout>
   );
 };

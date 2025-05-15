@@ -206,119 +206,107 @@ const ProfilePage: React.FC = () => {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (isSubmitting) return;
+  if (isSubmitting) return;
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      if (!user || !isAuthenticated) {
-        notification.error('Ошибка', 'Необходимо войти в систему для обновления профиля');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
-        const userData = {
-          first_name: formData.first_name,
-          last_name: formData.last_name
-        };
-
-        await profileAPI.updateUserInfo(userData);
-      }
-
-      const profileFormData = new FormData();
-
-      if (profileImage) {
-        profileFormData.append('photo', profileImage);
-      }
-
-      if (formData.whatsapp !== user.profile?.whatsapp) {
-        profileFormData.append('whatsapp', formData.whatsapp || '');
-      }
-
-      if (formData.telegram !== user.profile?.telegram) {
-        profileFormData.append('telegram', formData.telegram || '');
-      }
-
-      if (formData.address !== user.profile?.address) {
-        profileFormData.append('address', formData.address || '');
-      }
-
-      if (formData.offers_home_service !== user.profile?.offers_home_service) {
-        profileFormData.append('offers_home_service', formData.offers_home_service.toString());
-      }
-
-      if (formData.latitude !== user.profile?.latitude) {
-        profileFormData.append('latitude', formData.latitude?.toString() || '');
-      }
-
-      if (formData.longitude !== user.profile?.longitude) {
-        profileFormData.append('longitude', formData.longitude?.toString() || '');
-      }
-
-      if (formData.bio !== user.profile?.bio) {
-        profileFormData.append('bio', formData.bio);
-      }
-
-      if (formData.working_hours_from !== user.profile?.working_hours_from) {
-        profileFormData.append('working_hours_from', formData.working_hours_from);
-      }
-
-      if (formData.working_hours_to !== user.profile?.working_hours_to) {
-        profileFormData.append('working_hours_to', formData.working_hours_to);
-      }
-
-      if (JSON.stringify(formData.working_days) !== JSON.stringify(user.profile?.working_days)) {
-        profileFormData.append('working_days', JSON.stringify(formData.working_days));
-      }
-
-      const entries = Array.from(profileFormData.entries());
-      if (entries.length > 0) {
-        await profileAPI.updateProfile(profileFormData);
-      }
-
-      if (refreshUserData) {
-        try {
-          await refreshUserData();
-        } catch (error) {
-          console.error('Error refreshing user data:', error);
-        }
-      }
-
-      notification.success('Успешно!', 'Данные профиля успешно обновлены');
-      setIsEditing(false);
-
-      setProfileImage(null);
-
-    } catch (err: any) {
-      console.error('Failed to update profile:', err);
-      let errorMessage = 'Произошла ошибка при обновлении профиля';
-
-      if (err.response?.status === 401) {
-        errorMessage = 'Учетные данные не были предоставлены. Пожалуйста, войдите в систему заново.';
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 2000);
-      } else if (err.response?.status === 429) {
-        errorMessage = 'Слишком много запросов. Пожалуйста, подождите несколько минут и попробуйте снова.';
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      } else if (err.response?.data) {
-        const errorsArray = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-          .join('; ');
-        if (errorsArray) errorMessage = errorsArray;
-      }
-
-      notification.error('Ошибка!', errorMessage);
-    } finally {
+  try {
+    if (!user || !isAuthenticated) {
+      notification.error('Ошибка', 'Необходимо войти в систему для обновления профиля');
       setIsSubmitting(false);
+      return;
     }
-  };
+
+    // Обновляем информацию о пользователе
+    if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
+      const userData = {
+        first_name: formData.first_name,
+        last_name: formData.last_name
+      };
+
+      await profileAPI.updateUserInfo(userData);
+    }
+
+    // Создаем FormData для профиля
+    const profileFormData = new FormData();
+
+    if (profileImage) {
+      profileFormData.append('photo', profileImage);
+    }
+
+    // Добавляем только измененные поля
+    const fieldsToUpdate = [
+      'whatsapp', 'telegram', 'address', 'bio',
+      'working_hours_from', 'working_hours_to'
+    ];
+
+    fieldsToUpdate.forEach(field => {
+      const value = formData[field];
+      const userValue = user.profile?.[field];
+
+      if (value !== userValue) {
+        profileFormData.append(field, value || '');
+      }
+    });
+
+    // Специальная обработка для булевых и JSON полей
+    if (formData.offers_home_service !== user.profile?.offers_home_service) {
+      profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+    }
+
+    if (formData.latitude !== user.profile?.latitude) {
+      profileFormData.append('latitude', formData.latitude?.toString() || '');
+    }
+
+    if (formData.longitude !== user.profile?.longitude) {
+      profileFormData.append('longitude', formData.longitude?.toString() || '');
+    }
+
+    if (JSON.stringify(formData.working_days) !== JSON.stringify(user.profile?.working_days)) {
+      profileFormData.append('working_days', JSON.stringify(formData.working_days));
+    }
+
+    // Проверяем, есть ли что обновлять
+    const entries = Array.from(profileFormData.entries());
+    console.log('FormData entries:', entries);
+
+    if (entries.length > 0) {
+      await profileAPI.updateProfile(profileFormData);
+    }
+
+    // Обновляем данные пользователя
+    if (refreshUserData) {
+      await refreshUserData();
+    }
+
+    notification.success('Успешно!', 'Данные профиля успешно обновлены');
+    setIsEditing(false);
+    setProfileImage(null);
+
+  } catch (err: any) {
+    console.error('Failed to update profile:', err);
+
+    let errorMessage = 'Произошла ошибка при обновлении профиля';
+
+    if (err.response?.data) {
+      if (typeof err.response.data === 'object') {
+        const errors = Object.entries(err.response.data)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .join('\n');
+        if (errors) errorMessage = errors;
+      } else {
+        errorMessage = err.response.data.detail || err.response.data;
+      }
+    }
+
+    notification.error('Ошибка!', errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleCancelEdit = () => {
     setIsEditing(false);

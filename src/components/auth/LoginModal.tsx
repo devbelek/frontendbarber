@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 import * as jwtDecode from 'jwt-decode';
 import { authAPI } from '../../api/services'; // Добавляем импорт authAPI
+import { useNotification } from '../../context/NotificationContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -88,18 +89,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
       // Show success message
       setTimeout(() => {
-        alert('Вы успешно вошли как барбер через Google!');
+        notification.success('Вход выполнен', 'Вы успешно вошли как барбер через Google!');
       }, 500);
     } catch (error) {
       console.error('Error processing Google login:', error);
-      alert('Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+        notification.error('Ошибка входа', 'Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
     }
   };
 
   // Остальной код остается без изменений
   const handleGoogleLoginError = () => {
     console.error('Google login failed');
-    alert('Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');
+        notification.error('Ошибка Google', 'Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');
   };
 
   return (

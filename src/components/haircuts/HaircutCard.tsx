@@ -7,6 +7,7 @@ import ImageWithFallback from '../ui/ImageWithFallback';
 import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 
 interface HaircutCardProps {
   haircut: Haircut;
@@ -16,21 +17,30 @@ interface HaircutCardProps {
 const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { t } = useLanguage();
   const { user, toggleFavorite, isAuthenticated } = useAuth();
+  const notification = useNotification();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
   const isFavorite = user?.favorites?.includes(haircut.id) || false;
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      alert('Чтобы добавить в избранное, необходимо войти как барбер');
+      notification.info('Вход требуется', 'Чтобы добавить в избранное, необходимо войти как барбер');
       return;
     }
 
-    toggleFavorite(haircut.id);
+    try {
+      await toggleFavorite(haircut.id);
+      notification.success(
+        isFavorite ? 'Удалено из избранного' : 'Добавлено в избранное',
+        `Услуга "${haircut.title}" ${isFavorite ? 'удалена из' : 'добавлена в'} избранное`
+      );
+    } catch (error) {
+      notification.error('Ошибка', 'Не удалось изменить статус избранного');
+    }
   };
 
   const handleConsultClick = (e: React.MouseEvent) => {
@@ -42,6 +52,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const handleBookClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Book button clicked for:', haircut.title);
     onBookClick(haircut);
   };
 
@@ -129,8 +140,14 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
       </div>
 
       {showConsultModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+             onClick={(e) => {
+               if (e.target === e.currentTarget) {
+                 setShowConsultModal(false);
+               }
+             }}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md"
+               onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-semibold mb-4">Консультация с барбером</h3>
             <p className="text-gray-600 mb-6">
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
@@ -154,7 +171,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             </div>
             <button
               onClick={() => setShowConsultModal(false)}
-              className="mt-4 w-full text-gray-600 py-2"
+              className="mt-4 w-full text-gray-600 py-2 hover:text-gray-800"
             >
               Закрыть
             </button>

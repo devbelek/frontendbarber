@@ -3,9 +3,24 @@ import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import FilterBar from '../components/filters/FilterBar';
 import BookingModal from '../components/booking/BookingModal';
-import { servicesAPI, bookingsAPI } from '../api/services'; // ДОБАВЛЕН ИМПОРТ bookingsAPI
-import { Haircut } from '../types';
+import { servicesAPI, bookingsAPI } from '../api/services';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotification } from '../context/NotificationContext';
+
+interface Haircut {
+  id: number;
+  image: string;
+  title: string;
+  price: number;
+  barber: string;
+  barberId: number;
+  type?: string;
+  length?: string;
+  style?: string;
+  location?: string;
+  duration?: string;
+  isFavorite?: boolean;
+}
 
 interface GalleryPageProps {
   openLoginModal: () => void;
@@ -13,6 +28,7 @@ interface GalleryPageProps {
 
 const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
+  const notification = useNotification();
   const [filteredHaircuts, setFilteredHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
@@ -36,13 +52,11 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
       if (response && response.data) {
         let results = response.data;
 
-        // Если данные в виде объекта пагинации
         if (response.data.results && Array.isArray(response.data.results)) {
           results = response.data.results;
         }
 
         if (Array.isArray(results) && results.length > 0) {
-          // Преобразуем данные API в формат компонентов
           const haircuts: Haircut[] = results.map((service: any) => ({
             id: service.id,
             image: service.image,
@@ -88,7 +102,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   };
 
   const handleBookClick = (haircut: Haircut) => {
-    // Открываем модальное окно бронирования без проверки авторизации
     setSelectedHaircut(haircut);
     setIsBookingModalOpen(true);
   };
@@ -97,33 +110,28 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
     if (!selectedHaircut) return;
 
     try {
-      // Создаем объект данных бронирования
       const bookingData = {
         service: selectedHaircut.id,
         date: date,
         time: time,
         notes: contactInfo?.notes || '',
-        // Добавляем контактную информацию для неавторизованных клиентов
         client_name: contactInfo.name,
         client_phone: contactInfo.phone
       };
 
-      // Отправляем запрос на создание бронирования
       await bookingsAPI.create(bookingData);
-      // Закрываем модальное окно
       setIsBookingModalOpen(false);
 
-      // Показываем сообщение об успешном бронировании
-      alert(`Бронирование успешно создано!
-
-Услуга: ${selectedHaircut.title}
-Дата: ${date}
-Время: ${time}
-Имя: ${contactInfo.name}
-Телефон: ${contactInfo.phone}`);
+      notification.success(
+        'Бронирование успешно создано!',
+        `Услуга: ${selectedHaircut.title}\nДата: ${date}\nВремя: ${time}\nИмя: ${contactInfo.name}\nТелефон: ${contactInfo.phone}`
+      );
     } catch (err) {
       console.error('Error creating booking:', err);
-      alert('Не удалось создать бронирование. Пожалуйста, попробуйте снова.');
+      notification.error(
+        'Ошибка бронирования',
+        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+      );
     }
   };
 
@@ -132,10 +140,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">{t('gallery')}</h1>
 
-        <FilterBar
-          onFilterChange={handleFilterChange}
-          onSearch={handleSearch}
-        />
+        <FilterBar onFilterChange={handleFilterChange} onSearch={handleSearch} />
 
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
@@ -167,10 +172,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
             </button>
           </div>
         ) : filteredHaircuts.length > 0 ? (
-          <HaircutGrid
-            haircuts={filteredHaircuts}
-            onBookClick={handleBookClick}
-          />
+          <HaircutGrid haircuts={filteredHaircuts} onBookClick={handleBookClick} />
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <svg
@@ -188,14 +190,11 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
               />
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('noResults')}</h3>
-            <p className="text-gray-500">
-              Попробуйте изменить параметры поиска или сбросить фильтры.
-            </p>
+            <p className="text-gray-500">Попробуйте изменить параметры поиска или сбросить фильтры.</p>
           </div>
         )}
       </div>
 
-      {/* Модальное окно бронирования */}
       <BookingModal
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}

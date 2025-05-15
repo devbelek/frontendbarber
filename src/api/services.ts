@@ -230,8 +230,8 @@ export const servicesAPI = {
 // API для избранного
 export const favoritesAPI = {
   getAll: () => apiClient.get('/profiles/favorites/'),
-  add: (serviceId: string) => apiClient.post('/profiles/favorites/', { service: serviceId }),
-  remove: (serviceId: string) => apiClient.delete(`/profiles/favorites/${serviceId}/`),
+  add: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
+  remove: (serviceId: string) => apiClient.delete('/profiles/favorites/toggle/', { data: { service: serviceId } }),
 };
 
 // API для отзывов
@@ -260,7 +260,7 @@ export const authAPI = {
   refreshToken: (refresh: string) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
 
   // Google аутентификация
-  googleAuth: (token: string) => axios.post(`${API_URL}/auth/google/`, { token }),
+  googleAuth: (token: string) => axios.post(`${API_URL}/users/auth/google/`, { token }),
 
   // Валидация токена
   validateToken: () => {

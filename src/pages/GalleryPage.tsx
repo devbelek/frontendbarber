@@ -9,7 +9,8 @@ import { useNotification } from '../context/NotificationContext';
 
 interface Haircut {
   id: number;
-  image: string;
+  images: any[];
+  primaryImage: string;
   title: string;
   price: number;
   barber: string;
@@ -19,6 +20,7 @@ interface Haircut {
   style?: string;
   location?: string;
   duration?: string;
+  views: number;
   isFavorite?: boolean;
 }
 
@@ -35,19 +37,24 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState<'popular' | 'price' | 'recent'>('popular');
 
   useEffect(() => {
     fetchHaircuts(filters);
-  }, []);
+  }, [sortBy]);
 
   const fetchHaircuts = async (currentFilters = {}) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('Fetching haircuts with filters:', currentFilters);
-      const response = await servicesAPI.getAll(currentFilters);
-      console.log('API Response:', response);
+      // Добавляем сортировку к фильтрам
+      const params = {
+        ...currentFilters,
+        ordering: sortBy === 'popular' ? '-views' : sortBy === 'price' ? 'price' : '-created_at'
+      };
+
+      const response = await servicesAPI.getAll(params);
 
       if (response && response.data) {
         let results = response.data;
@@ -59,7 +66,8 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
         if (Array.isArray(results) && results.length > 0) {
           const haircuts: Haircut[] = results.map((service: any) => ({
             id: service.id,
-            image: service.image,
+            images: service.images || [],
+            primaryImage: service.primary_image || service.image,
             title: service.title,
             price: service.price,
             barber: service.barber_details?.full_name || 'Unknown',
@@ -69,6 +77,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
             style: service.style,
             location: service.location,
             duration: service.duration,
+            views: service.views || 0,
             isFavorite: service.is_favorite
           }));
 
@@ -77,9 +86,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
           setFilteredHaircuts([]);
           setError('Не найдено стрижек по заданным критериям');
         }
-      } else {
-        setFilteredHaircuts([]);
-        setError('Не удалось получить данные о стрижках');
       }
     } catch (err) {
       console.error('Error fetching haircuts:', err);
@@ -123,8 +129,8 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
       setIsBookingModalOpen(false);
 
       notification.success(
-        'Бронирование успешно создано!',
-        `Услуга: ${selectedHaircut.title}\nДата: ${date}\nВремя: ${time}\nИмя: ${contactInfo.name}\nТелефон: ${contactInfo.phone}`
+        'Бронирование создано',
+        `Услуга "${selectedHaircut.title}" успешно забронирована`
       );
     } catch (err) {
       console.error('Error creating booking:', err);
@@ -138,7 +144,23 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
   return (
     <Layout openLoginModal={openLoginModal}>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">{t('gallery')}</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">{t('gallery')}</h1>
+
+          {/* Сортировка */}
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">Сортировать:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+            >
+              <option value="popular">По популярности</option>
+              <option value="price">По цене</option>
+              <option value="recent">Новые</option>
+            </select>
+          </div>
+        </div>
 
         <FilterBar onFilterChange={handleFilterChange} onSearch={handleSearch} />
 
@@ -148,20 +170,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <svg
-              className="h-16 w-16 text-red-500 mb-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('error')}</h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <button
@@ -175,20 +183,6 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
           <HaircutGrid haircuts={filteredHaircuts} onBookClick={handleBookClick} />
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <svg
-              className="h-16 w-16 text-gray-400 mb-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('noResults')}</h3>
             <p className="text-gray-500">Попробуйте изменить параметры поиска или сбросить фильтры.</p>
           </div>

@@ -194,6 +194,14 @@ export const servicesAPI = {
       });
   },
 
+    incrementViews: (id: string) => {
+    return apiClient.post(`/services/${id}/increment_views/`);
+  },
+
+  getPopular: () => {
+    return apiClient.get('/services/popular/');
+  },
+
   getById: (id: string) => {
     return apiClient.get(`/services/${id}/`)
       .catch((error: any) => {
@@ -259,10 +267,15 @@ export const authAPI = {
 
   // Обновление токена
   refreshToken: (refresh: string) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
+  // Регистрация клиента
+  registerClient: (userData: any) => axios.post(`${API_URL}/users/register/`, userData),
+
+  // Вход клиента
+  loginClient: (credentials: any) => axios.post(`${API_URL}/users/login/`, credentials),
 
   // Google аутентификация
-  googleAuth: (token: string) => axios.post(`${API_URL}/users/auth/google/`, { token }),
-
+  googleAuth: (token: string, userType: 'client' | 'barber' = 'client') =>
+    axios.post(`${API_URL}/users/auth/google/`, { token, user_type: userType }),
   // Валидация токена
   validateToken: () => {
     const token = localStorage.getItem('token');

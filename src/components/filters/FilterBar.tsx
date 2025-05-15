@@ -1,9 +1,7 @@
-// src/components/filters/FilterBar.tsx
 import React, { useState } from 'react';
 import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import Button from '../ui/Button';
-import { filterOptions } from '../../data/mockData';
 
 interface FilterBarProps {
   onFilterChange: (filters: any) => void;
@@ -16,10 +14,13 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilters, setSelectedFilters] = useState({
     types: [] as string[],
-    lengths: [] as string[],
-    styles: [] as string[],
     locations: [] as string[],
   });
+
+  const filterOptions = {
+    types: ['Классическая', 'Фейд', 'Андеркат', 'Кроп', 'Помпадур', 'Текстурная'],
+    locations: ['Бишкек, Центр', 'Бишкек, Восток', 'Бишкек, Запад', 'Бишкек, Север', 'Бишкек, Юг'],
+  };
 
   const toggleFilter = (category: keyof typeof selectedFilters, value: string) => {
     setSelectedFilters(prev => {
@@ -53,8 +54,6 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   const clearFilters = () => {
     setSelectedFilters({
       types: [],
-      lengths: [],
-      styles: [],
       locations: [],
     });
     setSearchQuery('');
@@ -110,7 +109,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
       {/* Filters Panel */}
       {isFiltersOpen && (
         <div className="p-4 border-t border-gray-200">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Type Filter */}
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2">{t('filterByType')}</h3>
@@ -124,42 +123,6 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
                       onChange={() => toggleFilter('types', type)}
                     />
                     <span className="ml-2 text-sm text-gray-700">{type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Length Filter */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">{t('filterByLength')}</h3>
-              <div className="space-y-2">
-                {filterOptions.lengths.map((length) => (
-                  <label key={length} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
-                      checked={selectedFilters.lengths.includes(length)}
-                      onChange={() => toggleFilter('lengths', length)}
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{length}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Style Filter */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">{t('filterByStyle')}</h3>
-              <div className="space-y-2">
-                {filterOptions.styles.map((style) => (
-                  <label key={style} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
-                      checked={selectedFilters.styles.includes(style)}
-                      onChange={() => toggleFilter('styles', style)}
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{style}</span>
                   </label>
                 ))}
               </div>

@@ -4,7 +4,8 @@
 
 export interface Haircut {
   id: string;
-  image: string;
+  images: ServiceImage[];
+  primaryImage: string;
   title: string;
   price: number;
   barber: string;
@@ -16,6 +17,14 @@ export interface Haircut {
   duration?: number;
   isFavorite?: boolean;
   description?: string;
+  views: number;
+}
+
+export interface ServiceImage {
+  id: string;
+  image: string;
+  isPrimary: boolean;
+  order: number;
 }
 
 export interface Barber {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Scissors, MapPin, Clock, Tag, Info } from 'lucide-react';
+import { Upload, Scissors, MapPin, Clock, Tag, Info, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
@@ -25,8 +25,8 @@ const AddServicePage: React.FC = () => {
     description: '',
   });
 
-  const [image, setImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   // Редирект, если пользователь не барбер
   useEffect(() => {
@@ -54,35 +54,63 @@ const AddServicePage: React.FC = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
 
-      // Проверка типа файла
+      // Проверка типа файлов
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-      if (!allowedTypes.includes(selectedFile.type)) {
-        setError('Пожалуйста, загрузите изображение в формате JPEG, PNG или GIF');
+      const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+
+      if (invalidFiles.length > 0) {
+        setError('Некоторые файлы имеют неверный формат. Поддерживаются только JPEG, PNG и GIF');
         return;
       }
 
-      // Проверка размера файла
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        setError('Размер изображения не должен превышать 5MB');
+      // Проверка размера файлов
+      const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+
+      if (oversizedFiles.length > 0) {
+        setError('Некоторые файлы превышают максимальный размер 5MB');
         return;
       }
 
-      // Сбрасываем предыдущие ошибки
+      // Ограничение на количество файлов
+      if (images.length + files.length > 5) {
+        setError('Максимум 5 изображений');
+        return;
+      }
+
       setError(null);
+      setImages(prev => [...prev, ...files]);
 
-      // Сохраняем файл в состоянии
-      setImage(selectedFile);
-
-      // Создаем URL для предпросмотра
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+      // Создаем preview URLs
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPreviewUrls(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const moveImage = (fromIndex: number, toIndex: number) => {
+    const newImages = [...images];
+    const newPreviews = [...previewUrls];
+
+    const [removedImage] = newImages.splice(fromIndex, 1);
+    const [removedPreview] = newPreviews.splice(fromIndex, 1);
+
+    newImages.splice(toIndex, 0, removedImage);
+    newPreviews.splice(toIndex, 0, removedPreview);
+
+    setImages(newImages);
+    setPreviewUrls(newPreviews);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,21 +133,13 @@ const AddServicePage: React.FC = () => {
         return;
       }
 
-      if (!image) {
-        setError('Пожалуйста, загрузите фото работы');
+      if (images.length === 0) {
+        setError('Пожалуйста, загрузите хотя бы одно фото работы');
         setLoading(false);
         return;
       }
 
-      // Проверяем, что пользователь авторизован и имеет ID
-      if (!user || !user.id) {
-        setError('Необходимо войти в систему для добавления услуги');
-        setLoading(false);
-        setTimeout(() => navigate('/login'), 2000);
-        return;
-      }
-
-      // Создаем FormData для отправки файла
+      // Создаем FormData для отправки файлов
       const serviceData = new FormData();
       serviceData.append('title', formData.title.trim());
       serviceData.append('price', formData.price.trim());
@@ -131,16 +151,16 @@ const AddServicePage: React.FC = () => {
       serviceData.append('description', formData.description.trim());
       serviceData.append('barber', user.id.toString());
 
-      // ИСПРАВЛЕНО: Добавляем файл напрямую без создания нового File объекта
-      serviceData.append('image', image);
-
-      console.log('Отправка файла:', image.name);
+      // Добавляем изображения
+      images.forEach((image) => {
+        serviceData.append('images', image);
+      });
 
       // Отправляем на сервер
       const response = await servicesAPI.create(serviceData);
       console.log('Успешный ответ:', response);
 
-      // Обновляем данные пользователя, чтобы отобразить новую услугу
+      // Обновляем данные пользователя
       if (refreshUserData) {
         await refreshUserData();
       }
@@ -158,8 +178,8 @@ const AddServicePage: React.FC = () => {
         location: user?.profile?.address || '',
         description: '',
       });
-      setImage(null);
-      setPreviewUrl(null);
+      setImages([]);
+      setPreviewUrls([]);
 
       // Редирект на профиль после небольшой задержки
       setTimeout(() => {
@@ -173,7 +193,6 @@ const AddServicePage: React.FC = () => {
       let errorMessage = 'Не удалось создать услугу. Пожалуйста, попробуйте позже.';
 
       if (err.response?.data) {
-        // Преобразуем ответы разных форматов
         if (typeof err.response.data === 'object') {
           const errors = Object.entries(err.response.data)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
@@ -217,40 +236,73 @@ const AddServicePage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Фото работы
+                  Фото работы (максимум 5)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="service-image"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
 
-                  {previewUrl ? (
-                    <div className="relative">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-h-64 mx-auto rounded-md"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImage(null);
-                          setPreviewUrl(null);
-                        }}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
+                {/* Превью загруженных изображений */}
+                {previewUrls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+                    {previewUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-md"
+                        />
+
+                        {/* Кнопки управления */}
+                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center space-x-2">
+                          {index > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, index - 1)}
+                              className="p-1 bg-white rounded-full"
+                            >
+                              ←
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="p-1 bg-red-500 text-white rounded-full"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          {index < previewUrls.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, index + 1)}
+                              className="p-1 bg-white rounded-full"
+                            >
+                              →
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Метка первого изображения */}
+                        {index === 0 && (
+                          <div className="absolute top-2 left-2 bg-[#9A0F34] text-white text-xs px-2 py-1 rounded">
+                            Основное
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Область загрузки */}
+                {previewUrls.length < 5 && (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      id="service-images"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
                     <label
-                      htmlFor="service-image"
+                      htmlFor="service-images"
                       className="cursor-pointer flex flex-col items-center"
                     >
                       <Upload className="h-8 w-8 text-gray-400 mb-2" />
@@ -258,13 +310,18 @@ const AddServicePage: React.FC = () => {
                         Нажмите, чтобы загрузить фото
                       </span>
                       <span className="text-xs text-gray-400 mt-1">
-                        (JPG, PNG, GIF, максимум 5MB)
+                        (JPG, PNG, GIF, максимум 5MB на файл)
                       </span>
                     </label>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  Первое изображение будет использоваться как основное
+                </p>
               </div>
 
+              {/* Остальные поля формы остаются без изменений */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Название услуги

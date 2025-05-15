@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Clock, MessageCircle } from 'lucide-react';
+import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import ImageWithFallback from '../ui/ImageWithFallback';
@@ -8,6 +8,7 @@ import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { servicesAPI } from '../../api/services';
 
 interface HaircutCardProps {
   haircut: Haircut;
@@ -18,17 +19,47 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { t } = useLanguage();
   const { user, toggleFavorite, isAuthenticated } = useAuth();
   const notification = useNotification();
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
   const isFavorite = user?.favorites?.includes(haircut.id) || false;
+  const hasMultipleImages = haircut.images && haircut.images.length > 1;
+
+  // Отправляем запрос на увеличение просмотров
+  React.useEffect(() => {
+    const incrementViews = async () => {
+      try {
+        await servicesAPI.incrementViews(haircut.id);
+      } catch (error) {
+        console.error('Failed to increment views:', error);
+      }
+    };
+
+    incrementViews();
+  }, [haircut.id]);
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? haircut.images.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCurrentImageIndex((prev) =>
+      prev === haircut.images.length - 1 ? 0 : prev + 1
+    );
+  };
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      notification.info('Вход требуется', 'Чтобы добавить в избранное, необходимо войти как барбер');
+      notification.info('Требуется вход', 'Чтобы добавить в избранное, необходимо войти');
       return;
     }
 
@@ -43,51 +74,72 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
   };
 
-  const handleConsultClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowConsultModal(true);
-  };
-
-  const handleBookClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Book button clicked for:', haircut.title);
-    onBookClick(haircut);
-  };
+  const currentImage = haircut.images && haircut.images.length > 0
+    ? haircut.images[currentImageIndex].image
+    : haircut.primaryImage;
 
   return (
     <Card className="h-full transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative">
-        {!isImageLoaded && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-            <span className="sr-only">{t('loading')}</span>
-          </div>
-        )}
-
+      <div className="relative group">
         <ImageWithFallback
-          src={haircut.image}
+          src={currentImage}
           alt={haircut.title}
-          className={`w-full h-64 object-cover transition-opacity duration-300 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setIsImageLoaded(true)}
+          className="w-full h-64 object-cover"
         />
 
-            {isAuthenticated && user?.profile?.user_type === 'barber' && (
-              <button
-                className={`absolute top-2 right-2 p-2 rounded-full ${
-                  isFavorite
-                    ? 'bg-[#9A0F34] text-white'
-                    : 'bg-white text-gray-800 hover:bg-gray-100'
-                } transition-colors shadow-md`}
-                onClick={handleFavoriteClick}
-                aria-label={isFavorite ? t('removeFavorite') : t('favorite')}
-              >
-                <Heart
-                  size={20}
-                  className={isFavorite ? 'fill-current' : ''}
+        {/* Навигация по изображениям */}
+        {hasMultipleImages && (
+          <>
+            <button
+              onClick={handlePrevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleNextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {/* Индикаторы изображений */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {haircut.images.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentImageIndex
+                      ? 'bg-white w-4'
+                      : 'bg-white/50'
+                  }`}
                 />
-              </button>
-            )}
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Счетчик просмотров */}
+        <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
+          <Eye className="h-3 w-3 mr-1" />
+          {haircut.views}
+        </div>
+
+        {isAuthenticated && (
+          <button
+            className={`absolute top-2 right-2 p-2 rounded-full ${
+              isFavorite
+                ? 'bg-[#9A0F34] text-white'
+                : 'bg-white text-gray-800 hover:bg-gray-100'
+            } transition-colors shadow-md`}
+            onClick={handleFavoriteClick}
+          >
+            <Heart
+              size={20}
+              className={isFavorite ? 'fill-current' : ''}
+            />
+          </button>
+        )}
       </div>
 
       <div className="p-4">
@@ -123,7 +175,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           <Button
             variant="primary"
             fullWidth
-            onClick={handleBookClick}
+            onClick={(e) => {
+              e.preventDefault();
+              onBookClick(haircut);
+            }}
             className="flex-1"
           >
             {t('iWantThis')}
@@ -131,7 +186,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
 
           <Button
             variant="outline"
-            onClick={handleConsultClick}
+            onClick={(e) => {
+              e.preventDefault();
+              setShowConsultModal(true);
+            }}
             className="px-4"
           >
             <MessageCircle className="h-5 w-5" />
@@ -139,6 +197,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
         </div>
       </div>
 
+      {/* Модальное окно консультации */}
       {showConsultModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
              onClick={(e) => {

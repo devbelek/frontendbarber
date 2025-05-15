@@ -109,8 +109,7 @@ const GalleryPage: React.FC<GalleryPageProps> = ({ openLoginModal }) => {
       };
 
       // Отправляем запрос на создание бронирования
-      await bookingsAPI.createBooking(bookingData);
-
+      await bookingsAPI.create(bookingData);
       // Закрываем модальное окно
       setIsBookingModalOpen(false);
 

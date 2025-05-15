@@ -288,7 +288,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem('token', response.data.access);
       if (response.data.refresh) {
-        localStorage.setItem('refreshToken', response.data.refresh);
+        localStorage.setItem('refresh', response.data.refresh);
       }
 
       await fetchCurrentUser();

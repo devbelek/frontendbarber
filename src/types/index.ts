@@ -22,8 +22,8 @@ export interface Barber {
   id: string;
   name: string;
   avatar: string;
-  rating: number;
-  reviewCount: number;
+  rating?: number;
+  reviewCount?: number;
   specialization: string[];
   location: string;
   workingHours: {

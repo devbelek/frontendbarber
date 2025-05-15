@@ -115,7 +115,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = localStorage.getItem('refresh');
         if (refreshToken) {
           // Пытаемся обновить токен
           const response = await axios.post(`${API_URL}/auth/jwt/refresh/`, {

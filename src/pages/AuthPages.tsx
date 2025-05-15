@@ -22,8 +22,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       // Вызываем API для входа
-      const response = await authAPI.login(email, password);
-
+      const response = await authAPI.login({ email, password });
       // Сохраняем токен в localStorage
       localStorage.setItem('token', response.data.access);
 

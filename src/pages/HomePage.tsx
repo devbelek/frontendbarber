@@ -1,314 +1,311 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Card, { CardHeader, CardContent } from '../ui/Card';
-import Button from '../ui/Button';
-import { profileAPI } from '../../api/services';
-import { Barber } from '../../types';
-import ImageWithFallback from '../ui/ImageWithFallback';
+import { Search, Heart, Star, MapPin, Navigation, Award, MessageSquare } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Layout from '../components/layout/Layout';
+import Button from '../components/ui/Button';
+import Card, { CardHeader, CardContent } from '../components/ui/Card';
+import HaircutGrid from '../components/haircuts/HaircutGrid';
+import LocationBasedBarbers from '../components/location/LocationBasedRecommendations';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useLocation } from '../context/LocationContext';
+import { servicesAPI } from '../api/services';
+import { Haircut } from '../types';
 
-const LocationBasedBarbers: React.FC = () => {
-  const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number | null;
-    longitude: number | null;
-    locationName: string | null;
-  }>({
-    latitude: null,
-    longitude: null,
-    locationName: null,
-  });
-  const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+interface HomePageProps {
+  openLoginModal: () => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
+  const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
+  const { currentRegion } = useLocation();
+  const [popularHaircuts, setPopularHaircuts] = useState<Haircut[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkLocationPermission();
-  }, []);
+    const fetchPopularHaircuts = async () => {
+      try {
+        setLoading(true);
+        const response = await servicesAPI.getAll({ limit: 6 });
 
-  const checkLocationPermission = async () => {
-    try {
-      if ('permissions' in navigator) {
-        const permission = await navigator.permissions.query({
-          name: 'geolocation' as PermissionName,
-        });
-        setLocationPermission(permission.state as 'granted' | 'denied' | 'prompt');
+        if (response && response.data) {
+          let results = response.data;
 
-        if (permission.state === 'granted') {
-          getUserLocation();
-        }
-      } else {
-        getUserLocation();
-      }
-    } catch (err) {
-      console.error('Ошибка при проверке разрешений геолокации:', err);
-    }
-  };
-
-  const getUserLocation = () => {
-    if (!navigator.geolocation) {
-      setError('Геолокация не поддерживается вашим браузером');
-      return;
-    }
-
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        setUserLocation({
-          latitude,
-          longitude,
-          locationName: null,
-        });
-
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-          );
-          const data = await response.json();
-
-          let locationName = '';
-          if (data.address) {
-            if (data.address.city) {
-              locationName = data.address.city;
-            } else if (data.address.town) {
-              locationName = data.address.town;
-            } else if (data.address.village) {
-              locationName = data.address.village;
-            } else if (data.address.suburb) {
-              locationName = data.address.suburb;
-            }
+          if (response.data.results && Array.isArray(response.data.results)) {
+            results = response.data.results;
           }
 
-          setUserLocation(prev => ({
-            ...prev,
-            locationName: locationName || 'Ваше местоположение',
-          }));
+          if (Array.isArray(results)) {
+            const haircuts: Haircut[] = results.slice(0, 6).map((service: any) => ({
+              id: service.id,
+              image: service.image,
+              title: service.title,
+              price: service.price,
+              barber: service.barber_details?.full_name || 'Unknown',
+              barberId: service.barber,
+              type: service.type,
+              length: service.length,
+              style: service.style,
+              location: service.location,
+              duration: service.duration,
+              isFavorite: service.is_favorite || false
+            }));
 
-          getBarbers();
-        } catch (err) {
-          console.error('Ошибка при получении названия местоположения:', err);
-          setUserLocation(prev => ({
-            ...prev,
-            locationName: 'Ваше местоположение',
-          }));
-
-          getBarbers();
+            setPopularHaircuts(haircuts);
+          }
         }
-      },
-      (error) => {
-        console.error('Ошибка при получении геолокации:', error);
+      } catch (error) {
+        console.error('Error fetching popular haircuts:', error);
+      } finally {
         setLoading(false);
-        setLocationPermission('denied');
-        setError('Для получения рекомендаций поблизости разрешите доступ к геолокации');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 600000,
       }
-    );
+    };
+
+    fetchPopularHaircuts();
+  }, []);
+
+  const fadeInUp = {
+    initial: { y: 60, opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    transition: { duration: 0.6 }
   };
 
-  const getBarbers = async () => {
-    try {
-      setLoading(true);
-
-      const response = await profileAPI.getAllBarbers();
-
-      if (response.data) {
-        let barbersData = [];
-
-        if (response.data.results && Array.isArray(response.data.results)) {
-          barbersData = response.data.results;
-        } else if (Array.isArray(response.data)) {
-          barbersData = response.data;
-        }
-
-        const barbersWithProfile = barbersData.map((user: any) => ({
-          id: user.id,
-          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-          avatar: user.profile?.photo || null,
-          rating: 0, // Убрали рейтинг
-          reviewCount: 0, // Убрали количество отзывов
-          specialization: user.profile?.specialization || [],
-          location: user.profile?.address || 'Не указано',
-          workingHours: {
-            from: user.profile?.working_hours_from || '09:00',
-            to: user.profile?.working_hours_to || '18:00',
-            days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
-          },
-          portfolio: [],
-          description: user.profile?.bio || 'Информация о барбере',
-          whatsapp: user.profile?.whatsapp || '',
-          telegram: user.profile?.telegram || '',
-          offerHomeService: user.profile?.offers_home_service || false
-        }));
-
-        setNearbyBarbers(barbersWithProfile);
-      }
-
-      setShowRecommendations(true);
-      setLoading(false);
-    } catch (e) {
-      console.error('Error getting barbers:', e);
-      setError('Не удалось загрузить барберов');
-      setLoading(false);
-    }
+  const staggerContainer = {
+    animate: { transition: { staggerChildren: 0.1 } }
   };
 
-  const handleRequestLocation = () => {
-    setError(null);
-    getUserLocation();
-  };
-
-  if (!showRecommendations) {
-    return (
-      <Card className="w-full mb-8">
-        <CardHeader>
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с вами
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            {loading ? (
-              <div className="animate-pulse space-y-4">
-                <div className="mx-auto h-12 w-12 bg-gray-200 rounded-full"></div>
-                <div className="h-4 bg-gray-200 rounded mx-auto w-1/2"></div>
-                <div className="h-4 bg-gray-200 rounded mx-auto w-1/3"></div>
-              </div>
-            ) : error ? (
-              <div className="text-center">
-                <Navigation className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">{error}</p>
-                <Button variant="primary" onClick={handleRequestLocation}>
-                  Разрешить определение местоположения
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <Navigation className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">
-                  Разрешите доступ к вашему местоположению, чтобы увидеть барберов поблизости
-                </p>
-                <Button variant="primary" onClick={handleRequestLocation}>
-                  Показать барберов рядом
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error && nearbyBarbers.length === 0) {
-    return (
-      <Card className="w-full mb-8">
-        <CardHeader>
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с вами
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Navigation className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">{error}</p>
-            <Button variant="primary" onClick={handleRequestLocation}>
-              Повторить поиск
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (nearbyBarbers.length === 0 && userLocation.latitude) {
-    return (
-      <Card className="w-full mb-8">
-        <CardHeader>
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с {userLocation.locationName || 'вами'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
-              К сожалению, рядом с вами не найдено барберов. Попробуйте расширить область поиска.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // SVG Ножницы с анимацией
+  const AnimatedScissors = () => (
+    <motion.svg
+      width="60"
+      height="60"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      initial={{ rotate: -45, opacity: 0 }}
+      animate={{ rotate: 0, opacity: 1 }}
+      transition={{ duration: 1, type: "spring" }}
+      className="text-[#9A0F34]"
+    >
+      <path
+        d="M6.13 1L6 16a2 2 0 002 2h8a2 2 0 002-2L17.87 1M6 8h12M8 12L16 20M16 12L8 20"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </motion.svg>
+  );
 
   return (
-    <Card className="w-full mb-8">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold flex items-center">
-            <MapPin className="w-5 h-5 mr-2 text-[#9A0F34]" />
-            Барберы рядом с {userLocation.locationName || 'вами'}
-          </h2>
-          <Button variant="text" size="sm" onClick={handleRequestLocation}>
-            <Navigation className="w-4 h-4 mr-1" />
-            Обновить
-          </Button>
+    <Layout openLoginModal={openLoginModal}>
+      {/* Hero Section с видео на фоне */}
+      <motion.section
+        className="relative h-screen overflow-hidden"
+        initial="initial"
+        animate="animate"
+      >
+        {/* Video Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-black/50 z-10"></div>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source
+              src="https://cdn.pixabay.com/video/2022/10/10/134866-759217154_large.mp4"
+              type="video/mp4"
+            />
+          </video>
         </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-40 bg-gray-200 rounded-md mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+
+        {/* Hero Content */}
+        <div className="relative z-20 flex items-center h-full">
+          <div className="container mx-auto px-4">
+            <motion.div {...fadeInUp} className="text-center text-white">
+              <div className="mb-6 flex justify-center">
+                <AnimatedScissors />
               </div>
-            ))}
+              <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                {t('heroTitle')}
+              </h1>
+              <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto text-gray-200">
+                {t('heroSubtitle')}
+              </p>
+              <Link to="/gallery">
+                <Button variant="primary" size="lg" className="bg-white text-[#9A0F34] hover:bg-gray-100">
+                  {t('exploreGallery')}
+                </Button>
+              </Link>
+            </motion.div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nearbyBarbers.map((barber) => (
-              <Link
-                key={barber.id}
-                to={`/barber/${barber.id}`}
-                className="block h-full"
+        </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </motion.div>
+      </motion.section>
+
+      {/* How It Works с иконками */}
+      <motion.section
+        className="py-20 bg-white"
+        variants={staggerContainer}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+      >
+        <div className="container mx-auto px-4">
+          <motion.div {...fadeInUp} className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('howItWorks')}
+            </h2>
+            <p className="text-lg text-gray-600">
+              {t('howItWorksDescription')}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Search className="h-12 w-12" />,
+                title: t('chooseHaircut'),
+                description: t('chooseHaircutDescription'),
+                step: 1
+              },
+              {
+                icon: <Star className="h-12 w-12" />,
+                title: t('bookBarber'),
+                description: t('bookBarberDescription'),
+                step: 2
+              },
+              {
+                icon: <Award className="h-12 w-12" />,
+                title: t('saveTime'),
+                description: t('saveTimeDescription'),
+                step: 3
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                className="text-center"
+                variants={fadeInUp}
               >
-                <div className="border rounded-md overflow-hidden h-full hover:shadow-md transition-shadow">
-                  <div className="h-40 overflow-hidden bg-gray-100 flex items-center justify-center">
-                    {barber.avatar ? (
-                      <ImageWithFallback
-                        src={barber.avatar}
-                        alt={barber.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="h-12 w-12 text-gray-300" />
-                    )}
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 mx-auto bg-[#9A0F34]/10 rounded-full flex items-center justify-center text-[#9A0F34] relative">
+                    {feature.icon}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-lg">{barber.name}</h3>
-                    <p className="text-gray-600">{barber.location}</p>
-                    <div className="mt-2 text-sm text-gray-500">
-                      {barber.workingHours.from} - {barber.workingHours.to}
-                    </div>
+                  <div className="absolute -top-3 -right-3 bg-[#9A0F34] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
+                    {feature.step}
                   </div>
                 </div>
-              </Link>
+                <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      </motion.section>
+
+      {/* Popular Haircuts Section */}
+      <motion.section
+        className="py-20 bg-gray-50"
+        initial="initial"
+        whileInView="animate"
+        variants={staggerContainer}
+        viewport={{ once: true }}
+      >
+        <div className="container mx-auto px-4">
+          <motion.div {...fadeInUp} className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold">{t('popularHaircuts')}</h2>
+            <Link to="/gallery">
+              <Button variant="outline">
+                {t('viewAll')}
+              </Button>
+            </Link>
+          </motion.div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-white rounded-lg shadow-sm h-80"></div>
+              ))}
+            </div>
+          ) : (
+            <motion.div variants={staggerContainer}>
+              <HaircutGrid
+                haircuts={popularHaircuts}
+                onBookClick={() => !isAuthenticated && openLoginModal()}
+              />
+            </motion.div>
+          )}
+        </div>
+      </motion.section>
+
+      {/* Location Based Recommendations */}
+      <motion.section
+        className="py-20 bg-white"
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+      >
+        <div className="container mx-auto px-4">
+          <LocationBasedBarbers />
+        </div>
+      </motion.section>
+
+      {/* CTA Section */}
+      <motion.section
+        className="py-20 bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white relative overflow-hidden"
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+      >
+        <div className="absolute inset-0 opacity-10">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="cta-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1" fill="currentColor"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#cta-pattern)"/>
+          </svg>
+        </div>
+
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <motion.div {...fadeInUp}>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('readyToTry')}
+            </h2>
+            <p className="text-lg mb-8 max-w-2xl mx-auto text-gray-100">
+              {t('readyToTryDescription')}
+            </p>
+            {!isAuthenticated && (
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={openLoginModal}
+                className="bg-white text-[#9A0F34] hover:bg-gray-100"
+              >
+                {t('becomeBarber')}
+              </Button>
+            )}
+          </motion.div>
+        </div>
+      </motion.section>
+    </Layout>
   );
 };
 
-export default LocationBasedBarbers;
+export default HomePage;

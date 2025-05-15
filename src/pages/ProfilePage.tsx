@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation, Briefcase, UserPlus } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -14,18 +14,20 @@ import { profileAPI } from '../api/services';
 import { debounce } from 'lodash';
 import apiClient from '../api/client';
 import ImageCropper from '../components/ui/ImageCropper';
+import BarberBookingsList from '../components/booking/BarberBookingsList';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated, refreshUserData } = useAuth();
   const notification = useNotification();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites' | 'barberBookings'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [showBecomeBaberModal, setShowBecomeBaberModal] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -40,7 +42,8 @@ const ProfilePage: React.FC = () => {
     bio: '',
     working_hours_from: '09:00',
     working_hours_to: '18:00',
-    working_days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as string[]
+    working_days: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as string[],
+    user_type: 'client'
   });
 
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -88,7 +91,8 @@ const ProfilePage: React.FC = () => {
         bio: user.profile?.bio || '',
         working_hours_from: user.profile?.working_hours_from || '09:00',
         working_hours_to: user.profile?.working_hours_to || '18:00',
-        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'],
+        user_type: user.profile?.user_type || 'client'
       });
 
       if (user.profile?.photo) {
@@ -206,107 +210,156 @@ const ProfilePage: React.FC = () => {
     );
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleUserTypeChange = async (newType: 'client' | 'barber') => {
+    if (!user) return;
 
-  if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
 
-  setIsSubmitting(true);
+      const profileFormData = new FormData();
+      profileFormData.append('user_type', newType);
 
-  try {
-    if (!user || !isAuthenticated) {
-      notification.error('Ошибка', 'Необходимо войти в систему для обновления профиля');
+      if (newType === 'barber' && !formData.telegram) {
+        setShowBecomeBaberModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (newType === 'barber' && formData.telegram) {
+        profileFormData.append('telegram', formData.telegram);
+      }
+
+      await profileAPI.updateProfile(profileFormData);
+
+      if (refreshUserData) {
+        await refreshUserData();
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        user_type: newType
+      }));
+
+      notification.success(
+        'Успешно!',
+        newType === 'barber'
+          ? 'Вы стали барбером! Теперь вы можете добавлять свои услуги.'
+          : 'Вы переключились на аккаунт клиента.'
+      );
+    } catch (err: any) {
+      console.error('Failed to change user type:', err);
+      notification.error('Ошибка!', 'Не удалось изменить тип пользователя.');
+    } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleBecomeBarberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.telegram) {
+      notification.error('Ошибка', 'Необходимо указать Telegram для барбера');
       return;
     }
 
-    // Обновляем информацию о пользователе
-    if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
-      const userData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name
-      };
+    setShowBecomeBaberModal(false);
+    await handleUserTypeChange('barber');
+  };
 
-      await profileAPI.updateUserInfo(userData);
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // Создаем FormData для профиля
-    const profileFormData = new FormData();
+    if (isSubmitting) return;
 
-    if (profileImage) {
-      profileFormData.append('photo', profileImage);
-    }
+    setIsSubmitting(true);
 
-    // Добавляем только измененные поля
-    const fieldsToUpdate = [
-      'whatsapp', 'telegram', 'address', 'bio',
-      'working_hours_from', 'working_hours_to'
-    ];
-
-    fieldsToUpdate.forEach(field => {
-      const value = formData[field];
-      const userValue = user.profile?.[field];
-
-      if (value !== userValue) {
-        profileFormData.append(field, value || '');
+    try {
+      if (!user || !isAuthenticated) {
+        notification.error('Ошибка', 'Необходимо войти в систему для обновления профиля');
+        setIsSubmitting(false);
+        return;
       }
-    });
 
-    // Специальная обработка для булевых и JSON полей
-    if (formData.offers_home_service !== user.profile?.offers_home_service) {
-      profileFormData.append('offers_home_service', formData.offers_home_service.toString());
-    }
+      if (formData.first_name !== user.first_name || formData.last_name !== user.last_name) {
+        const userData = {
+          first_name: formData.first_name,
+          last_name: formData.last_name
+        };
 
-    if (formData.latitude !== user.profile?.latitude) {
-      profileFormData.append('latitude', formData.latitude?.toString() || '');
-    }
-
-    if (formData.longitude !== user.profile?.longitude) {
-      profileFormData.append('longitude', formData.longitude?.toString() || '');
-    }
-
-    if (JSON.stringify(formData.working_days) !== JSON.stringify(user.profile?.working_days)) {
-      profileFormData.append('working_days', JSON.stringify(formData.working_days));
-    }
-
-    // Проверяем, есть ли что обновлять
-    const entries = Array.from(profileFormData.entries());
-    console.log('FormData entries:', entries);
-
-    if (entries.length > 0) {
-      await profileAPI.updateProfile(profileFormData);
-    }
-
-    // Обновляем данные пользователя
-    if (refreshUserData) {
-      await refreshUserData();
-    }
-
-    notification.success('Успешно!', 'Данные профиля успешно обновлены');
-    setIsEditing(false);
-    setProfileImage(null);
-
-  } catch (err: any) {
-    console.error('Failed to update profile:', err);
-
-    let errorMessage = 'Произошла ошибка при обновлении профиля';
-
-    if (err.response?.data) {
-      if (typeof err.response.data === 'object') {
-        const errors = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-          .join('\n');
-        if (errors) errorMessage = errors;
-      } else {
-        errorMessage = err.response.data.detail || err.response.data;
+        await profileAPI.updateUserInfo(userData);
       }
-    }
 
-    notification.error('Ошибка!', errorMessage);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+      const profileFormData = new FormData();
+
+      if (profileImage) {
+        profileFormData.append('photo', profileImage);
+      }
+
+      const fieldsToUpdate = [
+        'whatsapp', 'telegram', 'address', 'bio',
+        'working_hours_from', 'working_hours_to'
+      ];
+
+      fieldsToUpdate.forEach(field => {
+        const value = formData[field];
+        const userValue = user.profile?.[field];
+
+        if (value !== userValue) {
+          profileFormData.append(field, value || '');
+        }
+      });
+
+      if (formData.offers_home_service !== user.profile?.offers_home_service) {
+        profileFormData.append('offers_home_service', formData.offers_home_service.toString());
+      }
+
+      if (formData.latitude !== user.profile?.latitude) {
+        profileFormData.append('latitude', formData.latitude?.toString() || '');
+      }
+
+      if (formData.longitude !== user.profile?.longitude) {
+        profileFormData.append('longitude', formData.longitude?.toString() || '');
+      }
+
+      if (JSON.stringify(formData.working_days) !== JSON.stringify(user.profile?.working_days)) {
+        profileFormData.append('working_days', JSON.stringify(formData.working_days));
+      }
+
+      const entries = Array.from(profileFormData.entries());
+      console.log('FormData entries:', entries);
+
+      if (entries.length > 0) {
+        await profileAPI.updateProfile(profileFormData);
+      }
+
+      if (refreshUserData) {
+        await refreshUserData();
+      }
+
+      notification.success('Успешно!', 'Данные профиля успешно обновлены');
+      setIsEditing(false);
+      setProfileImage(null);
+
+    } catch (err: any) {
+      console.error('Failed to update profile:', err);
+
+      let errorMessage = 'Произошла ошибка при обновлении профиля';
+
+      if (err.response?.data) {
+        if (typeof err.response.data === 'object') {
+          const errors = Object.entries(err.response.data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('\n');
+          if (errors) errorMessage = errors;
+        } else {
+          errorMessage = err.response.data.detail || err.response.data;
+        }
+      }
+
+      notification.error('Ошибка!', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
@@ -324,7 +377,8 @@ const handleSubmit = async (e: React.FormEvent) => {
         bio: user.profile?.bio || '',
         working_hours_from: user.profile?.working_hours_from || '09:00',
         working_hours_to: user.profile?.working_hours_to || '18:00',
-        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+        working_days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'],
+        user_type: user.profile?.user_type || 'client'
       });
 
       setProfileImage(null);
@@ -388,9 +442,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
                 <h2 className="text-xl font-bold">{user.first_name} {user.last_name}</h2>
                 <p className="text-gray-600">{user.email}</p>
-                {user.profile?.user_type === 'barber' && (
+                {user.profile?.user_type === 'barber' ? (
                   <div className="mt-2 px-3 py-1 bg-[#9A0F34]/10 text-[#9A0F34] rounded-full text-sm">
                     Барбер
+                  </div>
+                ) : (
+                  <div className="mt-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    Клиент
                   </div>
                 )}
 
@@ -405,7 +463,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     {t('personalInfo')}
                   </button>
 
-                  {user?.profile?.user_type !== 'barber' && (
+                  {user.profile?.user_type !== 'barber' && (
                     <button
                       onClick={() => setActiveTab('bookings')}
                       className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
@@ -426,6 +484,36 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <Heart className="h-5 w-5 mr-3" />
                     {t('favorites')}
                   </button>
+
+                  {user.profile?.user_type === 'barber' && (
+                    <button
+                      onClick={() => setActiveTab('barberBookings')}
+                      className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                        activeTab === 'barberBookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Clock className="h-5 w-5 mr-3" />
+                      {t('Мои записи')}
+                    </button>
+                  )}
+
+                  {user.profile?.user_type === 'client' ? (
+                    <button
+                      onClick={() => handleUserTypeChange('barber')}
+                      className="flex items-center w-full mt-4 p-3 rounded-md text-left text-[#9A0F34] hover:bg-[#9A0F34]/10"
+                    >
+                      <Scissors className="h-5 w-5 mr-3" />
+                      <span>Я барбер</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleUserTypeChange('client')}
+                      className="flex items-center w-full mt-4 p-3 rounded-md text-left text-gray-700 hover:bg-gray-50"
+                    >
+                      <UserPlus className="h-5 w-5 mr-3" />
+                      <span>Переключиться на клиента</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
@@ -901,10 +989,67 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <FavoritesList />
                 </div>
               )}
+
+              {activeTab === 'barberBookings' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">{t('myBarberBookings')}</h3>
+                  <BarberBookingsList />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {showBecomeBaberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">Стать барбером</h2>
+            <p className="text-gray-600 mb-4">
+              Для регистрации как барбер необходимо указать ваш Telegram. Это позволит вам получать уведомления о бронированиях.
+            </p>
+
+            <form onSubmit={handleBecomeBarberSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telegram username
+                </label>
+                <div className="relative">
+                  <MessageCircle className="absolute left-3 top-2.5 h-5 w-5 text-blue-400" />
+                  <input
+                    type="text"
+                    name="telegram"
+                    value={formData.telegram}
+                    onChange={handleChange}
+                    placeholder="Username (без @)"
+                    className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  {isSubmitting ? 'Сохранение...' : 'Стать барбером'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowBecomeBaberModal(false)}
+                  className="flex-1"
+                >
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showImageCropper && tempImageUrl && (
         <ImageCropper

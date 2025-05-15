@@ -25,18 +25,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const isFavorite = user?.favorites?.includes(haircut.id) || false;
   const hasMultipleImages = haircut.images && haircut.images.length > 1;
 
-  // Отправляем запрос на увеличение просмотров
-  React.useEffect(() => {
-    const incrementViews = async () => {
-      try {
-        await servicesAPI.incrementViews(haircut.id);
-      } catch (error) {
-        console.error('Failed to increment views:', error);
-      }
-    };
-
-    incrementViews();
-  }, [haircut.id]);
+  // Удаляем useEffect, который автоматически инкрементирует просмотры при загрузке
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,6 +61,20 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     } catch (error) {
       notification.error('Ошибка', 'Не удалось изменить статус избранного');
     }
+  };
+
+  const handleBookButtonClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    // Инкрементируем просмотры только при нажатии на "Хочу также"
+    try {
+      await servicesAPI.incrementViews(haircut.id);
+    } catch (error) {
+      console.error('Failed to increment views:', error);
+    }
+
+    // Вызываем оригинальный обработчик бронирования
+    onBookClick(haircut);
   };
 
   const currentImage = haircut.images && haircut.images.length > 0
@@ -175,10 +178,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           <Button
             variant="primary"
             fullWidth
-            onClick={(e) => {
-              e.preventDefault();
-              onBookClick(haircut);
-            }}
+            onClick={handleBookButtonClick}
             className="flex-1"
           >
             {t('iWantThis')}

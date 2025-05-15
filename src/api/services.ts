@@ -194,7 +194,17 @@ export const servicesAPI = {
       });
   },
 
-    incrementViews: (id: string) => {
+  incrementViews: (id: string) => {
+    // Проверяем, является ли id строкой и не пустой
+    if (!id || typeof id !== 'string') {
+      console.error(`Invalid ID provided: ${id}`);
+      return Promise.reject(new Error('Invalid service ID'));
+    }
+
+    // Добавляем дополнительную проверку в консоль
+    console.log(`Incrementing views for service ID: ${id}`);
+
+    // Явно указываем URL, чтобы убедиться, что он правильный
     return apiClient.post(`/services/${id}/increment_views/`);
   },
 

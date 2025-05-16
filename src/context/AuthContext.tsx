@@ -424,15 +424,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const toggleFavorite = async (haircutId: string): Promise<void> => {
     if (loading || fetchingRef.current) return;
 
+    if (!haircutId) {
+      console.error('haircutId is undefined or empty in toggleFavorite');
+      throw new Error('ID услуги не определен');
+    }
+
     try {
       if (!user) {
         throw new Error('Необходимо войти в систему для добавления в избранное');
       }
 
+      console.log('Toggle favorite for haircutId:', haircutId, 'Type:', typeof haircutId);
       const isFavorite = user.favorites?.includes(haircutId) || false;
+      console.log('Is already favorite:', isFavorite);
 
       if (isFavorite) {
-        await favoritesAPI.remove(haircutId);
+        console.log('Removing from favorites');
+        await favoritesAPI.toggle(haircutId);
         setUser(prevUser => {
           if (!prevUser) return null;
           return {
@@ -441,7 +449,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           };
         });
       } else {
-        await favoritesAPI.add(haircutId);
+        console.log('Adding to favorites');
+        await favoritesAPI.toggle(haircutId);
         setUser(prevUser => {
           if (!prevUser) return null;
           return {
@@ -452,6 +461,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
+      if (err?.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      }
       if (err?.response?.status === 429 || err?.isRateLimited) {
         const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
         console.log(`Получена ошибка 429 при изменении избранного, ждем ${retryAfter} секунд`);

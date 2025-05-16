@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Scissors, MapPin, Clock, Tag, Info, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
@@ -6,10 +6,12 @@ import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { servicesAPI } from '../api/services';
+import { useNotification } from '../context/NotificationContext';
 
 const AddServicePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, refreshUserData } = useAuth();
+  const notification = useNotification();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -113,113 +115,118 @@ const AddServicePage: React.FC = () => {
     setPreviewUrls(newPreviews);
   };
 
-// В AddServicePage.tsx, функция handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
-  setSuccess(null);
+  // Исправленная функция handleSubmit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
-  try {
-    // Валидация
-    if (!formData.title.trim()) {
-      setError('Пожалуйста, введите название услуги');
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.price.trim() || isNaN(Number(formData.price))) {
-      setError('Пожалуйста, введите корректную цену');
-      setLoading(false);
-      return;
-    }
-
-    if (images.length === 0) {
-      setError('Пожалуйста, загрузите хотя бы одно фото работы');
-      setLoading(false);
-      return;
-    }
-
-    // Создаем FormData для отправки файлов
-    const serviceData = new FormData();
-    serviceData.append('title', formData.title.trim());
-    serviceData.append('price', formData.price.trim());
-    serviceData.append('duration', formData.duration);
-    serviceData.append('type', formData.type);
-    serviceData.append('length', formData.length);
-    serviceData.append('style', formData.style);
-    serviceData.append('location', formData.location.trim());
-    serviceData.append('description', formData.description.trim());
-
-    // Важно! API ожидает "uploaded_images", а не "images"
-    images.forEach((image) => {
-      serviceData.append('uploaded_images', image);
-    });
-
-    console.log('Sending data to server:', Array.from(serviceData.entries()));
-
-    // Отправляем на сервер
-    const response = await servicesAPI.create(serviceData);
-    console.log('Успешный ответ:', response);
-
-    // Обновляем данные пользователя
-    if (refreshUserData) {
-      await refreshUserData();
-    }
-
-    setSuccess('Услуга успешно добавлена!');
-
-    // Сбрасываем форму
-    setFormData({
-      title: '',
-      price: '',
-      duration: '30',
-      type: 'classic',
-      length: 'short',
-      style: 'business',
-      location: user?.profile?.address || '',
-      description: '',
-    });
-    setImages([]);
-    setPreviewUrls([]);
-
-    // Редирект на профиль после небольшой задержки
-    setTimeout(() => {
-      navigate('/profile');
-    }, 2000);
-
-  } catch (err: any) {
-    console.error('Error creating service:', err);
-
-    // Более детальная обработка ошибок
-    let errorMessage = 'Не удалось создать услугу. Пожалуйста, попробуйте позже.';
-
-    if (err.response?.data) {
-      // Проверяем, есть ли подробности об ошибке
-      if (typeof err.response.data === 'object') {
-        // Преобразуем все возможные поля ошибок в строку
-        const errorFields = Object.keys(err.response.data);
-        const errorDetails = errorFields.map(field => {
-          const errorValue = err.response.data[field];
-          if (Array.isArray(errorValue)) {
-            return `${field}: ${errorValue.join(', ')}`;
-          }
-          return `${field}: ${errorValue}`;
-        }).join('\n');
-
-        if (errorDetails) {
-          errorMessage = errorDetails;
-        }
-      } else if (typeof err.response.data === 'string') {
-        errorMessage = err.response.data;
+    try {
+      // Валидация
+      if (!formData.title.trim()) {
+        setError('Пожалуйста, введите название услуги');
+        setLoading(false);
+        return;
       }
-    }
 
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+      if (!formData.price.trim() || isNaN(Number(formData.price))) {
+        setError('Пожалуйста, введите корректную цену');
+        setLoading(false);
+        return;
+      }
+
+      if (images.length === 0) {
+        setError('Пожалуйста, загрузите хотя бы одно фото работы');
+        setLoading(false);
+        return;
+      }
+
+      // Создаем FormData для отправки файлов
+      const serviceData = new FormData();
+      serviceData.append('title', formData.title.trim());
+      serviceData.append('price', formData.price.trim());
+      serviceData.append('duration', formData.duration);
+      serviceData.append('type', formData.type);
+      serviceData.append('length', formData.length);
+      serviceData.append('style', formData.style);
+      serviceData.append('location', formData.location.trim());
+      serviceData.append('description', formData.description.trim());
+
+      // Явно добавляем ID барбера если он доступен
+      if (user && user.id) {
+        serviceData.append('barber', user.id.toString());
+      }
+
+      // Важно! API ожидает "uploaded_images", а не "images"
+      images.forEach((image) => {
+        serviceData.append('uploaded_images', image);
+      });
+
+      console.log('Sending data to server:', Array.from(serviceData.entries()));
+
+      // Отправляем на сервер
+      const response = await servicesAPI.create(serviceData);
+      console.log('Успешный ответ:', response);
+
+      // Обновляем данные пользователя
+      if (refreshUserData) {
+        await refreshUserData();
+      }
+
+      setSuccess('Услуга успешно добавлена!');
+
+      // Сбрасываем форму
+      setFormData({
+        title: '',
+        price: '',
+        duration: '30',
+        type: 'classic',
+        length: 'short',
+        style: 'business',
+        location: user?.profile?.address || '',
+        description: '',
+      });
+      setImages([]);
+      setPreviewUrls([]);
+
+      // Редирект на профиль после небольшой задержки
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error creating service:', err);
+
+      // Более детальная обработка ошибок
+      let errorMessage = 'Не удалось создать услугу. Пожалуйста, попробуйте позже.';
+
+      if (err.response?.data) {
+        // Проверяем, есть ли подробности об ошибке
+        if (typeof err.response.data === 'object') {
+          // Преобразуем все возможные поля ошибок в строку
+          const errorFields = Object.keys(err.response.data);
+          const errorDetails = errorFields.map(field => {
+            const errorValue = err.response.data[field];
+            if (Array.isArray(errorValue)) {
+              return `${field}: ${errorValue.join(', ')}`;
+            }
+            return `${field}: ${errorValue}`;
+          }).join('\n');
+
+          if (errorDetails) {
+            errorMessage = errorDetails;
+          }
+        } else if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        }
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Layout openLoginModal={() => {}}>

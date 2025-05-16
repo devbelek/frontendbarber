@@ -7,12 +7,14 @@ import { favoritesAPI } from '../../api/services';
 import { Favorite } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
+import { useNotification } from '../../context/NotificationContext';
 
 const FavoritesList: React.FC = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toggleFavorite } = useAuth();
+  const notification = useNotification();
 
   useEffect(() => {
     loadFavorites();
@@ -38,15 +40,31 @@ const FavoritesList: React.FC = () => {
     }
   };
 
-  const handleRemoveFromFavorites = async (favoriteId: string, serviceId: string) => {
+  // Вспомогательная функция для определения ID услуги
+  const getServiceId = (favorite: any): string | undefined => {
+    if (favorite.service) return favorite.service;
+    if (favorite.service_details?.id) return favorite.service_details.id;
+    return undefined;
+  };
+
+  const handleRemoveFromFavorites = async (favoriteId: string, serviceId: string | undefined) => {
+    if (!serviceId) {
+      console.error('serviceId is undefined in handleRemoveFromFavorites', favoriteId);
+      notification.error('Ошибка', 'Не удалось определить ID услуги');
+      return;
+    }
+
     try {
+      console.log('Removing favorite with serviceId:', serviceId);
       await toggleFavorite(serviceId);
       // Обновляем список избранного
       setFavorites(prevFavorites =>
         prevFavorites.filter(fav => fav.id !== favoriteId)
       );
+      notification.success('Успешно', 'Услуга удалена из избранного');
     } catch (error) {
       console.error('Ошибка при удалении из избранного:', error);
+      notification.error('Ошибка', 'Не удалось удалить из избранного');
     }
   };
 
@@ -121,7 +139,15 @@ const FavoritesList: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => handleRemoveFromFavorites(favorite.id, favorite.service)}
+                  onClick={() => {
+                    const serviceId = getServiceId(favorite);
+                    if (serviceId) {
+                      handleRemoveFromFavorites(favorite.id, serviceId);
+                    } else {
+                      console.error('Cannot determine service ID for favorite:', favorite);
+                      notification.error('Ошибка', 'Не удалось определить ID услуги');
+                    }
+                  }}
                   className="mt-3 inline-flex items-center text-sm text-gray-500 hover:text-red-600"
                 >
                   <Heart className="h-4 w-4 mr-1 fill-current" />

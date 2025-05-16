@@ -249,8 +249,20 @@ export const servicesAPI = {
 export const favoritesAPI = {
   getAll: () => apiClient.get('/profiles/favorites/'),
   add: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
-  remove: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
-  toggle: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
+  remove: (serviceId: string) => {
+    if (!serviceId) {
+      console.error('serviceId is undefined in favoritesAPI.remove');
+      return Promise.reject(new Error('serviceId is undefined'));
+    }
+    return apiClient.post('/profiles/favorites/toggle/', { service: serviceId });
+  },
+  toggle: (serviceId: string) => {
+    if (!serviceId) {
+      console.error('serviceId is undefined in favoritesAPI.toggle');
+      return Promise.reject(new Error('serviceId is undefined'));
+    }
+    return apiClient.post('/profiles/favorites/toggle/', { service: serviceId });
+  },
 };
 
 // API для отзывов

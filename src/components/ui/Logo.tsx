@@ -48,7 +48,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', darkMode = false }) => {
           <span className={darkMode ? "text-white" : "text-[#9A0F34]"}>TARAK</span>
         </span>
         <span className={`block -mt-1 text-xs ${darkMode ? "text-gray-300" : "text-gray-500"}`}>
-          платформа барберов
+          Чачты качан алабыз?
         </span>
       </div>
     </div>

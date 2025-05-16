@@ -63,19 +63,21 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
   };
 
-  const handleBookButtonClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
+const handleBookButtonClick = async (e: React.MouseEvent) => {
+  e.preventDefault();
 
-    // Инкрементируем просмотры только при нажатии на "Хочу также"
-    try {
-      await servicesAPI.incrementViews(haircut.id);
-    } catch (error) {
-      console.error('Failed to increment views:', error);
-    }
+  // Инкрементируем просмотры только при нажатии на "Хочу также"
+  try {
+    // Преобразуем ID в строку для безопасности
+    const serviceId = String(haircut.id);
+    await servicesAPI.incrementViews(serviceId);
+  } catch (error) {
+    console.error('Failed to increment views:', error);
+  }
 
-    // Вызываем оригинальный обработчик бронирования
-    onBookClick(haircut);
-  };
+  // Вызываем оригинальный обработчик бронирования
+  onBookClick(haircut);
+};
 
   const currentImage = haircut.images && haircut.images.length > 0
     ? haircut.images[currentImageIndex].image

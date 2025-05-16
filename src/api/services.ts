@@ -1,4 +1,3 @@
-// src/api/services.ts
 import apiClient from './client';
 import axios from 'axios';
 
@@ -125,66 +124,40 @@ export const profileAPI = {
   getCurrentUser: () => {
     return apiClient.get('/auth/users/me/');
   },
-
-  // Обновить информацию пользователя
   updateUserInfo: async (data: any) => {
     const response = await apiClient.patch('/auth/users/me/', data);
     return response;
   },
-
-  // Обновить профиль пользователя
   updateProfile: async (data: any) => {
-    // Если загружается файл, используем FormData
     if (data instanceof FormData) {
       return apiClient.patch('/users/profile/update/', data);
     }
     return apiClient.patch('/users/profile/update/', data);
   },
-
-  // Получить профиль барбера по ID
   getBarberProfile: (id: string) => {
     return apiClient.get(`/profiles/barbers/${id}/`);
   },
-
-  // Получить список всех барберов
   getAllBarbers: () => {
     console.log('Fetching barbers from backend API');
     return apiClient.get('/profiles/barbers/');
   },
 };
 
-// API для уведомлений Telegram
 export const notificationsAPI = {
-  // Регистрация телеграм-аккаунта барбера
   registerTelegramAccount: (data: any) => apiClient.post('/notifications/register-telegram/', data),
-
-  // Проверка статуса регистрации в телеграм
   checkTelegramStatus: () => apiClient.get('/notifications/telegram-status/'),
 };
 
-// API для бронирований
 export const bookingsAPI = {
-  // Получить все бронирования пользователя
   getAll: () => apiClient.get('/bookings/'),
-
-  // Создать новое бронирование
   create: (data: any) => apiClient.post('/bookings/', data),
-
-  // Обновить статус бронирования
   updateStatus: (id: string, status: string) => apiClient.patch(`/bookings/${id}/`, { status }),
-
-  // Отменить бронирование
   cancel: (id: string) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
-
-  // Получить доступные слоты времени для барбера на определенную дату
   getAvailableSlots: (barberId: string, date: string) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
-
-  // Создать бронирование
   createBooking: (data: any) => apiClient.post('/bookings/', data),
 };
 
-// API для сервисов
 export const servicesAPI = {
   getAll: (params: any = {}) => {
     return apiClient.get('/services/', { params })
@@ -193,25 +166,18 @@ export const servicesAPI = {
         return { data: demoHaircuts };
       });
   },
-
-  incrementViews: (id: string) => {
-    // Проверяем, является ли id строкой и не пустой
-    if (!id || typeof id !== 'string') {
+  incrementViews: (id: string | number) => {
+    if (!id) {
       console.error(`Invalid ID provided: ${id}`);
       return Promise.reject(new Error('Invalid service ID'));
     }
-
-    // Добавляем дополнительную проверку в консоль
-    console.log(`Incrementing views for service ID: ${id}`);
-
-    // Явно указываем URL, чтобы убедиться, что он правильный
-    return apiClient.post(`/services/${id}/increment_views/`);
+    const serviceId = String(id);
+    console.log(`Incrementing views for service ID: ${serviceId}`);
+    return apiClient.post(`/services/${serviceId}/increment_views/`);
   },
-
   getPopular: () => {
     return apiClient.get('/services/popular/');
   },
-
   getById: (id: string) => {
     return apiClient.get(`/services/${id}/`)
       .catch((error: any) => {
@@ -221,31 +187,24 @@ export const servicesAPI = {
         };
       });
   },
-
   create: (data: any) => {
-    // Проверяем, что данные - это FormData
     if (data instanceof FormData) {
       console.log('Sending FormData with files');
       return apiClient.post('/services/', data);
     } else {
-      // Для обычных JSON данных
       return apiClient.post('/services/', data);
     }
   },
-
   update: (id: string, data: any) => {
-    // Проверяем, что данные - это FormData
     if (data instanceof FormData) {
       return apiClient.patch(`/services/${id}/`, data);
     } else {
       return apiClient.patch(`/services/${id}/`, data);
     }
   },
-
-  delete: (id: string) => apiClient.delete(`/services/${id}/`),
+  delete: (id: string) => apiClient.delete(`/services/${id}/`)
 };
 
-// API для избранного
 export const favoritesAPI = {
   getAll: () => apiClient.get('/profiles/favorites/'),
   add: (serviceId: string) => apiClient.post('/profiles/favorites/toggle/', { service: serviceId }),
@@ -265,44 +224,31 @@ export const favoritesAPI = {
   },
 };
 
-// API для отзывов
 export const reviewsAPI = {
   getForBarber: (barberId: string) => apiClient.get(`/profiles/reviews/?barber=${barberId}`),
   create: (data: any) => apiClient.post('/profiles/reviews/', data),
 };
 
-// API для геолокации
 export const locationAPI = {
   getNearbyBarbers: (latitude: number, longitude: number, radius: number = 5) =>
     apiClient.get(`/services/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
-
   getRecommendations: (latitude: number, longitude: number) =>
     apiClient.get(`/services/recommendations/?latitude=${latitude}&longitude=${longitude}`),
 };
 
-// API для аутентификации
 export const authAPI = {
   login: (credentials: any) => axios.post(`${API_URL}/auth/jwt/create/`, credentials),
   register: (userData: any) => axios.post(`${API_URL}/auth/users/`, userData),
   getCurrentUser: () => apiClient.get('/auth/users/me/'),
   resetPassword: (email: string) => axios.post(`${API_URL}/auth/users/reset_password/`, { email }),
-
-  // Обновление токена
   refreshToken: (refresh: string) => axios.post(`${API_URL}/auth/jwt/refresh/`, { refresh }),
-  // Регистрация клиента
   registerClient: (userData: any) => axios.post(`${API_URL}/users/register/`, userData),
-
-  // Вход клиента
   loginClient: (credentials: any) => axios.post(`${API_URL}/users/login/`, credentials),
-
-  // Google аутентификация
   googleAuth: (token: string, userType: 'client' | 'barber' = 'client') =>
     axios.post(`${API_URL}/users/auth/google/`, { token, user_type: userType }),
-  // Валидация токена
   validateToken: () => {
     const token = localStorage.getItem('token');
     if (!token) return Promise.reject('No token found');
-
     return apiClient.post('/auth/jwt/verify/', { token });
   }
 };

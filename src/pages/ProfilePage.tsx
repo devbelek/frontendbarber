@@ -15,13 +15,15 @@ import { debounce } from 'lodash';
 import apiClient from '../api/client';
 import ImageCropper from '../components/ui/ImageCropper';
 import BarberBookingsList from '../components/booking/BarberBookingsList';
+import MyServicesList from '../components/profile/MyServicesList';
+import MyHaircuts from '../components/profile/MyHaircuts';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated, refreshUserData } = useAuth();
   const notification = useNotification();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites' | 'barberBookings'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites' | 'barberBookings' | 'myHaircuts'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -489,11 +491,23 @@ const ProfilePage: React.FC = () => {
                     <button
                       onClick={() => setActiveTab('barberBookings')}
                       className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
-                        activeTab === 'barberBookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                        activeTab ==='barberBookings' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       <Clock className="h-5 w-5 mr-3" />
                       {t('Мои записи')}
+                    </button>
+                  )}
+
+                  {user.profile?.user_type === 'barber' && (
+                    <button
+                      onClick={() => setActiveTab('myHaircuts')}
+                      className={`flex items-center w-full mb-2 p-3 rounded-md text-left ${
+                        activeTab === 'myHaircuts' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Scissors className="h-5 w-5 mr-3" />
+                      Мои стрижки
                     </button>
                   )}
 
@@ -994,6 +1008,13 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-bold mb-4">{t('myBarberBookings')}</h3>
                   <BarberBookingsList />
+                </div>
+              )}
+
+              {activeTab === 'myHaircuts' && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Мои стрижки</h3>
+                  <MyHaircuts />
                 </div>
               )}
             </div>

@@ -6,6 +6,7 @@ import Card, { CardContent } from '../ui/Card';
 import Button from '../ui/Button';
 import { useNotification } from '../../context/NotificationContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
+import { useAuth } from '../../context/AuthContext'; // Добавляем импорт для получения ID пользователя
 
 const MyHaircuts = () => {
   const [haircuts, setHaircuts] = useState([]);
@@ -13,6 +14,7 @@ const MyHaircuts = () => {
   const [error, setError] = useState(null);
   const notification = useNotification();
   const navigate = useNavigate();
+  const { user } = useAuth(); // Получаем информацию о пользователе
 
   useEffect(() => {
     fetchMyHaircuts();
@@ -21,7 +23,14 @@ const MyHaircuts = () => {
   const fetchMyHaircuts = async () => {
     try {
       setLoading(true);
-      const response = await servicesAPI.getAll({ barber: 'me' });
+
+      // Используем ID барбера вместо 'me'
+      const barberId = user?.id;
+      if (!barberId) {
+        throw new Error('Не удалось определить ID барбера');
+      }
+
+      const response = await servicesAPI.getAll({ barber: barberId });
 
       if (response.data) {
         let results = response.data;

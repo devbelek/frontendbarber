@@ -25,8 +25,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const isFavorite = user?.favorites?.includes(haircut.id) || false;
   const hasMultipleImages = haircut.images && haircut.images.length > 1;
 
-  // Удаляем useEffect, который автоматически инкрементирует просмотры при загрузке
-
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -63,21 +61,21 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
   };
 
-const handleBookButtonClick = async (e: React.MouseEvent) => {
-  e.preventDefault();
+  const handleBookButtonClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
 
-  // Инкрементируем просмотры только при нажатии на "Хочу также"
-  try {
-    // Преобразуем ID в строку для безопасности
-    const serviceId = String(haircut.id);
-    await servicesAPI.incrementViews(serviceId);
-  } catch (error) {
-    console.error('Failed to increment views:', error);
-  }
+    // Инкрементируем просмотры только при нажатии на "Хочу также"
+    try {
+      // Преобразуем ID в строку для безопасности
+      const serviceId = String(haircut.id);
+      await servicesAPI.incrementViews(serviceId);
+    } catch (error) {
+      console.error('Failed to increment views:', error);
+    }
 
-  // Вызываем оригинальный обработчик бронирования
-  onBookClick(haircut);
-};
+    // Вызываем оригинальный обработчик бронирования
+    onBookClick(haircut);
+  };
 
   const currentImage = haircut.images && haircut.images.length > 0
     ? haircut.images[currentImageIndex].image
@@ -214,21 +212,34 @@ const handleBookButtonClick = async (e: React.MouseEvent) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-              <a href={`https://wa.me/+996700123456?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-full bg-[#25D366] text-white py-3 rounded-lg hover:bg-opacity-90"
-              >
-                WhatsApp
-              </a>
+              {/* Используем реальные данные барбера, если они доступны */}
+              {haircut.barberWhatsapp && (
+                <a href={`https://wa.me/${haircut.barberWhatsapp}?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-full bg-[#25D366] text-white py-3 rounded-lg hover:bg-opacity-90"
+                >
+                  WhatsApp
+                </a>
+              )}
 
-              <a href={`https://t.me/barber123`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"
-              >
-                Telegram
-              </a>
+              {haircut.barberTelegram && (
+                <a href={`https://t.me/${haircut.barberTelegram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"
+                >
+                  Telegram
+                </a>
+              )}
+
+              {/* Если нет данных о WhatsApp и Telegram, показываем заглушку */}
+              {!haircut.barberWhatsapp && !haircut.barberTelegram && (
+                <div className="text-center text-gray-600 py-4">
+                  <p>Барбер не указал контактные данные.</p>
+                  <p className="mt-2">Попробуйте сделать бронирование через кнопку "Хочу также".</p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setShowConsultModal(false)}

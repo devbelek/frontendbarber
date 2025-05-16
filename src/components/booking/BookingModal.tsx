@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Clock, User, Phone } from 'lucide-react';
 import Button from '../ui/Button';
 import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import ImageWithFallback from '../ui/ImageWithFallback';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -24,6 +25,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [step, setStep] = useState<1 | 2>(1);
   const [errors, setErrors] = useState<{name?: string; phone?: string}>({});
+  const [isZoomed, setIsZoomed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [autoSlideEnabled, setAutoSlideEnabled] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const autoSlideIntervalRef = useRef<number | null>(null);
 
   // Generate some available dates (next 7 days)
   const availableDates = Array.from({ length: 7 }, (_, i) => {
@@ -37,6 +43,38 @@ const BookingModal: React.FC<BookingModalProps> = ({
     '10:00', '11:00', '12:00', '13:00', '14:00',
     '15:00', '16:00', '17:00', '18:00', '19:00'
   ];
+
+  // Устанавливаем автосмену слайдов
+  useEffect(() => {
+    if (haircut && haircut.images && haircut.images.length > 1 && autoSlideEnabled && !isZoomed) {
+      autoSlideIntervalRef.current = window.setInterval(() => {
+        setCurrentImageIndex(prev =>
+          prev === haircut.images.length - 1 ? 0 : prev + 1
+        );
+      }, 5000); // Смена каждые 5 секунд
+    }
+
+    return () => {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+        autoSlideIntervalRef.current = null;
+      }
+    };
+  }, [haircut, autoSlideEnabled, isZoomed]);
+
+  // Сбрасываем состояние при открытии/закрытии
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedDate(availableDates[0]);
+      setSelectedTime('');
+      setCustomerName('');
+      setCustomerPhone('');
+      setStep(1);
+      setErrors({});
+      setIsZoomed(false);
+      setCurrentImageIndex(0);
+    }
+  }, [isOpen]);
 
   const handleNextStep = () => {
     if (selectedDate && selectedTime) {
@@ -83,11 +121,57 @@ const BookingModal: React.FC<BookingModalProps> = ({
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
+  const handleImageClick = () => {
+    setIsZoomed(!isZoomed);
+
+    // Останавливаем автосмену при увеличении
+    if (!isZoomed) {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+        autoSlideIntervalRef.current = null;
+      }
+    } else if (autoSlideEnabled) {
+      // Восстанавливаем автосмену при уменьшении
+      autoSlideIntervalRef.current = window.setInterval(() => {
+        if (haircut && haircut.images) {
+          setCurrentImageIndex(prev =>
+            prev === haircut.images.length - 1 ? 0 : prev + 1
+          );
+        }
+      }, 5000);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (haircut && haircut.images) {
+      setCurrentImageIndex(prev =>
+        prev === 0 ? haircut.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleNextImage = () => {
+    if (haircut && haircut.images) {
+      setCurrentImageIndex(prev =>
+        prev === haircut.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const toggleAutoSlide = () => {
+    setAutoSlideEnabled(prev => !prev);
+  };
+
   if (!isOpen || !haircut) return null;
+
+  // Получаем текущее изображение
+  const currentImage = haircut.images && haircut.images.length > 0
+    ? haircut.images[currentImageIndex].image
+    : haircut.primaryImage || haircut.image;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+      <div className={`bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden ${isZoomed ? 'max-w-4xl' : ''}`}>
         {/* Header */}
         <div className="relative bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white p-6">
           <button
@@ -101,163 +185,230 @@ const BookingModal: React.FC<BookingModalProps> = ({
           <p className="text-gray-200">{haircut.title}</p>
         </div>
 
-        {/* Booking summary */}
+        {/* Booking summary with improved image display */}
         <div className="p-6 border-b">
           <div className="flex items-start mb-4">
-            <img
-              src={haircut.image}
-              alt={haircut.title}
-              className="w-24 h-24 object-cover rounded-md mr-4"
-            />
-            <div>
-              <h3 className="font-semibold">{haircut.title}</h3>
-              <p className="text-sm text-gray-600">{haircut.barber}</p>
-              <p className="text-[#9A0F34] font-bold mt-1">{haircut.price} {t('som')}</p>
-            </div>
-          </div>
-        </div>
-
-        {step === 1 ? (
-          /* Step 1: Date & Time selection */
-          <div className="p-6 border-b">
-            <div className="flex items-center mb-3">
-              <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-              <h3 className="font-medium">{t('selectDate')}</h3>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              {availableDates.map((date) => {
-                const d = new Date(date);
-                const day = d.getDate();
-                const month = d.toLocaleString('ru', { month: 'short' });
-
-                return (
-                  <button
-                    key={date}
-                    onClick={() => setSelectedDate(date)}
-                    className={`p-3 rounded-md border text-center transition-colors
-                      ${selectedDate === date
-                        ? 'bg-[#9A0F34] text-white border-[#9A0F34]'
-                        : 'hover:border-[#9A0F34] hover:text-[#9A0F34]'
+            <div className={`relative ${isZoomed ? 'w-full h-96' : 'w-24 h-24'} cursor-pointer transition-all duration-300`} onClick={handleImageClick}>
+              <ImageWithFallback
+                ref={imageRef}
+                src={currentImage}
+                alt={haircut.title}
+                className={`rounded-md object-cover ${isZoomed ? 'w-full h-full' : 'w-24 h-24'}`}
+              />
+              {haircut.images && haircut.images.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {haircut.images.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full ${
+                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
                       }`}
-                  >
-                    <div className="text-sm">{month}</div>
-                    <div className="font-bold">{day}</div>
-                  </button>
-                );
-              })}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+            {!isZoomed && (
+              <div className="ml-4">
+                <h3 className="font-semibold">{haircut.title}</h3>
+                <p className="text-sm text-gray-600">{haircut.barber}</p>
+                <p className="text-[#9A0F34] font-bold mt-1">{haircut.price} {t('som')}</p>
+              </div>
+            )}
+          </div>
 
-            <div className="flex items-center mb-3">
-              <Clock className="h-5 w-5 mr-2 text-gray-500" />
-              <h3 className="font-medium">{t('selectTime')}</h3>
-            </div>
+          {/* Image navigation when zoomed */}
+          {isZoomed && haircut.images && haircut.images.length > 1 && (
+            <div className="flex justify-between items-center mt-4">
+              <button
+                onClick={handlePrevImage}
+                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+              >
+                &lt;
+              </button>
 
-            <div className="grid grid-cols-4 gap-2">
-              {availableTimes.map((time) => (
+              <div className="flex space-x-2 items-center">
                 <button
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
-                  className={`py-2 px-3 rounded-md border text-center transition-colors
-                    ${selectedTime === time
-                      ? 'bg-[#9A0F34] text-white border-[#9A0F34]'
-                      : 'hover:border-[#9A0F34] hover:text-[#9A0F34]'
-                    }`}
+                  onClick={toggleAutoSlide}
+                  className={`px-3 py-1 text-sm rounded ${
+                    autoSlideEnabled ? 'bg-[#9A0F34] text-white' : 'bg-gray-200 text-gray-700'
+                  }`}
                 >
-                  {time}
+                  {autoSlideEnabled ? 'Авто: Вкл' : 'Авто: Выкл'}
                 </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          /* Step 2: Contact Information */
-          <div className="p-6 border-b">
-            <div className="mb-4">
-              <div className="p-3 bg-gray-50 rounded-md mb-4">
-                <p className="text-sm text-gray-600">Выбранная дата и время:</p>
-                <p className="font-medium">{formatDate(selectedDate)} в {selectedTime}</p>
+                <span className="text-sm text-gray-500">
+                  {currentImageIndex + 1} / {haircut.images.length}
+                </span>
               </div>
 
-              <div className="mb-4">
-                <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
-                  <User className="h-4 w-4 inline mr-1" /> Ваше имя
-                </label>
-                <input
-                  type="text"
-                  id="customerName"
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Введите ваше имя"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-                {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                  <Phone className="h-4 w-4 inline mr-1" /> Номер телефона
-                </label>
-                <input
-                  type="tel"
-                  id="customerPhone"
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="+996 XXX XXX XXX"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                />
-                {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
-              </div>
+              <button
+                onClick={handleNextImage}
+                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+              >
+                &gt;
+              </button>
             </div>
-
-            <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md">
-              <p>Ваши контактные данные будут отправлены барберу для связи с вами.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="p-6 flex space-x-3">
-          {step === 1 ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={onClose}
-                className="flex-1"
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleNextStep}
-                className="flex-1"
-                disabled={!selectedDate || !selectedTime}
-              >
-                Далее
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                Назад
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirm}
-                className="flex-1"
-              >
-                {t('confirm')}
-              </Button>
-            </>
           )}
         </div>
+
+        {/* Steps content */}
+        {!isZoomed && (
+          <>
+            {step === 1 ? (
+              /* Step 1: Date & Time selection */
+              <div className="p-6 border-b">
+                <div className="flex items-center mb-3">
+                  <Calendar className="h-5 w-5 mr-2 text-gray-500" />
+                  <h3 className="font-medium">{t('selectDate')}</h3>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {availableDates.map((date) => {
+                    const d = new Date(date);
+                    const day = d.getDate();
+                    const month = d.toLocaleString('ru', { month: 'short' });
+
+                    return (
+                      <button
+                        key={date}
+                        onClick={() => setSelectedDate(date)}
+                        className={`p-3 rounded-md border text-center transition-colors
+                          ${selectedDate === date
+                            ? 'bg-[#9A0F34] text-white border-[#9A0F34]'
+                            : 'hover:border-[#9A0F34] hover:text-[#9A0F34]'
+                          }`}
+                      >
+                        <div className="text-sm">{month}</div>
+                        <div className="font-bold">{day}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center mb-3">
+                  <Clock className="h-5 w-5 mr-2 text-gray-500" />
+                  <h3 className="font-medium">{t('selectTime')}</h3>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {availableTimes.map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={`py-2 px-3 rounded-md border text-center transition-colors
+                        ${selectedTime === time
+                          ? 'bg-[#9A0F34] text-white border-[#9A0F34]'
+                          : 'hover:border-[#9A0F34] hover:text-[#9A0F34]'
+                        }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Step 2: Contact Information */
+              <div className="p-6 border-b">
+                <div className="mb-4">
+                  <div className="p-3 bg-gray-50 rounded-md mb-4">
+                    <p className="text-sm text-gray-600">Выбранная дата и время:</p>
+                    <p className="font-medium">{formatDate(selectedDate)} в {selectedTime}</p>
+                  </div>
+
+                  <div className="mb-4">
+                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
+                      <User className="h-4 w-4 inline mr-1" /> Ваше имя
+                    </label>
+                    <input
+                      type="text"
+                      id="customerName"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
+                        errors.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Введите ваше имя"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                    {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                      <Phone className="h-4 w-4 inline mr-1" /> Номер телефона
+                    </label>
+                    <input
+                      type="tel"
+                      id="customerPhone"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
+                        errors.phone ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="+996 XXX XXX XXX"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                    />
+                    {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md">
+                  <p>Ваши контактные данные будут отправлены барберу для связи с вами.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="p-6 flex space-x-3">
+              {step === 1 ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1"
+                  >
+                    {t('cancel')}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleNextStep}
+                    className="flex-1"
+                    disabled={!selectedDate || !selectedTime}
+                  >
+                    Далее
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleBack}
+                    className="flex-1"
+                  >
+                    Назад
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleConfirm}
+                    className="flex-1"
+                  >
+                    {t('confirm')}
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Кнопка закрытия увеличенного изображения */}
+        {isZoomed && (
+          <div className="p-4 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={handleImageClick}
+            >
+              Закрыть просмотр
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

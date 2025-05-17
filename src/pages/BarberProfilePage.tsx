@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Calendar, Clock, ChevronRight, Phone, Mail, MessageSquare, ExternalLink, X } from 'lucide-react';
 import Layout from '../components/layout/Layout';
@@ -11,6 +11,7 @@ import { Barber, Haircut } from '../types';
 import { useLanguage } from "../context/LanguageContext";
 import ImageWithFallback from '../components/ui/ImageWithFallback';
 import apiClient from '../api/client';
+import { useNotification } from '../context/NotificationContext';
 
 interface BarberProfilePageProps {
   openLoginModal: () => void;
@@ -18,6 +19,7 @@ interface BarberProfilePageProps {
 
 const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal }) => {
   const { t } = useLanguage();
+  const notification = useNotification();
   const { id } = useParams<{ id: string }>();
   const [barber, setBarber] = useState<Barber | null>(null);
   const [barberHaircuts, setBarberHaircuts] = useState<Haircut[]>([]);
@@ -33,88 +35,119 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
 
       try {
         setLoading(true);
+        setError(null);
 
-        const barberResponse = await profileAPI.getBarberProfile(id);
+        // Используем дополнительную обработку ошибок
+        let barberResponse;
+        try {
+          barberResponse = await profileAPI.getBarberProfile(id);
+        } catch (e: any) {
+          console.error('Error fetching barber profile:', e);
+
+          if (e.response?.status === 500) {
+            // Специальная обработка ошибки 500
+            notification.error(
+              'Ошибка сервера',
+              'Произошла ошибка при загрузке данных барбера. Попробуйте позже или обратитесь в поддержку.'
+            );
+            setError('Ошибка сервера при загрузке данных барбера');
+            setLoading(false);
+            return;
+          }
+
+          throw e; // Прокидываем ошибку дальше для общей обработки
+        }
+
         const barberData = barberResponse.data;
         console.log('Barber data response:', barberData);
 
-        if (!barberData || !barberData.profile) {
-          throw new Error('Некорректный формат данных от сервера');
+        if (!barberData) {
+          throw new Error('Барбер не найден');
         }
 
         const barberInfo: Barber = {
           id: barberData.id,
           name: `${barberData.first_name || ''} ${barberData.last_name || ''}`.trim() || barberData.username,
-          avatar: barberData.profile.photo || 'https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg',
-          rating: 0,
-          reviewCount: 0,
-          specialization: barberData.profile.specialization || [],
-          location: barberData.profile.address || 'Бишкек',
+          avatar: barberData.profile?.photo || '/default-avatar.png',
+          rating: barberData.avg_rating || 0,
+          reviewCount: barberData.review_count || 0,
+          specialization: barberData.profile?.specialization || [],
+          location: barberData.profile?.address || 'Бишкек',
           workingHours: {
-            from: barberData.profile.working_hours_from || '09:00',
-            to: barberData.profile.working_hours_to || '18:00',
-            days: barberData.profile.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+            from: barberData.profile?.working_hours_from || '09:00',
+            to: barberData.profile?.working_hours_to || '18:00',
+            days: barberData.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
           },
           portfolio: barberData.portfolio || [],
-          description: barberData.profile.bio || 'Информация о барбере',
-          whatsapp: barberData.profile.whatsapp || '',
-          telegram: barberData.profile.telegram || '',
-          offerHomeService: barberData.profile.offers_home_service || false
+          description: barberData.profile?.bio || 'Информация о барбере',
+          whatsapp: barberData.profile?.whatsapp || '',
+          telegram: barberData.profile?.telegram || '',
+          offerHomeService: barberData.profile?.offers_home_service || false
         };
 
         setBarber(barberInfo);
 
-        const haircutsResponse = await servicesAPI.getAll({ barber: id });
-        console.log('Barber haircuts response:', haircutsResponse);
+        try {
+          const haircutsResponse = await servicesAPI.getAll({ barber: id });
+          console.log('Barber haircuts response:', haircutsResponse);
 
-        if (haircutsResponse.data) {
-          let haircuts: Haircut[] = [];
-          let haircutsData = haircutsResponse.data;
+          if (haircutsResponse.data) {
+            let haircuts: Haircut[] = [];
+            let haircutsData = haircutsResponse.data;
 
-          if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
-            haircutsData = haircutsResponse.data.results;
-          }
+            if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
+              haircutsData = haircutsResponse.data.results;
+            }
 
-          if (Array.isArray(haircutsData)) {
-            haircutsData.forEach((service: any) => {
-              haircuts.push({
-                id: service.id,
-                image: service.image,
-                title: service.title,
-                price: service.price,
-                barber: service.barber_details?.full_name || 'Unknown',
-                barberId: service.barber,
-                type: service.type,
-                length: service.length,
-                style: service.style,
-                location: service.location,
-                duration: service.duration,
-                description: service.description,
-                isFavorite: service.is_favorite
+            if (Array.isArray(haircutsData)) {
+              haircutsData.forEach((service: any) => {
+                haircuts.push({
+                  id: service.id,
+                  image: service.image,
+                  primaryImage: service.primary_image,
+                  images: service.images || [],
+                  title: service.title,
+                  price: service.price,
+                  barber: service.barber_details?.full_name || 'Unknown',
+                  barberId: service.barber,
+                  type: service.type,
+                  length: service.length,
+                  style: service.style,
+                  location: service.location,
+                  duration: service.duration,
+                  description: service.description,
+                  isFavorite: service.is_favorite,
+                  views: service.views || 0,
+                  barberWhatsapp: barberInfo.whatsapp,
+                  barberTelegram: barberInfo.telegram
+                });
               });
-            });
-          }
+            }
 
-          setBarberHaircuts(haircuts);
+            setBarberHaircuts(haircuts);
+          }
+        } catch (e) {
+          console.error('Failed to fetch barber haircuts:', e);
+          // Если не удалось загрузить стрижки, всё равно показываем профиль
         }
 
+        setLoading(false);
       } catch (err) {
         console.error('Failed to fetch barber data:', err);
-        setError('Не удалось загрузить данные о барбере');
-      } finally {
+        setError('Не удалось загрузить данные о барбере. Проверьте соединение или попробуйте позже.');
         setLoading(false);
       }
     };
 
     fetchBarberData();
-  }, [id]);
+  }, [id, notification]);
 
   const handleContactClick = (type: 'whatsapp' | 'telegram', contact: string) => {
     let url = '';
     if (type === 'whatsapp') {
-      url = `https://wa.me/${contact}`;
+      url = `https://wa.me/${contact.replace(/\D/g, '')}`;
     } else if (type === 'telegram') {
-      url = `https://t.me/${contact}`;
+      url = `https://t.me/${contact.replace('@', '')}`;
     }
 
     if (url) {
@@ -213,14 +246,20 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
               </div>
 
               <div className="flex flex-wrap gap-2 mb-6">
-                {barber.specialization.map((spec, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-                  >
-                    {spec}
+                {barber.specialization && barber.specialization.length > 0 ? (
+                  barber.specialization.map((spec, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-gray-100 rounded-full text-sm"
+                    >
+                      {spec}
+                    </span>
+                  ))
+                ) : (
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                    Мужские стрижки
                   </span>
-                ))}
+                )}
               </div>
 
               <div className="flex flex-wrap gap-3">

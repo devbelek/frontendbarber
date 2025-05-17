@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { servicesAPI } from '../../api/services';
 import Card, { CardContent } from '../ui/Card';
 import Button from '../ui/Button';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { useNotification } from '../../context/NotificationContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
-import { useAuth } from '../../context/AuthContext'; // Добавляем импорт для получения ID пользователя
+import { useAuth } from '../../context/AuthContext';
 
 const MyHaircuts = () => {
   const [haircuts, setHaircuts] = useState([]);
@@ -14,7 +15,9 @@ const MyHaircuts = () => {
   const [error, setError] = useState(null);
   const notification = useNotification();
   const navigate = useNavigate();
-  const { user } = useAuth(); // Получаем информацию о пользователе
+  const { user } = useAuth();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
 
   useEffect(() => {
     fetchMyHaircuts();
@@ -24,7 +27,6 @@ const MyHaircuts = () => {
     try {
       setLoading(true);
 
-      // Используем ID барбера вместо 'me'
       const barberId = user?.id;
       if (!barberId) {
         throw new Error('Не удалось определить ID барбера');
@@ -52,22 +54,30 @@ const MyHaircuts = () => {
   };
 
   const handleEdit = (id) => {
-    // Перенаправляем на страницу редактирования
     navigate(`/edit-service/${id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Вы уверены, что хотите удалить эту стрижку?')) return;
+  const handleDeleteClick = (id) => {
+    setServiceToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
     try {
-      await servicesAPI.delete(id);
+      await servicesAPI.delete(serviceToDelete);
+      setDeleteConfirmOpen(false);
+      setServiceToDelete(null);
       notification.success('Стрижка удалена', 'Услуга успешно удалена');
-      // Обновляем список после удаления
       fetchMyHaircuts();
     } catch (err) {
       console.error('Failed to delete haircut:', err);
       notification.error('Ошибка', 'Не удалось удалить стрижку');
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setServiceToDelete(null);
   };
 
   if (loading) {
@@ -161,7 +171,7 @@ const MyHaircuts = () => {
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:bg-red-50"
-                      onClick={() => handleDelete(haircut.id)}
+                      onClick={() => handleDeleteClick(haircut.id)}
                     >
                       <Trash className="h-4 w-4 mr-1" />
                       Удалить
@@ -173,6 +183,18 @@ const MyHaircuts = () => {
           ))}
         </div>
       )}
+
+      {/* Диалог подтверждения удаления */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Удаление стрижки"
+        message="Вы уверены, что хотите удалить эту стрижку? Это действие невозможно отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        confirmVariant="danger"
+      />
     </div>
   );
 };

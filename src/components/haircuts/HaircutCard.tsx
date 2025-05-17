@@ -81,6 +81,11 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     ? haircut.images[currentImageIndex].image
     : haircut.primaryImage;
 
+  // Проверка наличия и валидности контактных данных барбера
+  const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
+  const hasValidTelegram = haircut.barberTelegram && haircut.barberTelegram.length > 3;
+  const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
+
   return (
     <Card className="h-full transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="relative group">
@@ -212,9 +217,8 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               Свяжитесь с барбером, чтобы узнать, подойдет ли вам эта стрижка
             </p>
             <div className="space-y-4">
-              {/* Используем реальные данные барбера, если они доступны */}
-              {haircut.barberWhatsapp && (
-                <a href={`https://wa.me/${haircut.barberWhatsapp}?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
+              {hasValidWhatsApp && (
+                <a href={`https://wa.me/${haircut.barberWhatsapp.replace(/\D/g, '')}?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center w-full bg-[#25D366] text-white py-3 rounded-lg hover:bg-opacity-90"
@@ -223,8 +227,8 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 </a>
               )}
 
-              {haircut.barberTelegram && (
-                <a href={`https://t.me/${haircut.barberTelegram}`}
+              {hasValidTelegram && (
+                <a href={`https://t.me/${haircut.barberTelegram.replace('@', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"
@@ -233,8 +237,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 </a>
               )}
 
-              {/* Если нет данных о WhatsApp и Telegram, показываем заглушку */}
-              {!haircut.barberWhatsapp && !haircut.barberTelegram && (
+              {!hasValidContacts && (
                 <div className="text-center text-gray-600 py-4">
                   <p>Барбер не указал контактные данные.</p>
                   <p className="mt-2">Попробуйте сделать бронирование через кнопку "Хочу также".</p>

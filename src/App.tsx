@@ -14,6 +14,7 @@ import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
 import AddServicePage from './pages/AddServicePage';
 import { NotificationProvider } from './context/NotificationContext';
+import EditServicePage from './pages/EditServicePage';
 
 // Тип для пропсов с openLoginModal
 interface RouteProps {
@@ -53,24 +54,29 @@ const AppRoutes = () => {
   return (
     <Router>
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
-      <Routes>
-        <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
-        <Route path="/gallery" element={<GalleryPage openLoginModal={openLoginModal} />} />
-        <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/barbers" element={<BarberListPage openLoginModal={openLoginModal} />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/add-service" element={
-          <ProtectedRoute>
-            <AddServicePage />
-          </ProtectedRoute>
-        } />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+<Routes>
+  <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
+  <Route path="/gallery" element={<GalleryPage openLoginModal={openLoginModal} />} />
+  <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
+  <Route path="/profile" element={
+    <ProtectedRoute>
+      <ProfilePage />
+    </ProtectedRoute>
+  } />
+  <Route path="/barbers" element={<BarberListPage openLoginModal={openLoginModal} />} />
+  <Route path="/login" element={<LoginPage />} />
+  <Route path="/add-service" element={
+    <ProtectedRoute>
+      <AddServicePage />
+    </ProtectedRoute>
+  } />
+  <Route path="/edit-service/:id" element={
+    <ProtectedRoute>
+      <EditServicePage />
+    </ProtectedRoute>
+  } />
+  <Route path="*" element={<NotFoundPage />} />
+</Routes>
     </Router>
   );
 };
@@ -88,5 +94,6 @@ function App() {
     </LanguageProvider>
   );
 }
+
 
 export default App;

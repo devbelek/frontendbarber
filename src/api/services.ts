@@ -176,7 +176,11 @@ export const servicesAPI = {
     return apiClient.post(`/services/${serviceId}/increment_views/`);
   },
   getPopular: () => {
-    return apiClient.get('/services/popular/');
+    return apiClient.get('/services/')
+      .catch((error: any) => {
+        console.log("Using demo data for popular services due to error:", error);
+        return { data: demoHaircuts };
+      });
   },
   getById: (id: string) => {
     return apiClient.get(`/services/${id}/`)

@@ -67,8 +67,11 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     // Инкрементируем просмотры только при нажатии на "Хочу также"
     try {
       // Преобразуем ID в строку для безопасности
-      const serviceId = String(haircut.id);
-      await servicesAPI.incrementViews(serviceId);
+      if (haircut.id) {
+        const serviceId = String(haircut.id);
+        console.log('Incrementing views for service:', serviceId);
+        await servicesAPI.incrementViews(serviceId);
+      }
     } catch (error) {
       console.error('Failed to increment views:', error);
     }
@@ -93,6 +96,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           src={currentImage}
           alt={haircut.title}
           className="w-full h-64 object-cover"
+          onLoad={() => console.log(`Image loaded: ${currentImage}`)}
         />
 
         {/* Навигация по изображениям */}

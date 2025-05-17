@@ -33,7 +33,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     const fetchPopularHaircuts = async () => {
       try {
         setLoading(true);
-        const response = await servicesAPI.getAll({ limit: 6 });
+        const response = await servicesAPI.getPopular();
 
         if (response && response.data) {
           let results = response.data;
@@ -46,6 +46,8 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
             const haircuts: Haircut[] = results.slice(0, 6).map((service: any) => ({
               id: service.id,
               image: service.image,
+              images: service.images || [],
+              primaryImage: service.primary_image || service.image,
               title: service.title,
               price: service.price,
               barber: service.barber_details?.full_name || 'Unknown',

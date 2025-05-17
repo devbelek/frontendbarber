@@ -106,12 +106,10 @@ function processApiResponse<T>(response: any): T[] {
     return [];
   }
 
-  // Проверяем, если данные в виде пагинации
   if (response.data.results && Array.isArray(response.data.results)) {
     return response.data.results;
   }
 
-  // Если данные пришли как массив
   if (Array.isArray(response.data)) {
     return response.data;
   }
@@ -121,31 +119,22 @@ function processApiResponse<T>(response: any): T[] {
 }
 
 export const profileAPI = {
-  getCurrentUser: () => {
-    return apiClient.get('/auth/users/me/');
-  },
-  updateUserInfo: async (data: any) => {
-    const response = await apiClient.patch('/auth/users/me/', data);
-    return response;
-  },
-  updateProfile: async (data: any) => {
-    if (data instanceof FormData) {
-      return apiClient.patch('/users/profile/update/', data);
-    }
-    return apiClient.patch('/users/profile/update/', data);
-  },
-  getBarberProfile: (id: string) => {
-    return apiClient.get(`/profiles/barbers/${id}/`);
-  },
+  getCurrentUser: () => apiClient.get('/auth/users/me/'),
+  updateUserInfo: (data: any) => apiClient.patch('/auth/users/me/', data),
+  updateProfile: (data: any) =>
+    data instanceof FormData
+      ? apiClient.patch('/users/profile/update/', data)
+      : apiClient.patch('/users/profile/update/', data),
+  getBarberProfile: (id: string) => apiClient.get(`/profiles/barbers/${id}/`),
   getAllBarbers: () => {
     console.log('Fetching barbers from backend API');
     return apiClient.get('/profiles/barbers/');
-  },
+  }
 };
 
 export const notificationsAPI = {
   registerTelegramAccount: (data: any) => apiClient.post('/notifications/register-telegram/', data),
-  checkTelegramStatus: () => apiClient.get('/notifications/telegram-status/'),
+  checkTelegramStatus: () => apiClient.get('/notifications/telegram-status/')
 };
 
 export const bookingsAPI = {
@@ -155,17 +144,20 @@ export const bookingsAPI = {
   cancel: (id: string) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
   getAvailableSlots: (barberId: string, date: string) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
-  createBooking: (data: any) => apiClient.post('/bookings/', data),
+  createBooking: (data: any) => apiClient.post('/bookings/', data)
 };
 
 export const servicesAPI = {
-  getAll: (params: any = {}) => {
-    return apiClient.get('/services/', { params })
-      .catch((error: any) => {
-        console.log("Using demo data for services due to error:", error);
-        return { data: demoHaircuts };
-      });
-  },
+  getAll: (params: any = {}) =>
+    apiClient.get('/services/', { params }).catch((error: any) => {
+      console.log('Using demo data for services due to error:', error);
+      return { data: demoHaircuts };
+    }),
+  getById: (id: string) =>
+    apiClient.get(`/services/${id}/`).catch((error: any) => {
+      console.log('Using demo data for service due to error:', error);
+      return { data: demoHaircuts.find((h) => h.id === id) || demoHaircuts[0] };
+    }),
   incrementViews: (id: string | number) => {
     if (!id) {
       console.error(`Invalid ID provided: ${id}`);
@@ -175,37 +167,19 @@ export const servicesAPI = {
     console.log(`Incrementing views for service ID: ${serviceId}`);
     return apiClient.post(`/services/${serviceId}/increment_views/`);
   },
-  getPopular: () => {
-    return apiClient.get('/services/')
-      .catch((error: any) => {
-        console.log("Using demo data for popular services due to error:", error);
-        return { data: demoHaircuts };
-      });
-  },
-  getById: (id: string) => {
-    return apiClient.get(`/services/${id}/`)
-      .catch((error: any) => {
-        console.log("Using demo data for service due to error:", error);
-        return {
-          data: demoHaircuts.find(h => h.id === id) || demoHaircuts[0]
-        };
-      });
-  },
-  create: (data: any) => {
-    if (data instanceof FormData) {
-      console.log('Sending FormData with files');
-      return apiClient.post('/services/', data);
-    } else {
-      return apiClient.post('/services/', data);
-    }
-  },
-  update: (id: string, data: any) => {
-    if (data instanceof FormData) {
-      return apiClient.patch(`/services/${id}/`, data);
-    } else {
-      return apiClient.patch(`/services/${id}/`, data);
-    }
-  },
+  getPopular: () =>
+    apiClient.get('/services/', { params: { limit: 6, ordering: '-views' } }).catch((error: any) => {
+      console.log('Using demo data for popular services due to error:', error);
+      return { data: demoHaircuts };
+    }),
+  create: (data: any) =>
+    data instanceof FormData
+      ? apiClient.post('/services/', data)
+      : apiClient.post('/services/', data),
+  update: (id: string, data: any) =>
+    data instanceof FormData
+      ? apiClient.patch(`/services/${id}/`, data)
+      : apiClient.patch(`/services/${id}/`, data),
   delete: (id: string) => apiClient.delete(`/services/${id}/`)
 };
 
@@ -225,19 +199,19 @@ export const favoritesAPI = {
       return Promise.reject(new Error('serviceId is undefined'));
     }
     return apiClient.post('/profiles/favorites/toggle/', { service: serviceId });
-  },
+  }
 };
 
 export const reviewsAPI = {
   getForBarber: (barberId: string) => apiClient.get(`/profiles/reviews/?barber=${barberId}`),
-  create: (data: any) => apiClient.post('/profiles/reviews/', data),
+  create: (data: any) => apiClient.post('/profiles/reviews/', data)
 };
 
 export const locationAPI = {
   getNearbyBarbers: (latitude: number, longitude: number, radius: number = 5) =>
     apiClient.get(`/services/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
   getRecommendations: (latitude: number, longitude: number) =>
-    apiClient.get(`/services/recommendations/?latitude=${latitude}&longitude=${longitude}`),
+    apiClient.get(`/services/recommendations/?latitude=${latitude}&longitude=${longitude}`)
 };
 
 export const authAPI = {

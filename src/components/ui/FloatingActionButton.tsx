@@ -1,3 +1,4 @@
+// src/components/ui/FloatingActionButton.tsx
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -16,7 +17,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   return (
     <Link
       to={to}
-      className="fixed bottom-24 md:bottom-16 left-1/2 transform -translate-x-1/2 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg hover:bg-[#7b0c29] transition-colors"
+      className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg"
       aria-label={label}
     >
       {icon}

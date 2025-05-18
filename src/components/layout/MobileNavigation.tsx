@@ -3,6 +3,8 @@ import { useLocation, Link } from 'react-router-dom';
 import { Home, Search, User, Scissors } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+import { Plus } from "lucide-react";
+
 interface MobileNavigationProps {
   openLoginModal: () => void;
 }
@@ -34,6 +36,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) =
           <Home className="h-6 w-6" />
           <span className="text-xs mt-1">Главная</span>
         </Link>
+            {/* Центральная кнопка + */}
+    <div className="relative">
+      <Link to="/add-service" className="absolute -top-5 left-1/2 transform -translate-x-1/2">
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg">
+          <Plus className="h-8 w-8" />
+        </div>
+      </Link>
+    </div>
 
         <Link
           to="/gallery"

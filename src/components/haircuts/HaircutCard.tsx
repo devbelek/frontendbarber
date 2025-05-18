@@ -85,9 +85,16 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     : haircut.primaryImage;
 
   // Проверка наличия и валидности контактных данных барбера
-  const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
-  const hasValidTelegram = haircut.barberTelegram && haircut.barberTelegram.length > 3;
-  const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
+const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
+const hasValidTelegram = haircut.barberTelegram && haircut.barberTelegram.length > 3;
+const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
+
+// Добавьте логирование, чтобы увидеть значения в консоли:
+console.log('Контакты барбера:', {
+  whatsapp: haircut.barberWhatsapp,
+  telegram: haircut.barberTelegram,
+  haircut
+});
 
   return (
     <Card className="h-full transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">

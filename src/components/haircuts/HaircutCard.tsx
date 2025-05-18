@@ -1,11 +1,11 @@
+// src/components/haircuts/HaircutCard.tsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Card from '../../ui/Card';
+import Button from '../../ui/Button';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import { Haircut } from '../../types';
-import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { servicesAPI } from '../../api/services';
@@ -16,10 +16,10 @@ interface HaircutCardProps {
 }
 
 const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
-  const { t } = useLanguage();
-  const { user, toggleFavorite, isAuthenticated } = useAuth();
+  const { isAuthenticated, toggleFavorite, user } = useAuth();
   const notification = useNotification();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
   const isFavorite = user?.favorites?.includes(haircut.id) || false;
@@ -64,12 +64,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const handleBookButtonClick = async (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // Инкрементируем просмотры только при нажатии на "Хочу также"
+    // Инкрементируем просмотры при нажатии на "Хочу также"
     try {
-      // Преобразуем ID в строку для безопасности
       if (haircut.id) {
         const serviceId = String(haircut.id);
-        console.log('Incrementing views for service:', serviceId);
         await servicesAPI.incrementViews(serviceId);
       }
     } catch (error) {
@@ -84,40 +82,36 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     ? haircut.images[currentImageIndex].image
     : haircut.primaryImage;
 
-  // Проверка наличия и валидности контактных данных барбера
-const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
-const hasValidTelegram = haircut.barberTelegram && haircut.barberTelegram.length > 3;
-const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
-
-// Добавьте логирование, чтобы увидеть значения в консоли:
-console.log('Контакты барбера:', {
-  whatsapp: haircut.barberWhatsapp,
-  telegram: haircut.barberTelegram,
-  haircut
-});
+  // Проверка наличия контактных данных барбера
+  const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
+  const hasValidTelegram = haircut.barberTelegram && haircut.barberTelegram.length > 3;
+  const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
 
   return (
-    <Card className="h-full transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative group">
+    <Card
+      className="h-full transform transition-all duration-300 hover:-translate-y-1 border-0 shadow-sm"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative overflow-hidden aspect-[4/3]">
         <ImageWithFallback
           src={currentImage}
           alt={haircut.title}
-          className="w-full h-64 object-cover"
-          onLoad={() => console.log(`Image loaded: ${currentImage}`)}
+          className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
         />
 
         {/* Навигация по изображениям */}
-        {hasMultipleImages && (
+        {hasMultipleImages && isHovered && (
           <>
             <button
               onClick={handlePrevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={handleNextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -127,10 +121,10 @@ console.log('Контакты барбера:', {
               {haircut.images.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all ${
                     index === currentImageIndex
-                      ? 'bg-white w-4'
-                      : 'bg-white/50'
+                      ? 'w-6 bg-white'
+                      : 'w-1.5 bg-white/50'
                   }`}
                 />
               ))}
@@ -141,34 +135,33 @@ console.log('Контакты барбера:', {
         {/* Счетчик просмотров */}
         <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
           <Eye className="h-3 w-3 mr-1" />
-          {haircut.views}
+          {haircut.views || 0}
         </div>
 
-        {isAuthenticated && (
-          <button
-            className={`absolute top-2 right-2 p-2 rounded-full ${
-              isFavorite
-                ? 'bg-[#9A0F34] text-white'
-                : 'bg-white text-gray-800 hover:bg-gray-100'
-            } transition-colors shadow-md`}
-            onClick={handleFavoriteClick}
-          >
-            <Heart
-              size={20}
-              className={isFavorite ? 'fill-current' : ''}
-            />
-          </button>
-        )}
+        {/* Кнопка избранного */}
+        <button
+          className={`absolute top-2 right-2 p-2 rounded-full ${
+            isFavorite
+              ? 'bg-[#9A0F34] text-white'
+              : 'bg-white text-gray-800 hover:bg-gray-100'
+          } transition-colors shadow-md`}
+          onClick={handleFavoriteClick}
+        >
+          <Heart
+            size={20}
+            className={isFavorite ? 'fill-current' : ''}
+          />
+        </button>
       </div>
 
-      <div className="p-4">
+      <div className="p-5">
         <h3 className="text-lg font-semibold mb-1">{haircut.title}</h3>
 
         <div className="flex justify-between items-center mb-3">
-          <span className="text-[#9A0F34] font-bold">
-            {haircut.price} {t('som')}
+          <span className="text-[#9A0F34] font-bold text-lg">
+            {haircut.price} сом
           </span>
-          <Link to={`/barber/${haircut.barberId}`} className="text-sm text-gray-600 hover:text-[#9A0F34]">
+          <Link to={`/barber/${haircut.barberId}`} className="text-sm text-gray-600 hover:text-[#9A0F34] underline-offset-4 hover:underline">
             {haircut.barber}
           </Link>
         </div>
@@ -179,13 +172,9 @@ console.log('Контакты барбера:', {
           </p>
         )}
 
-        <div className="flex items-center text-sm text-gray-600 mb-2">
+        <div className="flex items-center text-sm text-gray-600 mb-4">
           <Clock className="h-4 w-4 mr-1" />
           <span>{haircut.duration || '30'} мин</span>
-        </div>
-
-        <div className="flex items-center text-sm text-gray-600 mb-4">
-          <span className="mr-2">{haircut.type}</span>
           <span className="mx-2">•</span>
           <span>{haircut.location}</span>
         </div>
@@ -197,16 +186,13 @@ console.log('Контакты барбера:', {
             onClick={handleBookButtonClick}
             className="flex-1"
           >
-            {t('iWantThis')}
+            Хочу такую же
           </Button>
 
           <Button
             variant="outline"
-            onClick={(e) => {
-              e.preventDefault();
-              setShowConsultModal(true);
-            }}
-            className="px-4"
+            className="px-2 flex-shrink-0"
+            onClick={() => setShowConsultModal(true)}
           >
             <MessageCircle className="h-5 w-5" />
           </Button>
@@ -216,11 +202,7 @@ console.log('Контакты барбера:', {
       {/* Модальное окно консультации */}
       {showConsultModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-             onClick={(e) => {
-               if (e.target === e.currentTarget) {
-                 setShowConsultModal(false);
-               }
-             }}>
+             onClick={() => setShowConsultModal(false)}>
           <div className="bg-white rounded-lg p-6 w-full max-w-md"
                onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-semibold mb-4">Консультация с барбером</h3>

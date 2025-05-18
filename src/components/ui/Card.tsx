@@ -1,3 +1,4 @@
+// src/ui/Card.tsx
 import React from 'react';
 
 interface CardProps {
@@ -7,17 +8,15 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow ${className}`}>
       {children}
     </div>
   );
 };
 
-export default Card;
-
 export const CardHeader: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
+    <div className={`px-6 py-4 border-b border-gray-100 ${className}`}>
       {children}
     </div>
   );
@@ -33,8 +32,10 @@ export const CardContent: React.FC<CardProps> = ({ children, className = '' }) =
 
 export const CardFooter: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`px-6 py-4 border-t border-gray-200 ${className}`}>
+    <div className={`px-6 py-4 bg-gray-50 border-t border-gray-100 ${className}`}>
       {children}
     </div>
   );
 };
+
+export default Card;

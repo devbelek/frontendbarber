@@ -1,13 +1,14 @@
+// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/layout/LayoutNew';
+import Layout from '../components/layout/Layout';
 import HeroSection from '../components/home/HeroSection';
-import HaircutGrid from '../components/haircuts/HaircutGridNew';
+import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
 import LocationBasedBarbers from '../components/location/LocationBasedRecommendations';
 import { useNotification } from '../context/NotificationContext';
 import { servicesAPI, bookingsAPI } from '../api/services';
 import { Haircut } from '../types';
-import { Card, CardHeader, CardContent } from '../ui';
+import Card, { CardHeader, CardContent } from '../ui/Card';
 
 interface HomePageProps {
   openLoginModal: () => void;
@@ -49,9 +50,9 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               location: service.location,
               duration: service.duration,
               isFavorite: service.is_favorite || false,
-              views: service.views || 0,  // Убедитесь, что это поле корректно передается
-              barberWhatsapp: service.barber_details?.whatsapp, // Добавьте эти поля
-              barberTelegram: service.barber_details?.telegram   // для контактов
+              views: service.views || 0,
+              barberWhatsapp: service.barber_details?.whatsapp,
+              barberTelegram: service.barber_details?.telegram
             }));
 
             setPopularHaircuts(haircuts);
@@ -103,7 +104,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
   return (
     <Layout openLoginModal={openLoginModal}>
-      {/* Новая секция-герой */}
+      {/* Секция-герой */}
       <HeroSection />
 
       {/* Популярные стрижки */}
@@ -111,7 +112,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-3xl font-bold">Популярные стрижки</h2>
-            <a href="/gallery" className="text-brand-600 font-medium hover:underline">
+            <a href="/gallery" className="text-[#9A0F34] font-medium hover:underline">
               Смотреть все
             </a>
           </div>

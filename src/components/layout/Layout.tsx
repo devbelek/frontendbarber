@@ -1,10 +1,11 @@
+// src/components/layout/Layout.tsx
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import MobileNavigation from './MobileNavigation';
 import FloatingActionButton from '../ui/FloatingActionButton';
-import { Scissors } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface LayoutProps {
@@ -16,8 +17,6 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
   const location = useLocation();
   const { user } = useAuth();
   const isMobile = window.innerWidth <= 768;
-  const showHeader = !isMobile || location.pathname === '/';
-  const showFooter = !isMobile;
 
   // Определяем, является ли пользователь барбером
   const isBarber = user?.profile?.user_type === 'barber';
@@ -27,20 +26,29 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
     location.pathname === '/add-service' ||
     location.pathname.startsWith('/edit-service/');
 
+  // Определяем, находимся ли мы на главной странице
+  const isHomePage = location.pathname === '/';
+
   return (
     <div className="flex flex-col min-h-screen">
-      {showHeader && <Header openLoginModal={openLoginModal} />}
+      <Header
+        openLoginModal={openLoginModal}
+        isTransparent={isHomePage}
+      />
+
       <main className="flex-grow">
         {children}
       </main>
-      {showFooter && <Footer />}
+
+      <Footer />
+
       {isMobile && <MobileNavigation openLoginModal={openLoginModal} />}
 
       {/* Кнопка добавления для барберов */}
       {isBarber && !isAddEditServicePage && (
         <FloatingActionButton
           to="/add-service"
-          icon={<Scissors className="h-5 w-5 mr-1" />}
+          icon={<Plus className="h-6 w-6" />}
           label="Добавить стрижку"
         />
       )}

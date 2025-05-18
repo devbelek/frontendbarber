@@ -1,31 +1,29 @@
+// src/components/layout/Header.tsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Globe, MessageSquare, LogOut, MapPin } from 'lucide-react';
-import { useLanguage } from '../../context/LanguageContext';
+import { Menu, X, User, Globe, MapPin, LogOut } from 'lucide-react';
+import Button from '../../ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import Button from '../ui/Button';
-import Logo from '../ui/Logo';
-import { Language } from '../../types';
-import { motion } from 'framer-motion';
+import { useLanguage } from '../../context/LanguageContext';
+import { useLocation as useLocationContext } from '../../context/LocationContext';
 
 interface HeaderProps {
   openLoginModal: () => void;
+  isTransparent?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
+const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { t, language, setLanguage } = useLanguage();
-  const { isAuthenticated, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
-  const [userCity, setUserCity] = useState<string | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false);
+  const { isAuthenticated, logout, user } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
+  const { currentRegion, regions } = useLocationContext();
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
+  // Переключение языка
   const toggleLanguage = () => {
-    const newLanguage: Language = language === 'ru' ? 'kg' : 'ru';
-    setLanguage(newLanguage);
+    setLanguage(language === 'ru' ? 'kg' : 'ru');
   };
 
   useEffect(() => {
@@ -43,294 +41,256 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
     };
   }, []);
 
-  // Определяем местоположение пользователя
-  useEffect(() => {
-    const getCurrentLocation = () => {
-      if ('geolocation' in navigator) {
-        setLocationLoading(true);
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1`
-              );
-              const data = await response.json();
+  // Динамические стили для прозрачного/непрозрачного заголовка
+  const headerStyles = isTransparent && !isScrolled
+    ? 'absolute top-0 left-0 right-0 bg-transparent text-white z-50 py-4'
+    : 'sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-3 backdrop-blur-md bg-white/90';
 
-              if (data.address) {
-                const city = data.address.city ||
-                            data.address.town ||
-                            data.address.village ||
-                            'Местоположение';
-                setUserCity(city);
-              }
-            } catch (error) {
-              console.error('Ошибка при определении города:', error);
-            } finally {
-              setLocationLoading(false);
-            }
-          },
-          (error) => {
-            console.error('Ошибка геолокации:', error);
-            setLocationLoading(false);
-          }
-        );
-      }
-    };
-
-    getCurrentLocation();
-  }, []);
-
-  // Определяем, находимся ли мы на главной странице
-  const isHomePage = location.pathname === '/';
-
-  // Стили для прозрачного и непрозрачного заголовка
-  const headerStyles = isHomePage && !isScrolled
-    ? 'bg-transparent text-white absolute top-0 left-0 right-0 z-50 transition-all duration-300'
-    : 'bg-white text-gray-900 shadow-sm sticky top-0 z-50 transition-all duration-300';
-
-  // Логотип и анимации
-  const logoVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
-  };
-
-  const navVariants = {
-    hidden: { opacity: 0, y: -10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-        duration: 0.5
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: -10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  const linkStyles = {
+    default: isTransparent && !isScrolled
+      ? 'text-white/70 hover:text-white'
+      : 'text-gray-600 hover:text-gray-900',
+    active: isTransparent && !isScrolled
+      ? 'text-white font-medium'
+      : 'text-[#9A0F34] font-medium'
   };
 
   return (
-    <header className={headerStyles}>
-      <div className="container mx-auto px-4 py-3">
+    <header className={`transition-all duration-300 ${headerStyles}`}>
+      <div className="container mx-auto px-6">
         <div className="flex justify-between items-center">
-          {/* Logo */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={logoVariants}
-          >
-            <Link to="/">
-              <Logo darkMode={isHomePage && !isScrolled} size="md" />
-            </Link>
-          </motion.div>
-
-          {/* Desktop Navigation */}
-          <motion.nav
-            className="hidden md:flex items-center space-x-8"
-            initial="hidden"
-            animate="visible"
-            variants={navVariants}
-          >
-            <motion.div variants={itemVariants}>
-              <Link
-                to="/"
-                className={`font-medium hover:text-[#9A0F34] transition-colors ${
-                  location.pathname === '/'
-                    ? (isHomePage && !isScrolled ? 'text-white' : 'text-[#9A0F34]')
-                    : (isHomePage && !isScrolled ? 'text-gray-200' : 'text-gray-700')
-                }`}
-              >
-                {t('home')}
-              </Link>
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <Link
-                to="/gallery"
-                className={`font-medium hover:text-[#9A0F34] transition-colors ${
-                  location.pathname === '/gallery'
-                    ? (isHomePage && !isScrolled ? 'text-white' : 'text-[#9A0F34]')
-                    : (isHomePage && !isScrolled ? 'text-gray-200' : 'text-gray-700')
-                }`}
-              >
-                {t('gallery')}
-              </Link>
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <Link
-                to="/barbers"
-                className={`font-medium hover:text-[#9A0F34] transition-colors ${
-                  location.pathname.includes('/barber')
-                    ? (isHomePage && !isScrolled ? 'text-white' : 'text-[#9A0F34]')
-                    : (isHomePage && !isScrolled ? 'text-gray-200' : 'text-gray-700')
-                }`}
-              >
-                {t('barbers')}
-              </Link>
-            </motion.div>
-          </motion.nav>
-
-          {/* Desktop Auth & Settings */}
-          <motion.div
-            className="hidden md:flex items-center space-x-3"
-            initial="hidden"
-            animate="visible"
-            variants={navVariants}
-          >
-            {/* Location Display */}
-            {userCity && (
-              <motion.div
-                variants={itemVariants}
-                className={`flex items-center px-3 py-1 rounded-full ${
-                  isHomePage && !isScrolled
-                    ? 'bg-white/10 backdrop-blur text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">{userCity}</span>
-              </motion.div>
-            )}
-
-            <motion.button
-              variants={itemVariants}
-              onClick={toggleLanguage}
-              className={`p-2 rounded-full transition-colors ${
-                isHomePage && !isScrolled
-                  ? 'hover:bg-white/20'
-                  : 'hover:bg-gray-100'
-              }`}
-              aria-label="Switch Language"
+          {/* Логотип */}
+          <Link to="/" className="flex items-center">
+            <svg
+              viewBox="0 0 24 24"
+              className={`h-8 w-8 ${isTransparent && !isScrolled ? 'text-white' : 'text-[#9A0F34]'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <Globe className={`h-5 w-5 ${isHomePage && !isScrolled ? 'text-white' : 'text-gray-700'}`} />
-            </motion.button>
+              <path d="M5 3v18c0 1 1 2 2 2h10c1 0 2-1 2-2V3c0-1-1-2-2-2H7c-1 0-2 1-2 2z" />
+              <path d="M8 6h8" />
+              <path d="M8 10h8" />
+              <path d="M8 14h8" />
+              <path d="M8 18h8" />
+            </svg>
+            <span className={`ml-2 text-2xl font-bold ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`}>
+              TARAK
+            </span>
+          </Link>
 
+          {/* Навигация для десктопов */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link
+              to="/"
+              className={`font-medium transition-colors ${location.pathname === '/' ? linkStyles.active : linkStyles.default}`}
+            >
+              {t('home')}
+            </Link>
+            <Link
+              to="/gallery"
+              className={`font-medium transition-colors ${location.pathname === '/gallery' ? linkStyles.active : linkStyles.default}`}
+            >
+              {t('gallery')}
+            </Link>
+            <Link
+              to="/barbers"
+              className={`font-medium transition-colors ${location.pathname.includes('/barber') ? linkStyles.active : linkStyles.default}`}
+            >
+              {t('barbers')}
+            </Link>
+          </nav>
+
+          {/* Десктопные кнопки: регион, язык, авторизация */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Селектор региона */}
+            <div className="relative">
+              <button
+                onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                className={`flex items-center space-x-1 rounded-md py-1 px-2 ${
+                  isTransparent && !isScrolled
+                    ? 'text-white hover:bg-white/10'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="text-sm">{currentRegion.name}</span>
+                <svg
+                  className={`h-4 w-4 transition-transform ${isRegionDropdownOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {isRegionDropdownOpen && (
+                <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg py-1 z-50 min-w-[180px]">
+                  {regions.map((region) => (
+                    <button
+                      key={region.id}
+                      onClick={() => {
+                        setIsRegionDropdownOpen(false);
+                        // Здесь будет функция обновления региона
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm ${
+                        currentRegion.id === region.id
+                          ? 'bg-gray-100 text-[#9A0F34]'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {region.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Переключатель языка */}
+            <button
+              onClick={toggleLanguage}
+              className={`p-2 rounded-full ${
+                isTransparent && !isScrolled
+                  ? 'text-white hover:bg-white/10'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              aria-label="Сменить язык"
+            >
+              <Globe className="h-5 w-5" />
+            </button>
+
+            {/* Кнопки авторизации */}
             {isAuthenticated ? (
               <>
-                <motion.div variants={itemVariants}>
-                  <Link to="/profile">
-                    <Button
-                      variant={isHomePage && !isScrolled ? "outline" : "ghost"}
-                      size="sm"
-                      className={isHomePage && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
-                    >
-                      <User className="h-5 w-5 mr-1" />
-                      Мой профиль
-                    </Button>
-                  </Link>
-                </motion.div>
-                <motion.div variants={itemVariants}>
+                <Link to="/profile">
                   <Button
-                    variant={isHomePage && !isScrolled ? "outline" : "outline"}
+                    variant={isTransparent && !isScrolled ? "outline" : "ghost"}
                     size="sm"
-                    onClick={logout}
-                    className={isHomePage && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
+                    className={isTransparent && !isScrolled ? "border-white text-white" : ""}
                   >
-                    <LogOut className="h-4 w-4 mr-1" />
-                    {t('logout')}
+                    <User className="h-5 w-5 mr-1.5" />
+                    {t('profile')}
                   </Button>
-                </motion.div>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={logout}
+                  className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
+                >
+                  <LogOut className="h-4 w-4 mr-1.5" />
+                  {t('logout')}
+                </Button>
               </>
             ) : (
-              <motion.div variants={itemVariants}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={openLoginModal}
-                  className={isHomePage && !isScrolled ? "bg-white text-[#9A0F34] hover:bg-gray-100" : ""}
-                >
-                  Я барбер
-                </Button>
-              </motion.div>
+              <Button
+                variant={isTransparent && !isScrolled ? "outline" : "primary"}
+                onClick={openLoginModal}
+                className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
+              >
+                {t('becomeBarber')}
+              </Button>
             )}
-          </motion.div>
+          </div>
 
-          {/* Mobile Menu Button */}
+          {/* Мобильная кнопка меню */}
           <button
-            className={`md:hidden p-2 rounded-md transition-colors ${
-              isHomePage && !isScrolled ? 'hover:bg-white/20' : 'hover:bg-gray-100'
-            }`}
-            onClick={toggleMenu}
-            aria-label={isMenuOpen ? "Close Menu" : "Open Menu"}
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? (
-              <X className={`h-6 w-6 ${isHomePage && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
+              <X className={`h-6 w-6 ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
             ) : (
-              <Menu className={`h-6 w-6 ${isHomePage && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
+              <Menu className={`h-6 w-6 ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
             )}
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Мобильное меню */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t mt-3 space-y-4 bg-white text-gray-900">
+          <div className="md:hidden py-4 mt-4 border-t border-white/10 space-y-4">
             <Link
               to="/"
-              className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              className="block py-2 text-lg font-medium text-white"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('home')}
             </Link>
             <Link
               to="/gallery"
-              className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              className="block py-2 text-lg font-medium text-white"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('gallery')}
             </Link>
             <Link
               to="/barbers"
-              className="block px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              className="block py-2 text-lg font-medium text-white"
               onClick={() => setIsMenuOpen(false)}
             >
               {t('barbers')}
             </Link>
 
-            {/* Mobile location display */}
-            {userCity && (
-              <div className="px-2 py-2 flex items-center text-gray-600">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="text-sm">{userCity}</span>
+            {/* Регион и Язык в мобильном меню */}
+            <div className="py-2 flex items-center justify-between">
+              <div className="flex items-center text-white">
+                <MapPin className="h-5 w-5 mr-1" />
+                <span>{currentRegion.name}</span>
               </div>
-            )}
-
-            <div className="pt-2 border-t flex justify-between">
               <button
                 onClick={toggleLanguage}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Switch Language"
+                className="p-2 text-white"
               >
-                <Globe className="h-5 w-5 text-gray-700" />
+                <span className="text-sm font-medium border border-white/30 rounded px-2 py-1">
+                  {language === 'ru' ? 'RU' : 'KG'}
+                </span>
               </button>
+            </div>
 
-              {isAuthenticated ? (
-                <div className="flex space-x-2">
-                  <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" size="sm">
-                      <User className="h-5 w-5 mr-1" />
-                      Мой профиль
-                    </Button>
-                  </Link>
-                  <Button variant="outline" size="sm" onClick={() => {
+            {isAuthenticated ? (
+              <div className="flex flex-col space-y-2 pt-4 border-t border-white/10">
+                <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    className="border-white/20 text-white"
+                  >
+                    <User className="h-5 w-5 mr-1.5" />
+                    {t('profile')}
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  fullWidth
+                  className="border-white/20 text-white"
+                  onClick={() => {
                     logout();
                     setIsMenuOpen(false);
-                  }}>
-                    Выйти
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button variant="primary" size="sm" onClick={() => {
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-1.5" />
+                  {t('logout')}
+                </Button>
+              </div>
+            ) : (
+              <div className="pt-4 border-t border-white/10">
+                <Button
+                  variant="outline"
+                  fullWidth
+                  className="border-white/20 text-white"
+                  onClick={() => {
                     openLoginModal();
                     setIsMenuOpen(false);
-                  }}>
-                    Я барбер
-                  </Button>
-                </div>
-              )}
-            </div>
+                  }}
+                >
+                  {t('becomeBarber')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

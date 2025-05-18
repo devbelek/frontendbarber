@@ -1,8 +1,6 @@
-// src/components/haircuts/HaircutCard.tsx
+// src/components/haircuts/HaircutCard.tsx - оптимизированная версия для мобильных устройств
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import Card from '../../ui/Card';
 import Button from '../../ui/Button';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import { Haircut } from '../../types';
@@ -88,48 +86,50 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const hasValidContacts = hasValidWhatsApp || hasValidTelegram;
 
   return (
-    <Card
-      className="h-full transform transition-all duration-300 hover:-translate-y-1 border-0 shadow-sm"
+    <div
+      className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative overflow-hidden aspect-[4/3]">
+      <div className="relative aspect-square overflow-hidden">
         <ImageWithFallback
           src={currentImage}
           alt={haircut.title}
-          className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
 
-        {/* Навигация по изображениям */}
+        {/* Навигация по изображениям для больших экранов */}
         {hasMultipleImages && isHovered && (
           <>
             <button
               onClick={handlePrevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 md:block hidden"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={handleNextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 md:block hidden"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-
-            {/* Индикаторы изображений */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {haircut.images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-1.5 rounded-full transition-all ${
-                    index === currentImageIndex
-                      ? 'w-6 bg-white'
-                      : 'w-1.5 bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
           </>
+        )}
+
+        {/* Индикаторы для мобильных устройств */}
+        {hasMultipleImages && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {haircut.images.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 rounded-full transition-all ${
+                  index === currentImageIndex
+                    ? 'w-4 bg-white'
+                    : 'w-1.5 bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
         )}
 
         {/* Счетчик просмотров */}
@@ -148,58 +148,37 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           onClick={handleFavoriteClick}
         >
           <Heart
-            size={20}
+            size={18}
             className={isFavorite ? 'fill-current' : ''}
           />
         </button>
       </div>
 
-      <div className="p-5">
-        <h3 className="text-lg font-semibold mb-1">{haircut.title}</h3>
+      <div className="p-3">
+        <h3 className="text-sm font-semibold mb-1 line-clamp-1">{haircut.title}</h3>
 
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-[#9A0F34] font-bold text-lg">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[#9A0F34] font-bold text-sm">
             {haircut.price} сом
           </span>
-          <Link to={`/barber/${haircut.barberId}`} className="text-sm text-gray-600 hover:text-[#9A0F34] underline-offset-4 hover:underline">
+          <span className="text-xs text-gray-600">
             {haircut.barber}
-          </Link>
+          </span>
         </div>
 
-        {haircut.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {haircut.description}
-          </p>
-        )}
-
-        <div className="flex items-center text-sm text-gray-600 mb-4">
-          <Clock className="h-4 w-4 mr-1" />
-          <span>{haircut.duration || '30'} мин</span>
-          <span className="mx-2">•</span>
-          <span>{haircut.location}</span>
-        </div>
-
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <Button
             variant="primary"
+            size="sm"
             fullWidth
             onClick={handleBookButtonClick}
-            className="flex-1"
           >
             Хочу такую же
-          </Button>
-
-          <Button
-            variant="outline"
-            className="px-2 flex-shrink-0"
-            onClick={() => setShowConsultModal(true)}
-          >
-            <MessageCircle className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      {/* Модальное окно консультации */}
+      {/* Модальное окно консультации - оставляем без изменений */}
       {showConsultModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
              onClick={() => setShowConsultModal(false)}>
@@ -246,7 +225,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 };
 

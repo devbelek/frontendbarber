@@ -1,23 +1,21 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Home, Search, User, Scissors } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Search, User, Scissors, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-import { Plus } from "lucide-react";
-
-interface MobileNavigationProps {
-  openLoginModal: () => void;
-}
-
-const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) => {
+// Переработанная мобильная навигация, интегрирующая кнопку добавления сервиса
+const MobileNavigation = ({ openLoginModal }) => {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
-  const isActive = (path: string) => {
+  // Определяем, является ли пользователь барбером
+  const isBarber = user?.profile?.user_type === 'barber';
+
+  const isActive = (path) => {
     return location.pathname === path;
   };
 
-  const handleProfileClick = (e: React.MouseEvent) => {
+  const handleProfileClick = (e) => {
     if (!isAuthenticated) {
       e.preventDefault();
       openLoginModal();
@@ -25,39 +23,48 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) =
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe md:hidden z-40">
-      <div className="flex justify-around items-center h-16">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
+      <div className="flex items-center justify-around h-16 px-2">
+        {/* Главная */}
         <Link
           to="/"
-          className={`flex flex-col items-center justify-center flex-1 ${
+          className={`flex flex-col items-center justify-center w-full ${
             isActive('/') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
           <Home className="h-6 w-6" />
           <span className="text-xs mt-1">Главная</span>
         </Link>
-            {/* Центральная кнопка + */}
-    <div className="relative">
-      <Link to="/add-service" className="absolute -top-5 left-1/2 transform -translate-x-1/2">
-        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg">
-          <Plus className="h-8 w-8" />
-        </div>
-      </Link>
-    </div>
 
+        {/* Поиск/Галерея */}
         <Link
           to="/gallery"
-          className={`flex flex-col items-center justify-center flex-1 ${
-            isActive('/gallery') ? 'text-[#00000]' : 'text-gray-500'
+          className={`flex flex-col items-center justify-center w-full ${
+            isActive('/gallery') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
           <Search className="h-6 w-6" />
           <span className="text-xs mt-1">Поиск</span>
         </Link>
 
+        {/* Центральная кнопка + (только для барберов) */}
+        {isBarber && (
+          <Link
+            to="/add-service"
+            className="relative flex flex-col items-center justify-center w-full"
+          >
+            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg">
+              <Plus className="h-8 w-8" />
+            </div>
+            <div className="h-6"></div>
+            <span className="text-xs mt-5 text-gray-500">Добавить</span>
+          </Link>
+        )}
+
+        {/* Барберы */}
         <Link
           to="/barbers"
-          className={`flex flex-col items-center justify-center flex-1 ${
+          className={`flex flex-col items-center justify-center w-full ${
             isActive('/barbers') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
@@ -65,10 +72,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ openLoginModal }) =
           <span className="text-xs mt-1">Барберы</span>
         </Link>
 
+        {/* Профиль */}
         <Link
           to={isAuthenticated ? "/profile" : "#"}
           onClick={handleProfileClick}
-          className={`flex flex-col items-center justify-center flex-1 ${
+          className={`flex flex-col items-center justify-center w-full ${
             isActive('/profile') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >

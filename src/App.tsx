@@ -1,15 +1,15 @@
+// src/App.tsx с обновлённой интеграцией новой главной страницы
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
-// Изменяем импорт на новую версию HomePage
-import HomePage from './pages/HomePage'; // Используем обновленную версию с новыми компонентами
+// Импортируем новую версию HomePage
+import NewHomePage from './pages/HomePage'; // Обратите внимание: файл остаётся тем же, но компонент внутри обновлён
 import GalleryPage from './pages/GalleryPage';
 import BarberProfilePage from './pages/BarberProfilePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
-// Можно также обновить модальное окно входа, если вы создадите его новую версию
 import LoginModal from './components/auth/LoginModal';
 import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
@@ -56,8 +56,8 @@ const AppRoutes = () => {
     <Router>
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
-        {/* Здесь HomePage уже будет использовать новый Layout из обновленного компонента */}
-        <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
+        {/* Используем новую главную страницу */}
+        <Route path="/" element={<NewHomePage />} />
 
         {/* Остальные маршруты остаются прежними */}
         <Route path="/gallery" element={<GalleryPage openLoginModal={openLoginModal} />} />
@@ -98,6 +98,5 @@ function App() {
     </LanguageProvider>
   );
 }
-
 
 export default App;

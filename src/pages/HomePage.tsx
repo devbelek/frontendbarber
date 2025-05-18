@@ -1,189 +1,244 @@
-// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Scissors, MapPin, Heart, Clock, Star, Menu, ChevronRight } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import HeroSection from '../components/home/HeroSection';
-import HaircutGrid from '../components/haircuts/HaircutGrid';
-import BookingModal from '../components/booking/BookingModal';
-import LocationBasedBarbers from '../components/location/LocationBasedRecommendations';
+import { servicesAPI, profileAPI } from '../api/services';
 import { useNotification } from '../context/NotificationContext';
-import { servicesAPI, bookingsAPI } from '../api/services';
-import { Haircut } from '../types';
-import Card, { CardHeader, CardContent } from '../ui/Card';
 
-interface HomePageProps {
-  openLoginModal: () => void;
-}
-
-const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
-  const notification = useNotification();
-  const [popularHaircuts, setPopularHaircuts] = useState<Haircut[]>([]);
+// Исправленная главная страница с Layout и реальными данными
+const HomePage = ({ openLoginModal }) => {
+  const [popularHaircuts, setPopularHaircuts] = useState([]);
+  const [nearbyBarbers, setNearbyBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
+  const [categories] = useState([
+    { name: 'Классические', icon: 'classic', color: 'bg-blue-100 text-blue-700' },
+    { name: 'Фейды', icon: 'fade', color: 'bg-green-100 text-green-700' },
+    { name: 'Андеркаты', icon: 'undercut', color: 'bg-purple-100 text-purple-700' },
+    { name: 'Текстурные', icon: 'textured', color: 'bg-red-100 text-red-700' },
+    { name: 'Кроп', icon: 'crop', color: 'bg-yellow-100 text-yellow-700' },
+    { name: 'Помпадур', icon: 'pompadour', color: 'bg-indigo-100 text-indigo-700' },
+  ]);
+
+  const navigate = useNavigate();
+  const notification = useNotification();
 
   useEffect(() => {
-    const fetchPopularHaircuts = async () => {
+    // Загрузка популярных стрижек из API
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const response = await servicesAPI.getPopular();
+        // Загружаем популярные стрижки
+        const haircutsResponse = await servicesAPI.getPopular();
 
-        if (response && response.data) {
-          let results = response.data;
+        if (haircutsResponse && haircutsResponse.data) {
+          let results = haircutsResponse.data;
 
-          if (response.data.results && Array.isArray(response.data.results)) {
-            results = response.data.results;
+          if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
+            results = haircutsResponse.data.results;
           }
 
           if (Array.isArray(results)) {
-            const haircuts: Haircut[] = results.slice(0, 6).map((service: any) => ({
-              id: service.id,
-              image: service.image,
-              images: service.images || [],
-              primaryImage: service.primary_image || service.image,
-              title: service.title,
-              price: service.price,
-              barber: service.barber_details?.full_name || 'Unknown',
-              barberId: service.barber,
-              type: service.type,
-              length: service.length,
-              style: service.style,
-              location: service.location,
-              duration: service.duration,
-              isFavorite: service.is_favorite || false,
-              views: service.views || 0,
-              barberWhatsapp: service.barber_details?.whatsapp,
-              barberTelegram: service.barber_details?.telegram
-            }));
-
-            setPopularHaircuts(haircuts);
+            setPopularHaircuts(results);
           }
         }
+
+        // Загружаем барберов
+        const barbersResponse = await profileAPI.getAllBarbers();
+
+        if (barbersResponse && barbersResponse.data) {
+          let barbersData = [];
+
+          if (barbersResponse.data.results && Array.isArray(barbersResponse.data.results)) {
+            barbersData = barbersResponse.data.results;
+          } else if (Array.isArray(barbersResponse.data)) {
+            barbersData = barbersResponse.data;
+          }
+
+          setNearbyBarbers(barbersData.slice(0, 3)); // Берем только первых 3 барбера
+        }
+
       } catch (error) {
-        console.error('Error fetching popular haircuts:', error);
+        console.error('Error fetching data:', error);
+        notification.error('Ошибка загрузки', 'Не удалось загрузить данные');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPopularHaircuts();
+    fetchData();
   }, []);
 
-  const handleBookClick = (haircut: Haircut) => {
-    setSelectedHaircut(haircut);
-    setIsBookingModalOpen(true);
+  // Функция для навигации
+  const goTo = (path) => {
+    navigate(path);
   };
 
-  const handleBookingConfirm = async (date: string, time: string, contactInfo: any) => {
-    if (!selectedHaircut) return;
-
-    try {
-      const bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || '',
-        client_name: contactInfo.name,
-        client_phone: contactInfo.phone
-      };
-
-      await bookingsAPI.create(bookingData);
-      setIsBookingModalOpen(false);
-
-      notification.success(
-        'Бронирование создано',
-        `Услуга "${selectedHaircut.title}" успешно забронирована на ${date} в ${time}`
-      );
-    } catch (err) {
-      console.error('Error creating booking:', err);
-      notification.error(
-        'Ошибка бронирования',
-        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
-      );
+  // Форматирование полного имени барбера
+  const getBarberName = (barber) => {
+    if (barber.first_name || barber.last_name) {
+      return `${barber.first_name || ''} ${barber.last_name || ''}`.trim();
     }
+    return barber.username || 'Барбер';
   };
 
   return (
     <Layout openLoginModal={openLoginModal}>
-      {/* Секция-герой */}
-      <HeroSection />
-
-      {/* Популярные стрижки */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center mb-10">
-            <h2 className="text-3xl font-bold">Популярные стрижки</h2>
-            <a href="/gallery" className="text-[#9A0F34] font-medium hover:underline">
-              Смотреть все
-            </a>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-white rounded-lg shadow-sm h-80"></div>
-              ))}
-            </div>
-          ) : (
-            <HaircutGrid
-              haircuts={popularHaircuts}
-              onBookClick={handleBookClick}
+      <div className="pb-16 mb-3 md:pb-0">
+        {/* Поисковая панель */}
+        <div className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Найти стрижку..."
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none"
+              onKeyDown={(e) => e.key === 'Enter' && goTo('/gallery')}
             />
-          )}
-        </div>
-      </section>
-
-      {/* Секция "Как это работает" */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Как это работает</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Простой способ найти идеальную стрижку и барбера
-            </p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: '🔍',
-                title: 'Выбери стрижку',
-                description: 'Просматривай реальные работы барберов и выбирай стрижку, которая тебе нравится'
-              },
-              {
-                icon: '📅',
-                title: 'Забронируй время',
-                description: 'Запишись к барберу, который сделал стрижку, на удобное для тебя время'
-              },
-              {
-                icon: '✨',
-                title: 'Получи результат',
-                description: 'Получи именно ту стрижку, которую ты выбрал, без лишних объяснений'
-              }
-            ].map((step, index) => (
-              <Card key={index} className="text-center p-8 border-0 shadow-soft hover:translate-y-[-5px] transition-all">
-                <div className="text-4xl mb-4">{step.icon}</div>
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                <p className="text-gray-600">{step.description}</p>
-              </Card>
+        {/* Категории стрижек */}
+        <div className="py-4 px-4">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Категории</h2>
+            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34]">
+              Все категории
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {categories.map((category, index) => (
+              <button
+                key={index}
+                onClick={() => goTo(`/gallery?type=${category.icon}`)}
+                className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+              >
+                <div className={`w-12 h-12 rounded-full ${category.color} flex items-center justify-center mb-2`}>
+                  <Scissors className="h-6 w-6" />
+                </div>
+                <span className="text-xs text-center">{category.name}</span>
+              </button>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Барберы рядом */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <LocationBasedBarbers />
+        {/* Ближайшие барберы */}
+        <div className="py-4 px-4 bg-gray-50">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Барберы рядом</h2>
+            <button onClick={() => goTo('/barbers')} className="text-sm text-[#9A0F34]">
+              Смотреть все
+            </button>
+          </div>
+
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="flex space-x-3 pb-2">
+              {loading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-sm animate-pulse">
+                    <div className="w-14 h-14 bg-gray-200 rounded-full mx-auto mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                  </div>
+                ))
+              ) : nearbyBarbers.length > 0 ? (
+                nearbyBarbers.map((barber) => (
+                  <button
+                    key={barber.id}
+                    onClick={() => goTo(`/barber/${barber.id}`)}
+                    className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-sm"
+                  >
+                    <img
+                      src={barber.profile?.photo || 'https://via.placeholder.com/100'}
+                      alt={getBarberName(barber)}
+                      className="w-14 h-14 rounded-full mx-auto mb-2 object-cover"
+                    />
+                    <p className="text-center font-medium">{getBarberName(barber)}</p>
+                    <div className="flex items-center justify-center text-xs">
+                      <Star className="h-3 w-3 text-yellow-500 mr-1" />
+                      <span>{barber.avg_rating || '4.5'}</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="w-full text-center py-4 text-gray-500">
+                  Барберы не найдены
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </section>
 
-      {/* Модальное окно бронирования */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        haircut={selectedHaircut}
-        onConfirm={handleBookingConfirm}
-      />
+        {/* Популярные стрижки (в 2 колонки на мобильных устройствах) */}
+        <div className="py-4 px-4">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Популярные стрижки</h2>
+            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34]">
+              Смотреть все
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {loading ? (
+              Array(4).fill(0).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm animate-pulse">
+                  <div className="w-full h-32 bg-gray-200"></div>
+                  <div className="p-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : popularHaircuts.length > 0 ? (
+              popularHaircuts.slice(0, 4).map((haircut) => (
+                <button
+                  key={haircut.id}
+                  onClick={() => goTo(`/gallery?service=${haircut.id}`)}
+                  className="bg-white rounded-lg overflow-hidden shadow-sm"
+                >
+                  <div className="relative">
+                    <img
+                      src={haircut.primary_image || haircut.image}
+                      alt={haircut.title}
+                      className="w-full h-32 object-cover"
+                    />
+                    <Heart className="absolute top-2 right-2 h-5 w-5 text-white" />
+                  </div>
+                  <div className="p-2">
+                    <h3 className="font-medium text-sm mb-1 line-clamp-1">{haircut.title}</h3>
+                    <p className="text-[#9A0F34] font-bold text-sm">{haircut.price} сом</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-4 text-gray-500">
+                Стрижки не найдены
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Как это работает */}
+        <div className="py-4 px-4 bg-gray-50">
+          <h2 className="text-lg font-semibold mb-3">Как это работает</h2>
+          <div className="flex overflow-x-auto -mx-4 px-4 space-x-3 pb-2">
+            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
+              <div className="text-2xl mb-2">🔍</div>
+              <h3 className="font-medium mb-1">Выбери стрижку</h3>
+              <p className="text-xs text-gray-600">Просматривай фото реальных стрижек</p>
+            </div>
+            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
+              <div className="text-2xl mb-2">📅</div>
+              <h3 className="font-medium mb-1">Забронируй время</h3>
+              <p className="text-xs text-gray-600">Запишись к барберу онлайн</p>
+            </div>
+            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
+              <div className="text-2xl mb-2">✨</div>
+              <h3 className="font-medium mb-1">Получи результат</h3>
+              <p className="text-xs text-gray-600">Точно такую же стрижку как на фото</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </Layout>
   );
 };

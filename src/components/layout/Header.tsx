@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx
+// src/components/layout/Header.tsx - исправленная версия
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, Globe, MapPin, LogOut } from 'lucide-react';
@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useLocation as useLocationContext } from '../../context/LocationContext';
+import UnifiedLoginModal from '../ui/UnifiedLoginModal';
 
 interface HeaderProps {
   openLoginModal: () => void;
@@ -15,6 +16,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false); // Добавлено
   const location = useLocation();
   const { isAuthenticated, logout, user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
@@ -40,6 +42,11 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  // Добавленная функция для открытия модального окна входа
+  const handleLoginClick = () => {
+    setLoginModalOpen(true);
+  };
 
   // Динамические стили для прозрачного/непрозрачного заголовка
   const headerStyles = isTransparent && !isScrolled
@@ -189,7 +196,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
             ) : (
               <Button
                 variant={isTransparent && !isScrolled ? "outline" : "primary"}
-                onClick={openLoginModal}
+                onClick={handleLoginClick} // Изменено на новый обработчик
                 className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
               >
                 {t('signIn')}
@@ -283,7 +290,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
                   fullWidth
                   className="border-white/20 text-white"
                   onClick={() => {
-                    openLoginModal();
+                    handleLoginClick(); // Изменено на новый обработчик
                     setIsMenuOpen(false);
                   }}
                 >
@@ -294,6 +301,14 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
           </div>
         )}
       </div>
+
+      {/* Модальное окно входа */}
+      {loginModalOpen && (
+        <UnifiedLoginModal
+          isOpen={loginModalOpen}
+          onClose={() => setLoginModalOpen(false)}
+        />
+      )}
     </header>
   );
 };

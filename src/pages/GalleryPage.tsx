@@ -126,34 +126,43 @@ const GalleryPage = ({ openLoginModal }) => {
     setIsBookingModalOpen(true);
   };
 
-  const handleBookingConfirm = async (date, time, contactInfo) => {
-    if (!selectedHaircut) return;
+const handleBookingConfirm = async (date, time, contactInfo) => {
+  if (!selectedHaircut) return;
 
-    try {
-      const bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || '',
-        client_name: contactInfo.name,
-        client_phone: contactInfo.phone
-      };
+  try {
+    const bookingData = {
+      service: selectedHaircut.id,
+      date: date,
+      time: time,
+      notes: contactInfo?.notes || '',
+      client_name: contactInfo.name,
+      client_phone: contactInfo.phone  // Убедитесь, что номер телефона передается
+    };
 
-      await bookingsAPI.create(bookingData);
-      setIsBookingModalOpen(false);
-
-      notification.success(
-        'Бронирование создано',
-        `Услуга "${selectedHaircut.title}" успешно забронирована`
-      );
-    } catch (err) {
-      console.error('Error creating booking:', err);
+    // Проверяем, что номер телефона не пустой
+    if (!bookingData.client_phone) {
       notification.error(
         'Ошибка бронирования',
-        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+        'Пожалуйста, укажите номер телефона для связи'
       );
+      return;
     }
-  };
+
+    await bookingsAPI.create(bookingData);
+    setIsBookingModalOpen(false);
+
+    notification.success(
+      'Бронирование создано',
+      `Услуга "${selectedHaircut.title}" успешно забронирована`
+    );
+  } catch (err) {
+    console.error('Error creating booking:', err);
+    notification.error(
+      'Ошибка бронирования',
+      'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+    );
+  }
+};
 
   // Сброс фильтров
   const resetFilters = () => {

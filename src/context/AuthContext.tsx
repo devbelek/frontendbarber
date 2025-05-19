@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken'); // Убедитесь, что проверяете refreshToken
       const googleUser = localStorage.getItem('googleUser');
 
       // Проверяем минимальный интервал между запросами
@@ -60,6 +61,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           await fetchCurrentUser();
         } catch (err: any) {
           console.error('Error fetching user:', err);
+
+          // Попробуем обновить токен, если есть refreshToken
+          if (refreshToken) {
+            try {
+              const response = await authAPI.refreshToken(refreshToken);
+              if (response.data && response.data.access) {
+                localStorage.setItem('token', response.data.access);
+                // Повторно пытаемся получить данные пользователя
+                await fetchCurrentUser();
+              }
+            } catch (refreshErr) {
+              console.error('Failed to refresh token:', refreshErr);
+              // Если не удалось обновить токен, очищаем хранилище
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+            }
+          }
 
           // Обработка 429 ошибки
           if (err?.response?.status === 429 || err?.isRateLimited) {
@@ -288,7 +306,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem('token', response.data.access);
       if (response.data.refresh) {
-        localStorage.setItem('refresh', response.data.refresh);
+        localStorage.setItem('refreshToken', response.data.refresh); // Исправлено с 'refresh' на 'refreshToken'
       }
 
       await fetchCurrentUser();
@@ -341,70 +359,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const loginWithGoogle = async (googleUserInfo: GoogleUserInfo) => {
+  const loginWithGoogle = async (userInfo: GoogleUserInfo) => {
     try {
       setLoading(true);
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
       try {
-        const response = await axios.post(`${API_URL}/users/register-google/`, {
-          email: googleUserInfo.email,
-          first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
-          last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
-          picture: googleUserInfo.picture
-        });
+        // Пытаемся авторизоваться через Google
+        const response = await authAPI.googleAuth(userInfo.email, 'client');
 
-        console.log('Регистрация через Google успешна:', response.data);
-
-        if (response.data.access_token) {
-          localStorage.setItem('token', response.data.access_token);
-          if (response.data.refresh_token) {
-            localStorage.setItem('refreshToken', response.data.refresh_token);
+        if (response.data && response.data.access) {
+          localStorage.setItem('token', response.data.access);
+          if (response.data.refresh) {
+            localStorage.setItem('refreshToken', response.data.refresh);
           }
-        }
 
-        const userData: User = {
-          id: response.data.id,
-          username: response.data.username,
-          email: response.data.email,
-          first_name: response.data.first_name,
-          last_name: response.data.last_name,
-          profile: response.data.profile,
-          favorites: [],
-          picture: googleUserInfo.picture
-        };
+          // Получаем данные пользователя с сервера
+          await fetchCurrentUser();
+        } else {
+          // Если сервер не вернул токен, создаем временный в localStorage
+          const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+          localStorage.setItem('token', tempToken);
 
-        localStorage.setItem('googleUser', JSON.stringify(userData));
+          // Создаем объект User из данных Google
+          const userData: User = {
+            id: `google-${Date.now()}`,
+            username: userInfo.email.split('@')[0],
+            email: userInfo.email,
+            first_name: userInfo.given_name || userInfo.name.split(' ')[0] || '',
+            last_name: userInfo.family_name || (userInfo.name.split(' ').length > 1 ? userInfo.name.split(' ').slice(1).join(' ') : '') || '',
+            profile: {
+              user_type: 'client',
+              phone: '',
+              offers_home_service: false
+            },
+            favorites: [],
+            picture: userInfo.picture,
+            isGoogleUser: true
+          };
 
-        if (mountedRef.current) {
+          localStorage.setItem('googleUser', JSON.stringify(userData));
           setUser(userData);
         }
       } catch (error) {
         console.error('Ошибка аутентификации через сервер:', error);
 
+        // В случае ошибки создаем временного пользователя
         const userData: User = {
           id: `google-${Date.now()}`,
-          username: googleUserInfo.email.split('@')[0],
-          email: googleUserInfo.email,
-          first_name: googleUserInfo.given_name || googleUserInfo.name.split(' ')[0],
-          last_name: googleUserInfo.family_name || googleUserInfo.name.split(' ').slice(1).join(' '),
+          username: userInfo.email.split('@')[0],
+          email: userInfo.email,
+          first_name: userInfo.given_name || userInfo.name.split(' ')[0] || '',
+          last_name: userInfo.family_name || (userInfo.name.split(' ').length > 1 ? userInfo.name.split(' ').slice(1).join(' ') : '') || '',
           profile: {
-            user_type: 'barber',
+            user_type: 'client',
             phone: '',
             offers_home_service: false
           },
           favorites: [],
-          picture: googleUserInfo.picture,
+          picture: userInfo.picture,
           isGoogleUser: true
         };
 
         const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
         localStorage.setItem('token', tempToken);
         localStorage.setItem('googleUser', JSON.stringify(userData));
-
-        if (mountedRef.current) {
-          setUser(userData);
-        }
+        setUser(userData);
       }
     } catch (error) {
       console.error('Ошибка при входе через Google:', error);

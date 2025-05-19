@@ -1,3 +1,4 @@
+// src/components/booking/BookingModal.tsx - исправленная версия
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Clock, User, Phone } from 'lucide-react';
 import Button from '../ui/Button';
@@ -10,7 +11,7 @@ interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   haircut: Haircut | null;
-  onConfirm: (date: string, time: string, contactInfo: { name: string; phone: string }) => void;
+  onConfirm: (date: string, time: string, contactInfo: { name: string; phone: string; notes?: string }) => void;
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({
@@ -25,6 +26,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerNotes, setCustomerNotes] = useState<string>('');
   const [step, setStep] = useState<1 | 2>(1);
   const [errors, setErrors] = useState<{name?: string; phone?: string}>({});
   const [isZoomed, setIsZoomed] = useState(false);
@@ -85,6 +87,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       setErrors({});
       setIsZoomed(false);
       setCurrentImageIndex(0);
+      setCustomerNotes('');
     }
   }, [isOpen, isAuthenticated, user]);
 
@@ -119,7 +122,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
     if (validateForm()) {
       onConfirm(selectedDate, selectedTime, {
         name: customerName,
-        phone: customerPhone
+        phone: customerPhone,
+        notes: customerNotes
       });
     }
   };
@@ -337,8 +341,26 @@ const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="p-3 bg-blue-50 rounded-md mb-4">
                       <p className="text-sm text-blue-600">Контактная информация:</p>
                       <p className="font-medium">{customerName}</p>
-                      <p className="text-sm text-gray-600">{customerPhone}</p>
+                      <p className="text-sm text-gray-600">{customerPhone || "Номер телефона не указан"}</p>
                       <p className="text-xs text-gray-500 mt-2">Данные взяты из вашего профиля</p>
+
+                      {/* Добавляем поле для редактирования телефона, если он не указан */}
+                      {!customerPhone && (
+                        <div className="mt-2">
+                          <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                            <Phone className="h-4 w-4 inline mr-1" /> Пожалуйста, укажите ваш номер телефона
+                          </label>
+                          <input
+                            type="tel"
+                            id="customerPhone"
+                            className="w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34]"
+                            placeholder="+996 XXX XXX XXX"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                          />
+                          {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -378,6 +400,21 @@ const BookingModal: React.FC<BookingModalProps> = ({
                       </div>
                     </>
                   )}
+
+                  {/* Добавляем поле для примечаний */}
+                  <div className="mt-4">
+                    <label htmlFor="customerNotes" className="block text-sm font-medium text-gray-700 mb-1">
+                      Примечания (опционально)
+                    </label>
+                    <textarea
+                      id="customerNotes"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34]"
+                      placeholder="Напишите дополнительные пожелания к стрижке"
+                      value={customerNotes}
+                      onChange={(e) => setCustomerNotes(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
                 </div>
 
                 <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md">

@@ -1,4 +1,4 @@
-// src/components/booking/BookingModal.tsx - исправленная версия
+// src/components/booking/BookingModal.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Clock, User, Phone } from 'lucide-react';
 import Button from '../ui/Button';
@@ -6,6 +6,8 @@ import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
+import { profileAPI } from '../../api/services';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const { t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
+  const notification = useNotification();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
@@ -34,6 +37,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [autoSlideEnabled, setAutoSlideEnabled] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const autoSlideIntervalRef = useRef<number | null>(null);
+  const [needsProfileUpdate, setNeedsProfileUpdate] = useState(false);
 
   // Generate some available dates (next 7 days)
   const availableDates = Array.from({ length: 7 }, (_, i) => {
@@ -71,14 +75,25 @@ const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       setSelectedDate(availableDates[0]);
       setSelectedTime('');
+      setNeedsProfileUpdate(false);
 
       // Если пользователь авторизован, заполняем поля его данными
       if (isAuthenticated && user) {
         const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         setCustomerName(fullName || user.username);
-        setCustomerPhone(user.profile?.phone || '');
+
+        // Проверяем наличие телефона в профиле
+        if (user.profile?.phone) {
+          setCustomerPhone(user.profile.phone);
+        } else if (user.profile?.whatsapp) {
+          setCustomerPhone(user.profile.whatsapp);
+          setNeedsProfileUpdate(true);
+        } else {
+          setCustomerPhone('');
+          setNeedsProfileUpdate(true);
+        }
       } else {
-        // Иначе очищаем поля
+        // Иначе очищаем поля для неавторизованных пользователей
         setCustomerName('');
         setCustomerPhone('');
       }
@@ -118,8 +133,27 @@ const BookingModal: React.FC<BookingModalProps> = ({
     return isValid;
   };
 
-  const handleConfirm = () => {
+  // Обновление профиля пользователя, если номер телефона был введен
+  const updateUserProfile = async () => {
+    if (isAuthenticated && user && needsProfileUpdate && customerPhone) {
+      try {
+        const profileFormData = new FormData();
+        profileFormData.append('phone', customerPhone);
+        await profileAPI.updateProfile(profileFormData);
+        notification.success('Профиль обновлен', 'Номер телефона сохранен в вашем профиле');
+      } catch (error) {
+        console.error('Ошибка при обновлении профиля:', error);
+      }
+    }
+  };
+
+  const handleConfirm = async () => {
     if (validateForm()) {
+      // Если нужно, обновляем профиль пользователя
+      if (needsProfileUpdate) {
+        await updateUserProfile();
+      }
+
       onConfirm(selectedDate, selectedTime, {
         name: customerName,
         phone: customerPhone,
@@ -336,16 +370,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
                     <p className="font-medium">{formatDate(selectedDate)} в {selectedTime}</p>
                   </div>
 
-                  {/* Если пользователь авторизован и у него есть имя - показываем информацию */}
-                  {isAuthenticated && user && customerName ? (
+                  {/* Если пользователь авторизован - показываем информацию из профиля */}
+                  {isAuthenticated ? (
                     <div className="p-3 bg-blue-50 rounded-md mb-4">
                       <p className="text-sm text-blue-600">Контактная информация:</p>
                       <p className="font-medium">{customerName}</p>
-                      <p className="text-sm text-gray-600">{customerPhone || "Номер телефона не указан"}</p>
-                      <p className="text-xs text-gray-500 mt-2">Данные взяты из вашего профиля</p>
 
-                      {/* Добавляем поле для редактирования телефона, если он не указан */}
-                      {!customerPhone && (
+                      {/* Если у пользователя есть телефон в профиле - показываем его */}
+                      {customerPhone ? (
+                        <p className="text-sm text-gray-600">{customerPhone}</p>
+                      ) : (
+                        /* Если телефона нет - показываем поле для его ввода */
                         <div className="mt-2">
                           <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
                             <Phone className="h-4 w-4 inline mr-1" /> Пожалуйста, укажите ваш номер телефона
@@ -359,12 +394,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
                             onChange={(e) => setCustomerPhone(e.target.value)}
                           />
                           {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Номер телефона будет сохранен в вашем профиле для будущих бронирований
+                          </p>
                         </div>
                       )}
+
+                      <p className="text-xs text-gray-500 mt-2">Данные взяты из вашего профиля</p>
                     </div>
                   ) : (
+                    /* Для неавторизованных пользователей показываем полную форму */
                     <>
-                      {/* Для неавторизованных пользователей показываем поля ввода */}
                       <div className="mb-4">
                         <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
                           <User className="h-4 w-4 inline mr-1" /> Ваше имя

@@ -130,17 +130,30 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
   if (!selectedHaircut) return;
 
   try {
-    const bookingData = {
-      service: selectedHaircut.id,
-      date: date,
-      time: time,
-      notes: contactInfo?.notes || '',
-      client_name: contactInfo.name,
-      client_phone: contactInfo.phone  // Убедитесь, что номер телефона передается
-    };
+    let bookingData;
+
+    // Если пользователь авторизован, используем его ID
+    if (isAuthenticated && user) {
+      bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || ''
+      };
+    } else {
+      // Для неавторизованных пользователей отправляем контактную информацию
+      bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || '',
+        client_name: contactInfo.name,
+        client_phone: contactInfo.phone
+      };
+    }
 
     // Проверяем, что номер телефона не пустой
-    if (!bookingData.client_phone) {
+    if (!isAuthenticated && !bookingData.client_phone) {
       notification.error(
         'Ошибка бронирования',
         'Пожалуйста, укажите номер телефона для связи'

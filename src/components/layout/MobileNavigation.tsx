@@ -1,9 +1,9 @@
+// src/components/layout/MobileNavigation.tsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, User, Scissors, Plus } from 'lucide-react';
+import { Home, Search, User, Scissors, Plus, Heart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-// Переработанная мобильная навигация, интегрирующая кнопку добавления сервиса
 const MobileNavigation = ({ openLoginModal }) => {
   const location = useLocation();
   const { isAuthenticated, user } = useAuth();
@@ -11,9 +11,7 @@ const MobileNavigation = ({ openLoginModal }) => {
   // Определяем, является ли пользователь барбером
   const isBarber = user?.profile?.user_type === 'barber';
 
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const isActive = (path) => location.pathname === path;
 
   const handleProfileClick = (e) => {
     if (!isAuthenticated) {
@@ -47,17 +45,29 @@ const MobileNavigation = ({ openLoginModal }) => {
           <span className="text-xs mt-1">Поиск</span>
         </Link>
 
-        {/* Центральная кнопка + (только для барберов) */}
-        {isBarber && (
+        {/* Центральная кнопка: + для барберов или избранное для обычных пользователей */}
+        {isBarber ? (
           <Link
             to="/add-service"
             className="relative flex flex-col items-center justify-center w-full"
           >
-            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white shadow-lg">
+            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
               <Plus className="h-8 w-8" />
             </div>
             <div className="h-6"></div>
             <span className="text-xs mt-5 text-gray-500">Добавить</span>
+          </Link>
+        ) : (
+          <Link
+            to={isAuthenticated ? "/profile?tab=favorites" : "#"}
+            onClick={e => isAuthenticated ? null : handleProfileClick(e)}
+            className="relative flex flex-col items-center justify-center w-full"
+          >
+            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
+              <Heart className="h-8 w-8" />
+            </div>
+            <div className="h-6"></div>
+            <span className="text-xs mt-5 text-gray-500">Избранное</span>
           </Link>
         )}
 

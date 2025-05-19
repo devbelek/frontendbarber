@@ -1,4 +1,5 @@
 // src/components/haircuts/HaircutCard.tsx
+// Обновленная версия карточки стрижки
 import React, { useState } from 'react';
 import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import Button from '../ui/Button';
@@ -17,10 +18,9 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { isAuthenticated, toggleFavorite, user } = useAuth();
   const notification = useNotification();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
-  const isFavorite = user?.favorites?.includes(haircut.id) || false;
+  const isFavorite = user?.favorites?.includes(haircut.id) || haircut.isFavorite || false;
   const hasMultipleImages = haircut.images && haircut.images.length > 1;
 
   const handlePrevImage = (e: React.MouseEvent) => {
@@ -80,7 +80,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     onBookClick(haircut);
   };
 
-  const openConsultModal = (e: React.MouseEvent) => {
+  const handleContactClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setShowConsultModal(true);
@@ -98,8 +98,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   return (
     <div
       className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative aspect-square overflow-hidden">
         <ImageWithFallback
@@ -164,14 +162,12 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             />
           </button>
 
-          {hasValidContacts && (
-            <button
-              className="p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-md"
-              onClick={openConsultModal}
-            >
-              <MessageCircle size={18} />
-            </button>
-          )}
+          <button
+            className="p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-md"
+            onClick={handleContactClick}
+          >
+            <MessageCircle size={18} />
+          </button>
         </div>
       </div>
 

@@ -224,7 +224,7 @@ const HomePage = ({ openLoginModal }) => {
     <Layout openLoginModal={openLoginModal}>
       <div className="pb-16 mb-3 md:pb-0">
         {/* Поисковая панель */}
-        <div className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3">
+    <div className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3 mt-16">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             <input

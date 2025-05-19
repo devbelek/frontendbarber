@@ -213,6 +213,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 <h3 className="font-semibold">{haircut.title}</h3>
                 <p className="text-sm text-gray-600">{haircut.barber}</p>
                 <p className="text-[#9A0F34] font-bold mt-1">{haircut.price} {t('som')}</p>
+                {haircut.description && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <p className="line-clamp-3">{haircut.description}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

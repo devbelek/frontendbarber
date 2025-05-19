@@ -8,6 +8,7 @@ export interface Haircut {
   primaryImage: string;
   title: string;
   price: number;
+  description: string;
   barber: string;
   barberId: string;
   type: string;

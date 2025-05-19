@@ -1006,7 +1006,7 @@ const ProfilePage: React.FC = () => {
 
               {activeTab === 'barberBookings' && (
                 <div>
-                  <h3 className="text-xl font-bold mb-4">{t('myBarberBookings')}</h3>
+                  <h3 className="text-xl font-bold mb-4">{t('Мои записи')}</h3>
                   <BarberBookingsList />
                 </div>
               )}

@@ -54,8 +54,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         family_name: decoded.family_name
       };
 
-      // Отправляем токен на бэкенд с явным указанием типа 'barber'
-      const response = await authAPI.googleAuth(credentialResponse.credential, 'barber');
+      // Отправляем токен на бэкенд с явным указанием типа 'client'
+      const response = await authAPI.googleAuth(credentialResponse.credential, 'client');
 
       if (response.data.access) {
         localStorage.setItem('token', response.data.access);
@@ -79,7 +79,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
       // Show success message
       setTimeout(() => {
-        notification.success('Вход выполнен', 'Вы успешно вошли как барбер через Google!');
+        notification.success('Вход выполнен', 'Вы успешно вошли в систему!');
       }, 500);
     } catch (error) {
       console.error('Error processing Google login:', error);
@@ -109,11 +109,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <span className="ml-2 text-2xl font-bold">tarak</span>
           </div>
 
-          <h2 className="text-xl font-bold text-center mb-6">Вход для барберов</h2>
+          <h2 className="text-xl font-bold text-center mb-6">Вход в систему</h2>
 
           <div className="mb-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
-              Создайте профиль барбера, чтобы публиковать свои работы и привлекать новых клиентов
+              Войдите в систему, чтобы получить доступ к персонализированным функциям
             </p>
           </div>
 

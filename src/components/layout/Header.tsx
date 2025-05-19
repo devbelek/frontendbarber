@@ -192,7 +192,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
                 onClick={openLoginModal}
                 className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
               >
-                {t('becomeBarber')}
+                {t('signIn')}
               </Button>
             )}
           </div>
@@ -287,7 +287,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
                     setIsMenuOpen(false);
                   }}
                 >
-                  {t('becomeBarber')}
+                  {t('signIn')}
                 </Button>
               </div>
             )}

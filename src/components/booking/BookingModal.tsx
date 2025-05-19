@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
+import { useAuth } from '../../context/AuthContext';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   onConfirm
 }) => {
   const { t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
@@ -67,14 +69,24 @@ const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       setSelectedDate(availableDates[0]);
       setSelectedTime('');
-      setCustomerName('');
-      setCustomerPhone('');
+
+      // Если пользователь авторизован, заполняем поля его данными
+      if (isAuthenticated && user) {
+        const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        setCustomerName(fullName || user.username);
+        setCustomerPhone(user.profile?.phone || '');
+      } else {
+        // Иначе очищаем поля
+        setCustomerName('');
+        setCustomerPhone('');
+      }
+
       setStep(1);
       setErrors({});
       setIsZoomed(false);
       setCurrentImageIndex(0);
     }
-  }, [isOpen]);
+  }, [isOpen, isAuthenticated, user]);
 
   const handleNextStep = () => {
     if (selectedDate && selectedTime) {
@@ -320,39 +332,52 @@ const BookingModal: React.FC<BookingModalProps> = ({
                     <p className="font-medium">{formatDate(selectedDate)} в {selectedTime}</p>
                   </div>
 
-                  <div className="mb-4">
-                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
-                      <User className="h-4 w-4 inline mr-1" /> Ваше имя
-                    </label>
-                    <input
-                      type="text"
-                      id="customerName"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
-                        errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="Введите ваше имя"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                    />
-                    {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-                  </div>
+                  {/* Если пользователь авторизован и у него есть имя - показываем информацию */}
+                  {isAuthenticated && user && customerName ? (
+                    <div className="p-3 bg-blue-50 rounded-md mb-4">
+                      <p className="text-sm text-blue-600">Контактная информация:</p>
+                      <p className="font-medium">{customerName}</p>
+                      <p className="text-sm text-gray-600">{customerPhone}</p>
+                      <p className="text-xs text-gray-500 mt-2">Данные взяты из вашего профиля</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Для неавторизованных пользователей показываем поля ввода */}
+                      <div className="mb-4">
+                        <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
+                          <User className="h-4 w-4 inline mr-1" /> Ваше имя
+                        </label>
+                        <input
+                          type="text"
+                          id="customerName"
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
+                            errors.name ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Введите ваше имя"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                        />
+                        {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+                      </div>
 
-                  <div>
-                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                      <Phone className="h-4 w-4 inline mr-1" /> Номер телефона
-                    </label>
-                    <input
-                      type="tel"
-                      id="customerPhone"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
-                        errors.phone ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="+996 XXX XXX XXX"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                    />
-                    {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
-                  </div>
+                      <div>
+                        <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                          <Phone className="h-4 w-4 inline mr-1" /> Номер телефона
+                        </label>
+                        <input
+                          type="tel"
+                          id="customerPhone"
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#9A0F34] focus:border-[#9A0F34] ${
+                            errors.phone ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="+996 XXX XXX XXX"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                        />
+                        {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md">

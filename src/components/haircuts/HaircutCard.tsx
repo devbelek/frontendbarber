@@ -1,7 +1,7 @@
-// src/components/haircuts/HaircutCard.tsx - оптимизированная версия для мобильных устройств
+// src/components/haircuts/HaircutCard.tsx
 import React, { useState } from 'react';
 import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import Button from '../../ui/Button';
+import Button from '../ui/Button';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import { Haircut } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -26,17 +26,21 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? haircut.images.length - 1 : prev - 1
-    );
+    if (hasMultipleImages) {
+      setCurrentImageIndex((prev) =>
+        prev === 0 ? haircut.images.length - 1 : prev - 1
+      );
+    }
   };
 
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setCurrentImageIndex((prev) =>
-      prev === haircut.images.length - 1 ? 0 : prev + 1
-    );
+    if (hasMultipleImages) {
+      setCurrentImageIndex((prev) =>
+        prev === haircut.images.length - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
@@ -76,9 +80,15 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     onBookClick(haircut);
   };
 
+  const openConsultModal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowConsultModal(true);
+  };
+
   const currentImage = haircut.images && haircut.images.length > 0
     ? haircut.images[currentImageIndex].image
-    : haircut.primaryImage;
+    : haircut.primaryImage || haircut.image;
 
   // Проверка наличия контактных данных барбера
   const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
@@ -98,25 +108,25 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
 
-        {/* Навигация по изображениям для больших экранов */}
-        {hasMultipleImages && isHovered && (
+        {/* Кнопки навигации по изображениям */}
+        {hasMultipleImages && (
           <>
             <button
               onClick={handlePrevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 md:block hidden"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={handleNextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 md:block hidden"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </>
         )}
 
-        {/* Индикаторы для мобильных устройств */}
+        {/* Индикаторы для изображений */}
         {hasMultipleImages && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             {haircut.images.map((_, index) => (
@@ -138,28 +148,43 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           {haircut.views || 0}
         </div>
 
-        {/* Кнопка избранного */}
-        <button
-          className={`absolute top-2 right-2 p-2 rounded-full ${
-            isFavorite
-              ? 'bg-[#9A0F34] text-white'
-              : 'bg-white text-gray-800 hover:bg-gray-100'
-          } transition-colors shadow-md`}
-          onClick={handleFavoriteClick}
-        >
-          <Heart
-            size={18}
-            className={isFavorite ? 'fill-current' : ''}
-          />
-        </button>
+        {/* Кнопки действий */}
+        <div className="absolute top-2 right-2 flex gap-1">
+          <button
+            className={`p-2 rounded-full ${
+              isFavorite
+                ? 'bg-[#9A0F34] text-white'
+                : 'bg-white text-gray-800 hover:bg-gray-100'
+            } transition-colors shadow-md`}
+            onClick={handleFavoriteClick}
+          >
+            <Heart
+              size={18}
+              className={isFavorite ? 'fill-current' : ''}
+            />
+          </button>
+
+          {hasValidContacts && (
+            <button
+              className="p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-md"
+              onClick={openConsultModal}
+            >
+              <MessageCircle size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-3">
         <h3 className="text-sm font-semibold mb-1 line-clamp-1">{haircut.title}</h3>
 
+        {haircut.description && (
+          <p className="text-xs text-gray-600 line-clamp-2 mb-2">{haircut.description}</p>
+        )}
+
         <div className="flex justify-between items-center mb-2">
           <span className="text-[#9A0F34] font-bold text-sm">
-            {haircut.price} сом
+            {Math.floor(haircut.price)} сом
           </span>
           <span className="text-xs text-gray-600">
             {haircut.barber}
@@ -178,7 +203,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
         </div>
       </div>
 
-      {/* Модальное окно консультации - оставляем без изменений */}
+      {/* Модальное окно консультации */}
       {showConsultModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
              onClick={() => setShowConsultModal(false)}>

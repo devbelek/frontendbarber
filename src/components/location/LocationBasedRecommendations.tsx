@@ -1,3 +1,4 @@
+// src/components/location/LocationBasedRecommendations.tsx
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -165,29 +166,51 @@ const LocationBasedBarbers: React.FC = () => {
           barbersData = response.data;
         }
 
-        const barbersWithProfile = barbersData.map((user: any) => ({
-          id: user.id,
-          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-          avatar: user.profile?.photo || null,
-          rating: 0,
-          reviewCount: 0,
-          specialization: user.profile?.specialization || [],
-          location: user.profile?.address || 'Не указано',
-          workingHours: {
-            from: user.profile?.working_hours_from || '09:00',
-            to: user.profile?.working_hours_to || '18:00',
-            days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
-          },
-          portfolio: [],
-          description: user.profile?.bio || 'Информация о барбере',
-          whatsapp: user.profile?.whatsapp || '',
-          telegram: user.profile?.telegram || '',
-          offerHomeService: user.profile?.offers_home_service || false
-        }));
+        // Преобразуем барберов и добавляем расстояние
+        const barbersWithProfile = barbersData.map((user: any) => {
+          let distance = null;
 
-        // Здесь можно добавить фильтрацию по расстоянию, если у барберов есть координаты
+          // Рассчитываем расстояние, если есть координаты барбера и пользователя
+          if (user.profile?.latitude && user.profile?.longitude &&
+              userLocation.latitude && userLocation.longitude) {
+            distance = calculateDistance(
+              userLocation.latitude,
+              userLocation.longitude,
+              user.profile.latitude,
+              user.profile.longitude
+            );
+          }
 
-        setNearbyBarbers(barbersWithProfile);
+          return {
+            id: user.id,
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+            avatar: user.profile?.photo || null,
+            rating: 0,
+            reviewCount: 0,
+            specialization: user.profile?.specialization || [],
+            location: user.profile?.address || 'Не указано',
+            distance: distance,
+            workingHours: {
+              from: user.profile?.working_hours_from || '09:00',
+              to: user.profile?.working_hours_to || '18:00',
+              days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+            },
+            portfolio: [],
+            description: user.profile?.bio || 'Информация о барбере',
+            whatsapp: user.profile?.whatsapp || '',
+            telegram: user.profile?.telegram || '',
+            offerHomeService: user.profile?.offers_home_service || false
+          };
+        });
+
+        // Сортируем по расстоянию, если оно есть
+        const sortedBarbers = barbersWithProfile.sort((a, b) => {
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        });
+
+        setNearbyBarbers(sortedBarbers);
       }
 
       setShowRecommendations(true);
@@ -197,6 +220,24 @@ const LocationBasedBarbers: React.FC = () => {
       setError('Не удалось загрузить барберов');
       setLoading(false);
     }
+  };
+
+  // Расчет расстояния между двумя точками с координатами
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // радиус Земли в км
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Расстояние в км
+    return parseFloat(distance.toFixed(1));
+  };
+
+  const deg2rad = (deg) => {
+    return deg * (Math.PI/180);
   };
 
   const handleRequestLocation = () => {
@@ -313,9 +354,11 @@ const LocationBasedBarbers: React.FC = () => {
                   <div className="p-4">
                     <h3 className="font-medium text-lg">{barber.name}</h3>
                     <p className="text-gray-600">{barber.location}</p>
-                    <div className="mt-2 text-sm text-gray-500">
-                      {barber.workingHours.from} - {barber.workingHours.to}
-                    </div>
+                    {barber.distance !== null && (
+                      <div className="mt-2 text-sm text-[#9A0F34]">
+                        {barber.distance} км от вас
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, Globe, MapPin, LogOut } from 'lucide-react';
-import Button from '../../ui/Button';
+import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useLocation as useLocationContext } from '../../context/LocationContext';
@@ -43,8 +43,8 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
 
   // Динамические стили для прозрачного/непрозрачного заголовка
   const headerStyles = isTransparent && !isScrolled
-    ? 'absolute top-0 left-0 right-0 bg-transparent text-white z-50 py-4'
-    : 'sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-3 backdrop-blur-md bg-white/90';
+    ? 'fixed top-0 left-0 right-0 bg-transparent text-white z-50 py-2'
+    : 'sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-2 backdrop-blur-md bg-white/90';
 
   const linkStyles = {
     default: isTransparent && !isScrolled
@@ -57,13 +57,13 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
 
   return (
     <header className={`transition-all duration-300 ${headerStyles}`}>
-      <div className="container mx-auto px-6">
-        <div className="flex justify-between items-center">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-14">
           {/* Логотип */}
           <Link to="/" className="flex items-center">
             <svg
               viewBox="0 0 24 24"
-              className={`h-8 w-8 ${isTransparent && !isScrolled ? 'text-white' : 'text-[#9A0F34]'}`}
+              className={`h-7 w-7 ${isTransparent && !isScrolled ? 'text-white' : 'text-[#9A0F34]'}`}
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -76,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
               <path d="M8 14h8" />
               <path d="M8 18h8" />
             </svg>
-            <span className={`ml-2 text-2xl font-bold ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`}>
+            <span className={`ml-2 text-xl font-bold ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`}>
               TARAK
             </span>
           </Link>
@@ -104,7 +104,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
           </nav>
 
           {/* Десктопные кнопки: регион, язык, авторизация */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {/* Селектор региона */}
             <div className="relative">
               <button

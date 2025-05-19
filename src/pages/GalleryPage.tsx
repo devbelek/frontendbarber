@@ -5,13 +5,14 @@ import BookingModal from '../components/booking/BookingModal';
 import { servicesAPI, bookingsAPI } from '../api/services';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext'; // Добавлен импорт
 import { Search, Filter, ChevronDown, X, Grid3X3, Grid2X2, ChevronUp } from 'lucide-react';
 import Button from '../components/ui/Button';
 
-// Интегрированная версия GalleryPage с новым макетом
 const GalleryPage = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const notification = useNotification();
+  const { isAuthenticated, user } = useAuth(); // Добавлено получение данных аутентификации
   const [filteredHaircuts, setFilteredHaircuts] = useState([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState(null);
@@ -126,56 +127,56 @@ const GalleryPage = ({ openLoginModal }) => {
     setIsBookingModalOpen(true);
   };
 
-const handleBookingConfirm = async (date, time, contactInfo) => {
-  if (!selectedHaircut) return;
+  const handleBookingConfirm = async (date, time, contactInfo) => {
+    if (!selectedHaircut) return;
 
-  try {
-    let bookingData;
+    try {
+      let bookingData;
 
-    // Если пользователь авторизован, используем его ID
-    if (isAuthenticated && user) {
-      bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || ''
-      };
-    } else {
-      // Для неавторизованных пользователей отправляем контактную информацию
-      bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || '',
-        client_name: contactInfo.name,
-        client_phone: contactInfo.phone
-      };
-    }
+      // Теперь переменные isAuthenticated и user определены
+      if (isAuthenticated && user) {
+        bookingData = {
+          service: selectedHaircut.id,
+          date: date,
+          time: time,
+          notes: contactInfo?.notes || ''
+        };
+      } else {
+        // Для неавторизованных пользователей
+        bookingData = {
+          service: selectedHaircut.id,
+          date: date,
+          time: time,
+          notes: contactInfo?.notes || '',
+          client_name: contactInfo.name,
+          client_phone: contactInfo.phone
+        };
+      }
 
-    // Проверяем, что номер телефона не пустой
-    if (!isAuthenticated && !bookingData.client_phone) {
+      // Проверяем, что номер телефона не пустой для неавторизованных пользователей
+      if (!isAuthenticated && !bookingData.client_phone) {
+        notification.error(
+          'Ошибка бронирования',
+          'Пожалуйста, укажите номер телефона для связи'
+        );
+        return;
+      }
+
+      await bookingsAPI.create(bookingData);
+      setIsBookingModalOpen(false);
+
+      notification.success(
+        'Бронирование создано',
+        `Услуга "${selectedHaircut.title}" успешно забронирована`
+      );
+    } catch (err) {
+      console.error('Error creating booking:', err);
       notification.error(
         'Ошибка бронирования',
-        'Пожалуйста, укажите номер телефона для связи'
+        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
       );
-      return;
     }
-
-    await bookingsAPI.create(bookingData);
-    setIsBookingModalOpen(false);
-
-    notification.success(
-      'Бронирование создано',
-      `Услуга "${selectedHaircut.title}" успешно забронирована`
-    );
-  } catch (err) {
-    console.error('Error creating booking:', err);
-    notification.error(
-      'Ошибка бронирования',
-      'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
-    );
-  }
-};
+  };
 
   // Сброс фильтров
   const resetFilters = () => {

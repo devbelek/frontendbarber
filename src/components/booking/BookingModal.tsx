@@ -134,18 +134,23 @@ const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   // Обновление профиля пользователя, если номер телефона был введен
-  const updateUserProfile = async () => {
-    if (isAuthenticated && user && needsProfileUpdate && customerPhone) {
-      try {
-        const profileFormData = new FormData();
-        profileFormData.append('phone', customerPhone);
-        await profileAPI.updateProfile(profileFormData);
-        notification.success('Профиль обновлен', 'Номер телефона сохранен в вашем профиле');
-      } catch (error) {
-        console.error('Ошибка при обновлении профиля:', error);
-      }
+const updateUserProfile = async () => {
+  if (isAuthenticated && user && needsProfileUpdate && customerPhone) {
+    try {
+      const profileFormData = new FormData();
+      profileFormData.append('phone', customerPhone);
+      await profileAPI.updateProfile(profileFormData);
+
+      // Убираем уведомление, которое сбивает с толку при бронировании
+      // notification.success('Профиль обновлен', 'Номер телефона сохранен в вашем профиле');
+
+      // Альтернативно, можно сделать его менее заметным или изменить текст:
+      // notification.info('Информация', 'Номер телефона сохранен для будущих бронирований');
+    } catch (error) {
+      console.error('Ошибка при обновлении профиля:', error);
     }
-  };
+  }
+};
 
   const handleConfirm = async () => {
     if (validateForm()) {

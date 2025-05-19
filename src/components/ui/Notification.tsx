@@ -129,6 +129,7 @@ interface NotificationData {
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const counterRef = useRef(0); // Добавляем счетчик для уникальных ID
 
   const addNotification = (
     type: NotificationType,
@@ -136,7 +137,7 @@ export const useNotifications = () => {
     message?: string,
     duration?: number
   ) => {
-    const id = Date.now().toString();
+    const id = `${Date.now()}-${counterRef.current++}`; // Уникальный ID с временной меткой и счетчиком
     setNotifications((prev) => [...prev, { id, type, title, message, duration }]);
   };
 

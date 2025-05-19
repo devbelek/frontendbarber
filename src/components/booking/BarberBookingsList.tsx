@@ -204,12 +204,13 @@ const BarberBookingsList: React.FC = () => {
               <div className="mb-4 md:mb-0">
                 <div className="flex items-center mb-2">
                   <User className="h-5 w-5 text-[#9A0F34] mr-2" />
-                  <h3 className="font-semibold text-lg">
-                    {/* Используем новые поля для контактной информации */}
-                    {booking.client_name_contact ||
-                     (booking.client && `${booking.client.first_name} ${booking.client.last_name}`.trim()) ||
-                     "Клиент"}
-                  </h3>
+                    <h3 className="font-semibold text-lg">
+                      {/* Исправленная версия для отображения имени клиента */}
+                      {booking.client_name_contact ||
+                       (booking.client && booking.client.first_name && booking.client.last_name ?
+                         `${booking.client.first_name} ${booking.client.last_name}`.trim() :
+                         (booking.client && booking.client.username ? booking.client.username : "Клиент"))}
+                    </h3>
                 </div>
 
                 {/* Отображение телефона клиента, если он есть */}

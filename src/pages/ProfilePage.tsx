@@ -731,19 +731,21 @@ const ProfilePage: React.FC = () => {
                             )}
                           </div>
 
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id="offers_home_service"
-                              name="offers_home_service"
-                              checked={formData.offers_home_service}
-                              onChange={handleCheckboxChange}
-                              className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
-                            />
-                            <label htmlFor="offers_home_service" className="ml-2 block text-sm text-gray-900">
-                              Предлагаю услуги на выезде
-                            </label>
-                          </div>
+                                {user.profile?.user_type === 'barber' && (
+                                  <div className="flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      id="offers_home_service"
+                                      name="offers_home_service"
+                                      checked={formData.offers_home_service}
+                                      onChange={handleCheckboxChange}
+                                      className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
+                                    />
+                                    <label htmlFor="offers_home_service" className="ml-2 block text-sm text-gray-900">
+                                      Предлагаю услуги на выезде
+                                    </label>
+                                  </div>
+                                )}
 
                           {user.profile?.user_type === 'barber' && (
                             <>
@@ -929,11 +931,11 @@ const ProfilePage: React.FC = () => {
                                 Координаты: {user.profile.latitude.toFixed(6)}, {user.profile.longitude.toFixed(6)}
                               </p>
                             )}
-                            {user.profile?.offers_home_service && (
-                              <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Выезд на дом
-                              </div>
-                            )}
+                                    {user.profile?.user_type === 'barber' && user.profile?.offers_home_service && (
+                                      <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Выезд на дом
+                                      </div>
+                                    )}
                           </div>
 
                           {user.profile?.user_type === 'barber' && (

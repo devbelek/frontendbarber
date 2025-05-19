@@ -5,7 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 import * as jwtDecode from 'jwt-decode';
-import { authAPI } from '../../api/services'; // Добавляем импорт authAPI
+import { authAPI } from '../../api/services';
 import { useNotification } from '../../context/NotificationContext';
 
 interface LoginModalProps {
@@ -16,6 +16,7 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const { loginWithGoogle } = useAuth();
+  const notification = useNotification();
 
   if (!isOpen) return null;
 
@@ -39,7 +40,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     </svg>
   );
 
-  // ИСПРАВЛЕНО: обновлённый метод handleGoogleLoginSuccess в LoginModal.tsx
   const handleGoogleLoginSuccess = async (credentialResponse: any) => {
     try {
       const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
@@ -54,28 +54,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         family_name: decoded.family_name
       };
 
-      try {
-        // Отправляем токен на бэкенд для проверки
-        const response = await authAPI.googleAuth(credentialResponse.credential);
-        // Получаем JWT токены от бэкенда
-        if (response.data.access) {
-          localStorage.setItem('token', response.data.access);
-          if (response.data.refresh) {
-            localStorage.setItem('refreshToken', response.data.refresh);
-          }
-          // Сохраняем информацию о пользователе
-          if (response.data.user) {
-            localStorage.setItem('googleUser', JSON.stringify(response.data.user));
-          }
-        } else {
-          // Если бэкенд не вернул токены, используем временный токен
-          const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-          localStorage.setItem('token', tempToken);
-          localStorage.setItem('googleUser', JSON.stringify(userInfo));
+      // Отправляем токен на бэкенд с явным указанием типа 'barber'
+      const response = await authAPI.googleAuth(credentialResponse.credential, 'barber');
+
+      if (response.data.access) {
+        localStorage.setItem('token', response.data.access);
+        if (response.data.refresh) {
+          localStorage.setItem('refreshToken', response.data.refresh);
         }
-      } catch (error) {
-        console.error('Ошибка при получении токена от сервера:', error);
-        // Резервный вариант с временным токеном
+        if (response.data.user) {
+          localStorage.setItem('googleUser', JSON.stringify(response.data.user));
+        }
+      } else {
         const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
         localStorage.setItem('token', tempToken);
         localStorage.setItem('googleUser', JSON.stringify(userInfo));
@@ -93,14 +83,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       }, 500);
     } catch (error) {
       console.error('Error processing Google login:', error);
-        notification.error('Ошибка входа', 'Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+      notification.error('Ошибка входа', 'Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
     }
   };
 
-  // Остальной код остается без изменений
   const handleGoogleLoginError = () => {
     console.error('Google login failed');
-        notification.error('Ошибка Google', 'Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');
+    notification.error('Ошибка Google', 'Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');
   };
 
   return (
@@ -129,17 +118,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="mb-6">
-                <GoogleLogin
-                  onSuccess={handleGoogleLoginSuccess}
-                  onError={handleGoogleLoginError}
-                  useOneTap
-                  theme="outline"
-                  shape="rectangular"
-                  logo_alignment="center"
-                  text="signin_with"
-                  locale="ru"
-                  width="300" // Изменено с "100%" на "300"
-                />
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap
+              theme="outline"
+              shape="rectangular"
+              logo_alignment="center"
+              text="signin_with"
+              locale="ru"
+              width="300"
+            />
           </div>
 
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">

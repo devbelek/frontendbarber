@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, MapPin, User, Check, X, Eye, Edit, Trash } from 'lucide-react';
+import { Clock, Calendar, MapPin, User, Check, X, Eye, Edit, Trash, Phone } from 'lucide-react';
 import Card, { CardContent } from '../ui/Card';
 import Button from '../ui/Button';
 import { bookingsAPI } from '../../api/services';
@@ -119,6 +119,21 @@ const BarberBookingsList: React.FC = () => {
     );
   };
 
+  // Функция форматирования даты
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  // Функция форматирования времени
+  const formatTime = (timeStr: string) => {
+    return timeStr.substring(0, 5); // Берем только часы и минуты
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -169,21 +184,6 @@ const BarberBookingsList: React.FC = () => {
     );
   }
 
-  // Функция форматирования даты
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(date);
-  };
-
-  // Функция форматирования времени
-  const formatTime = (timeStr: string) => {
-    return timeStr.substring(0, 5); // Берем только часы и минуты
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
@@ -205,9 +205,20 @@ const BarberBookingsList: React.FC = () => {
                 <div className="flex items-center mb-2">
                   <User className="h-5 w-5 text-[#9A0F34] mr-2" />
                   <h3 className="font-semibold text-lg">
-                    {booking.client_name || "Клиент"}
+                    {/* Используем новые поля для контактной информации */}
+                    {booking.client_name_contact ||
+                     (booking.client && `${booking.client.first_name} ${booking.client.last_name}`.trim()) ||
+                     "Клиент"}
                   </h3>
                 </div>
+
+                {/* Отображение телефона клиента, если он есть */}
+                {booking.client_phone_contact && (
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <Phone className="h-4 w-4 mr-2" />
+                    <a href={`tel:${booking.client_phone_contact}`}>{booking.client_phone_contact}</a>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center text-sm text-gray-600">

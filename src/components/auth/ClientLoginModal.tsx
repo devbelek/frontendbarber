@@ -73,9 +73,9 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onClose }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
 
     try {
@@ -126,7 +126,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({ isOpen, onClose }) 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
-      
+
       // Отправляем токен на бэкенд
       const response = await authAPI.googleAuth(credentialResponse.credential, 'client');
       

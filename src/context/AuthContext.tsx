@@ -1,4 +1,4 @@
-// src/context/AuthContext.tsx
+// src/context/AuthContext.tsx с улучшенным механизмом управления запросами
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
@@ -17,7 +17,7 @@ type AuthContextType = {
   setUser: (user: User | null) => void;
   isAuthenticated: boolean;
   login: (userData: any) => Promise<boolean>;
-  loginWithGoogle: (userInfo: GoogleUserInfo) => void;
+  loginWithGoogle: (userInfo: GoogleUserInfo) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
   toggleFavorite: (haircutId: string) => Promise<void>;
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchTime = useRef<number>(0);
-  const MIN_FETCH_INTERVAL = 5000; // Минимальный интервал между запросами (5 секунд)
+  const MIN_FETCH_INTERVAL = 2000; // Увеличиваем минимальный интервал между запросами (2 секунды)
 
   // Проверяем аутентификацию при загрузке
   useEffect(() => {
@@ -45,15 +45,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refreshToken'); // Убедитесь, что проверяете refreshToken
+      const refreshToken = localStorage.getItem('refreshToken');
       const googleUser = localStorage.getItem('googleUser');
 
       // Проверяем минимальный интервал между запросами
       const now = Date.now();
       if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-        console.log('Слишком частые запросы, пропускаем');
-        setLoading(false);
-        return;
+        console.log('Слишком частые запросы, добавляем задержку');
+        await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
       }
 
       if (token && !fetchingRef.current) {
@@ -145,13 +144,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Проверяем минимальный интервал
     const now = Date.now();
     if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      console.log('Слишком частые запросы к fetchCurrentUser, пропускаем');
-      return;
+      console.log('Слишком частые запросы к fetchCurrentUser, добавляем задержку');
+      await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
     }
 
     try {
       fetchingRef.current = true;
-      lastFetchTime.current = now;
+      lastFetchTime.current = Date.now();
       setLoading(true);
 
       const googleUser = localStorage.getItem('googleUser');
@@ -214,13 +213,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Проверяем минимальный интервал
     const now = Date.now();
     if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      console.log('Слишком частое обновление данных пользователя, пропускаем');
-      return;
+      console.log('Слишком частое обновление данных пользователя, добавляем задержку');
+      await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
     }
 
     try {
       fetchingRef.current = true;
-      lastFetchTime.current = now;
+      lastFetchTime.current = Date.now();
       setLoading(true);
 
       const response = await authAPI.getCurrentUser();
@@ -306,7 +305,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem('token', response.data.access);
       if (response.data.refresh) {
-        localStorage.setItem('refreshToken', response.data.refresh); // Исправлено с 'refresh' на 'refreshToken'
+        localStorage.setItem('refreshToken', response.data.refresh);
       }
 
       await fetchCurrentUser();
@@ -373,6 +372,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (response.data.refresh) {
             localStorage.setItem('refreshToken', response.data.refresh);
           }
+
+          // Обновляем информацию о пользователе
+          if (response.data.user) {
+            localStorage.setItem('googleUser', JSON.stringify({
+              ...response.data.user,
+              picture: userInfo.picture
+            }));
+          }
+
+          // Добавляем задержку перед получением данных пользователя
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
           // Получаем данные пользователя с сервера
           await fetchCurrentUser();
@@ -442,7 +452,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toggleFavorite = async (haircutId: string): Promise<void> => {
-    if (loading || fetchingRef.current) return;
+    if (loading || fetchingRef.current) {
+      console.log("Дождитесь завершения предыдущего запроса...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     if (!haircutId) {
       console.error('haircutId is undefined or empty in toggleFavorite');
@@ -457,6 +470,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Toggle favorite for haircutId:', haircutId, 'Type:', typeof haircutId);
       const isFavorite = user.favorites?.includes(haircutId) || false;
       console.log('Is already favorite:', isFavorite);
+
+      // Добавляем задержку для предотвращения слишком частых запросов
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       if (isFavorite) {
         console.log('Removing from favorites');

@@ -212,49 +212,59 @@ const ProfilePage: React.FC = () => {
     );
   };
 
-  const handleUserTypeChange = async (newType: 'client' | 'barber') => {
-    if (!user) return;
+const handleUserTypeChange = async (newType: 'client' | 'barber') => {
+  if (!user) return;
 
-    try {
-      setIsSubmitting(true);
+  try {
+    setIsSubmitting(true);
+    notification.info(
+      'Переключение типа...',
+      'Пожалуйста, подождите, идет обновление профиля'
+    );
 
-      const profileFormData = new FormData();
-      profileFormData.append('user_type', newType);
+    // Добавляем задержку для предотвращения слишком частых запросов
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (newType === 'barber' && !formData.telegram) {
-        setShowBecomeBaberModal(true);
-        setIsSubmitting(false);
-        return;
-      }
+    const profileFormData = new FormData();
+    profileFormData.append('user_type', newType);
 
-      if (newType === 'barber' && formData.telegram) {
-        profileFormData.append('telegram', formData.telegram);
-      }
-
-      await profileAPI.updateProfile(profileFormData);
-
-      if (refreshUserData) {
-        await refreshUserData();
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        user_type: newType
-      }));
-
-      notification.success(
-        'Успешно!',
-        newType === 'barber'
-          ? 'Вы стали барбером! Теперь вы можете добавлять свои услуги.'
-          : 'Вы переключились на аккаунт клиента.'
-      );
-    } catch (err: any) {
-      console.error('Failed to change user type:', err);
-      notification.error('Ошибка!', 'Не удалось изменить тип пользователя.');
-    } finally {
+    if (newType === 'barber' && !formData.telegram) {
+      setShowBecomeBaberModal(true);
       setIsSubmitting(false);
+      return;
     }
-  };
+
+    if (newType === 'barber' && formData.telegram) {
+      profileFormData.append('telegram', formData.telegram);
+    }
+
+    await profileAPI.updateProfile(profileFormData);
+
+    // Добавляем дополнительную задержку перед обновлением данных
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (refreshUserData) {
+      await refreshUserData();
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      user_type: newType
+    }));
+
+    notification.success(
+      'Успешно!',
+      newType === 'barber'
+        ? 'Вы стали барбером! Теперь вы можете добавлять свои услуги.'
+        : 'Вы переключились на аккаунт клиента.'
+    );
+  } catch (err: any) {
+    console.error('Failed to change user type:', err);
+    notification.error('Ошибка!', 'Не удалось изменить тип пользователя. Повторите попытку позже.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleBecomeBarberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

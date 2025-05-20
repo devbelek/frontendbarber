@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pencil, Trash, Eye, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { servicesAPI } from '../../api/services';
@@ -57,25 +57,36 @@ const MyHaircuts = () => {
     navigate(`/edit-service/${id}`);
   };
 
+  // Исправленная функция для открытия диалога подтверждения
   const handleDeleteClick = (id) => {
+    console.log("Открываем диалог удаления для ID:", id);
     setServiceToDelete(id);
     setDeleteConfirmOpen(true);
   };
 
+  // Исправленная функция подтверждения удаления
   const handleDeleteConfirm = async () => {
     try {
+      console.log("Удаляем стрижку с ID:", serviceToDelete);
       await servicesAPI.delete(serviceToDelete);
+
+      // Показываем уведомление об успешном удалении
+      notification.success('Стрижка удалена', 'Услуга успешно удалена из вашего портфолио');
+
+      // Закрываем диалог и сбрасываем ID удаляемой услуги
       setDeleteConfirmOpen(false);
       setServiceToDelete(null);
-      notification.success('Стрижка удалена', 'Услуга успешно удалена');
+
+      // Обновляем список стрижек
       fetchMyHaircuts();
     } catch (err) {
       console.error('Failed to delete haircut:', err);
-      notification.error('Ошибка', 'Не удалось удалить стрижку');
+      notification.error('Ошибка', 'Не удалось удалить стрижку. Пожалуйста, попробуйте позже.');
     }
   };
 
   const handleDeleteCancel = () => {
+    console.log("Отмена удаления");
     setDeleteConfirmOpen(false);
     setServiceToDelete(null);
   };
@@ -184,7 +195,7 @@ const MyHaircuts = () => {
         </div>
       )}
 
-      {/* Диалог подтверждения удаления */}
+      {/* Улучшенный диалог подтверждения удаления */}
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
         title="Удаление стрижки"

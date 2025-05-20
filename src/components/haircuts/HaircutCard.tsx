@@ -1,5 +1,4 @@
 // src/components/haircuts/HaircutCard.tsx
-// Обновленная версия карточки стрижки
 import React, { useState } from 'react';
 import { Heart, Clock, MessageCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import Button from '../ui/Button';
@@ -8,6 +7,7 @@ import { Haircut } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { servicesAPI } from '../../api/services';
+import { useNavigate } from 'react-router-dom';
 
 interface HaircutCardProps {
   haircut: Haircut;
@@ -17,6 +17,7 @@ interface HaircutCardProps {
 const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { isAuthenticated, toggleFavorite, user } = useAuth();
   const notification = useNotification();
+  const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
@@ -86,6 +87,17 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     setShowConsultModal(true);
   };
 
+  const handleBarberClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (haircut.barberId) {
+      navigate(`/barber/${haircut.barberId}`);
+    } else {
+      notification.error('Ошибка', 'Информация о барбере недоступна');
+    }
+  };
+
   const currentImage = haircut.images && haircut.images.length > 0
     ? haircut.images[currentImageIndex].image
     : haircut.primaryImage || haircut.image;
@@ -146,28 +158,28 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           {haircut.views || 0}
         </div>
 
-        {/* Кнопки действий */}
+        {/* Кнопки действий - перемещены в верхние углы с полупрозрачным фоном */}
         <div className="absolute top-2 right-2 flex gap-1">
           <button
-            className={`p-2 rounded-full ${
-              isFavorite
-                ? 'bg-[#9A0F34] text-white'
-                : 'bg-white text-gray-800 hover:bg-gray-100'
-            } transition-colors shadow-md`}
+            className={`p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors ${
+              isFavorite ? 'text-red-400' : 'text-white'
+            }`}
             onClick={handleFavoriteClick}
           >
             <Heart
               size={18}
-              className={isFavorite ? 'fill-current' : ''}
+              className={isFavorite ? 'fill-red-400' : ''}
             />
           </button>
 
-          <button
-            className="p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition-colors shadow-md"
-            onClick={handleContactClick}
-          >
-            <MessageCircle size={18} />
-          </button>
+          {(hasValidWhatsApp || hasValidTelegram) && (
+            <button
+              className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors text-white"
+              onClick={handleContactClick}
+            >
+              <MessageCircle size={18} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -182,9 +194,12 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
           <span className="text-[#9A0F34] font-bold text-sm">
             {Math.floor(haircut.price)} сом
           </span>
-          <span className="text-xs text-gray-600">
+          <button
+            onClick={handleBarberClick}
+            className="text-xs text-gray-600 hover:text-gray-900 transition-colors"
+          >
             {haircut.barber}
-          </span>
+          </button>
         </div>
 
         <div className="flex flex-col gap-2">

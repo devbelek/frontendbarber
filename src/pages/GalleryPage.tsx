@@ -131,54 +131,45 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
   if (!selectedHaircut) return;
 
   try {
-    let bookingData;
+    setIsLoading(true);
 
-    if (isAuthenticated && user) {
-      bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || '',
-        // Добавляем эти строки для передачи данных клиента
-        client_name: user.first_name && user.last_name ?
-          `${user.first_name} ${user.last_name}`.trim() :
-          user.username || contactInfo.name,
-        client_phone: user.profile?.phone || contactInfo.phone
-      };
-    } else {
-      // Для неавторизованных пользователей (оставляем как есть)
-      bookingData = {
-        service: selectedHaircut.id,
-        date: date,
-        time: time,
-        notes: contactInfo?.notes || '',
-        client_name: contactInfo.name,
-        client_phone: contactInfo.phone
-      };
-    }
+    // Подготавливаем данные для бронирования
+    const bookingData = {
+      service: selectedHaircut.id,
+      date: date,
+      time: time,
+      notes: contactInfo?.notes || '',
+      client_name: contactInfo.name,
+      client_phone: contactInfo.phone
+    };
 
-    // Проверяем, что номер телефона не пустой для неавторизованных пользователей
-    if (!isAuthenticated && !bookingData.client_phone) {
-      notification.error(
-        'Ошибка бронирования',
-        'Пожалуйста, укажите номер телефона для связи'
-      );
-      return;
-    }
+    console.log("Отправляем запрос на бронирование:", bookingData);
 
-    await bookingsAPI.create(bookingData);
+    // Добавляем умышленную задержку, чтобы избежать слишком быстрых запросов
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const response = await bookingsAPI.create(bookingData);
+    console.log("Ответ сервера:", response);
+
     setIsBookingModalOpen(false);
 
     notification.success(
       'Бронирование создано',
       `Услуга "${selectedHaircut.title}" успешно забронирована`
     );
+
+    // После успешного бронирования переходим на страницу профиля
+    if (isAuthenticated) {
+      navigate('/profile', { state: { activeTab: 'bookings' } });
+    }
   } catch (err) {
     console.error('Error creating booking:', err);
     notification.error(
       'Ошибка бронирования',
       'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
     );
+  } finally {
+    setIsLoading(false);
   }
 };
 

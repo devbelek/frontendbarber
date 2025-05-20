@@ -1,13 +1,12 @@
-// src/components/booking/BookingModal.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Clock, User, Phone } from 'lucide-react';
 import Button from '../ui/Button';
-import { Haircut } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { profileAPI } from '../../api/services';
+import { bookingsAPI } from '../../api/services';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -38,6 +37,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const autoSlideIntervalRef = useRef<number | null>(null);
   const [needsProfileUpdate, setNeedsProfileUpdate] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Generate some available dates (next 7 days)
   const availableDates = Array.from({ length: 7 }, (_, i) => {
@@ -76,6 +76,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
       setSelectedDate(availableDates[0]);
       setSelectedTime('');
       setNeedsProfileUpdate(false);
+      setIsSubmitting(false);
 
       // Если пользователь авторизован, заполняем поля его данными
       if (isAuthenticated && user) {
@@ -134,36 +135,77 @@ const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   // Обновление профиля пользователя, если номер телефона был введен
-const updateUserProfile = async () => {
-  if (isAuthenticated && user && needsProfileUpdate && customerPhone) {
-    try {
-      const profileFormData = new FormData();
-      profileFormData.append('phone', customerPhone);
-      await profileAPI.updateProfile(profileFormData);
-
-      // Убираем уведомление, которое сбивает с толку при бронировании
-      // notification.success('Профиль обновлен', 'Номер телефона сохранен в вашем профиле');
-
-      // Альтернативно, можно сделать его менее заметным или изменить текст:
-      // notification.info('Информация', 'Номер телефона сохранен для будущих бронирований');
-    } catch (error) {
-      console.error('Ошибка при обновлении профиля:', error);
+  const updateUserProfile = async () => {
+    if (isAuthenticated && user && needsProfileUpdate && customerPhone) {
+      try {
+        const profileFormData = new FormData();
+        profileFormData.append('phone', customerPhone);
+        await profileAPI.updateProfile(profileFormData);
+        console.log("Профиль пользователя обновлен с новым телефоном");
+      } catch (error) {
+        console.error('Ошибка при обновлении профиля:', error);
+      }
     }
-  }
-};
+  };
 
   const handleConfirm = async () => {
-    if (validateForm()) {
-      // Если нужно, обновляем профиль пользователя
-      if (needsProfileUpdate) {
-        await updateUserProfile();
-      }
+    if (isSubmitting) return;
 
-      onConfirm(selectedDate, selectedTime, {
-        name: customerName,
-        phone: customerPhone,
-        notes: customerNotes
-      });
+    if (validateForm()) {
+      try {
+        setIsSubmitting(true);
+
+        // Сначала обновляем профиль пользователя, если необходимо
+        if (needsProfileUpdate) {
+          await updateUserProfile();
+        }
+
+        // Подготовка данных для бронирования
+        let bookingData;
+
+        if (isAuthenticated && user && haircut) {
+          bookingData = {
+            service: haircut.id,
+            date: selectedDate,
+            time: selectedTime,
+            notes: customerNotes || '',
+            client_name: customerName,
+            client_phone: customerPhone
+          };
+        } else if (haircut) {
+          bookingData = {
+            service: haircut.id,
+            date: selectedDate,
+            time: selectedTime,
+            notes: customerNotes || '',
+            client_name: customerName,
+            client_phone: customerPhone
+          };
+        } else {
+          throw new Error('Недостаточно данных для бронирования');
+        }
+
+        // Отправляем запрос на создание бронирования напрямую
+        const response = await bookingsAPI.create(bookingData);
+
+        // Закрываем модальное окно
+        onClose();
+
+        // Показываем уведомление об успехе
+        notification.success(
+          'Бронирование создано',
+          `Услуга "${haircut?.title}" успешно забронирована`
+        );
+
+      } catch (error) {
+        console.error('Ошибка при создании бронирования:', error);
+        notification.error(
+          'Ошибка бронирования',
+          'Не удалось создать бронирование. Пожалуйста, попробуйте ещё раз.'
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -494,6 +536,7 @@ const updateUserProfile = async () => {
                     variant="outline"
                     onClick={handleBack}
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
                     Назад
                   </Button>
@@ -501,8 +544,9 @@ const updateUserProfile = async () => {
                     variant="primary"
                     onClick={handleConfirm}
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
-                    {t('confirm')}
+                    {isSubmitting ? 'Отправка...' : t('confirm')}
                   </Button>
                 </>
               )}

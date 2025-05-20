@@ -10,13 +10,11 @@ interface BookingFormProps {
   service: Service;
 }
 
-// Тип для доступных временных слотов
 interface TimeSlot {
   time: string;
   available: boolean;
 }
 
-// Доступные статусы загрузки
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
 const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
@@ -30,29 +28,23 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  // Функция для получения завтрашней даты в формате YYYY-MM-DD
   const getTomorrowDate = (): string => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   };
 
-  // Инициализация формы
   useEffect(() => {
-    // Устанавливаем завтрашнюю дату по умолчанию
     const tomorrow = getTomorrowDate();
     setSelectedDate(tomorrow);
-
-    // Загружаем доступные слоты для завтрашней даты
     loadAvailableSlots(tomorrow);
   }, [service.id]);
 
-  // Функция для генерации временных слотов
   const generateTimeSlots = (date: string): TimeSlot[] => {
     const slots: TimeSlot[] = [];
-    const startHour = 9; // 9 утра
-    const endHour = 21; // 9 вечера
-    const interval = 30; // 30 минут
+    const startHour = 9;
+    const endHour = 21;
+    const interval = 30;
 
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
@@ -66,18 +58,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
     return slots;
   };
 
-  // Загрузка доступных временных слотов для выбранной даты
   const loadAvailableSlots = async (date: string) => {
     try {
       setLoadingState('loading');
-
-      // В реальном проекте здесь будет вызов API
-      // Для демонстрации используем генерацию слотов
       const generatedSlots = generateTimeSlots(date);
-
-      // Имитация задержки запроса
       await new Promise(resolve => setTimeout(resolve, 500));
-
       setTimeSlots(generatedSlots);
       setSelectedTime('');
       setLoadingState('idle');
@@ -88,25 +73,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
     }
   };
 
-  // Обработчик изменения даты
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setSelectedDate(newDate);
     loadAvailableSlots(newDate);
   };
 
-  // Обработчик отправки формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Проверяем, авторизован ли пользователь
     if (!isAuthenticated) {
       alert('Для бронирования необходимо войти в систему.');
-      // Тут можно добавить логику для открытия модального окна входа
       return;
     }
 
-    // Проверяем наличие выбранного времени
     if (!selectedTime) {
       alert('Пожалуйста, выберите время.');
       return;
@@ -115,32 +95,32 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
     try {
       setLoadingState('loading');
 
-      // Отправляем запрос на создание бронирования
-      await bookingsAPI.create({
+      const bookingData = {
         service: service.id,
         date: selectedDate,
         time: selectedTime,
-        notes: notes
-      });
+        notes: notes,
+        client_name: user
+          ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
+          : 'Гость',
+        client_phone: user?.profile?.phone || ''
+      };
+
+      await bookingsAPI.create(bookingData);
 
       setLoadingState('success');
-
-      // Показываем сообщение об успешном бронировании
       alert('Бронирование успешно создано! Вы получите уведомление о подтверждении.');
-
-      // Перенаправляем пользователя на страницу профиля с вкладкой бронирований
       navigate('/profile', { state: { activeTab: 'bookings' } });
     } catch (error: any) {
       console.error('Ошибка при создании бронирования:', error);
       setLoadingState('error');
-      setErrorMessage(error.response?.data?.detail || 'Не удалось создать бронирование. Пожалуйста, попробуйте позже.');
+      setErrorMessage(
+        error.response?.data?.detail || 'Не удалось создать бронирование. Пожалуйста, попробуйте позже.'
+      );
     }
   };
 
-  // Вычисляем минимальную дату (сегодня)
   const minDate = new Date().toISOString().split('T')[0];
-
-  // Вычисляем максимальную дату (30 дней вперед)
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 30);
   const maxDateStr = maxDate.toISOString().split('T')[0];
@@ -168,10 +148,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Выберите время
-        </label>
-
+        <label className="block text-sm font-medium text-gray-700 mb-1">Выберите время</label>
         {loadingState === 'loading' ? (
           <div className="animate-pulse">
             <div className="grid grid-cols-4 gap-2">
@@ -193,8 +170,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
                   ${selectedTime === slot.time
                     ? 'bg-[#9A0F34] text-white'
                     : slot.available
-                      ? 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-700'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+                    ? 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-700'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
                 `}
               >
                 <Clock className="h-4 w-4 inline-block mr-1" />
@@ -209,35 +186,35 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         )}
       </div>
 
-    // Исправляем незавершенный Button компонент в файле
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Примечания к заказу (опционально)
-  </label>
-  <div className="relative">
-    <MessageSquare className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-    <textarea
-      id="notes"
-      name="notes"
-      rows={3}
-      value={notes}
-      onChange={(e) => setNotes(e.target.value)}
-      placeholder="Например: предпочтения по стрижке или особые пожелания"
-      className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34] resize-none"
-    ></textarea>
-  </div>
-</div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Примечания к заказу (опционально)
+        </label>
+        <div className="relative">
+          <MessageSquare className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          <textarea
+            id="notes"
+            name="notes"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Например: предпочтения по стрижке или особые пожелания"
+            className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34] resize-none"
+          ></textarea>
+        </div>
+      </div>
 
-{loadingState === 'error' && (
-  <div className="bg-red-50 p-3 rounded-md">
-    <p className="text-red-700 text-sm">{errorMessage}</p>
-  </div>
-)}
+      {loadingState === 'error' && (
+        <div className="bg-red-50 p-3 rounded-md">
+          <p className="text-red-700 text-sm">{errorMessage}</p>
+        </div>
+      )}
 
-<Button
-  type="submit"
-  variant="primary"
-  disabled={loadingState === 'loading'}
->
-  {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
-</Button>
+      <Button type="submit" variant="primary" disabled={loadingState === 'loading'}>
+        {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
+      </Button>
+    </form>
+  );
+};
+
+export default BookingForm;

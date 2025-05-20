@@ -127,56 +127,60 @@ const GalleryPage = ({ openLoginModal }) => {
     setIsBookingModalOpen(true);
   };
 
-  const handleBookingConfirm = async (date, time, contactInfo) => {
-    if (!selectedHaircut) return;
+const handleBookingConfirm = async (date, time, contactInfo) => {
+  if (!selectedHaircut) return;
 
-    try {
-      let bookingData;
+  try {
+    let bookingData;
 
-      // Теперь переменные isAuthenticated и user определены
-      if (isAuthenticated && user) {
-        bookingData = {
-          service: selectedHaircut.id,
-          date: date,
-          time: time,
-          notes: contactInfo?.notes || ''
-        };
-      } else {
-        // Для неавторизованных пользователей
-        bookingData = {
-          service: selectedHaircut.id,
-          date: date,
-          time: time,
-          notes: contactInfo?.notes || '',
-          client_name: contactInfo.name,
-          client_phone: contactInfo.phone
-        };
-      }
+    if (isAuthenticated && user) {
+      bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || '',
+        // Добавляем эти строки для передачи данных клиента
+        client_name: user.first_name && user.last_name ?
+          `${user.first_name} ${user.last_name}`.trim() :
+          user.username || contactInfo.name,
+        client_phone: user.profile?.phone || contactInfo.phone
+      };
+    } else {
+      // Для неавторизованных пользователей (оставляем как есть)
+      bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || '',
+        client_name: contactInfo.name,
+        client_phone: contactInfo.phone
+      };
+    }
 
-      // Проверяем, что номер телефона не пустой для неавторизованных пользователей
-      if (!isAuthenticated && !bookingData.client_phone) {
-        notification.error(
-          'Ошибка бронирования',
-          'Пожалуйста, укажите номер телефона для связи'
-        );
-        return;
-      }
-
-      await bookingsAPI.create(bookingData);
-      setIsBookingModalOpen(false);
-
-      notification.success(
-        'Бронирование создано',
-        `Услуга "${selectedHaircut.title}" успешно забронирована`
-      );
-    } catch (err) {
-      console.error('Error creating booking:', err);
+    // Проверяем, что номер телефона не пустой для неавторизованных пользователей
+    if (!isAuthenticated && !bookingData.client_phone) {
       notification.error(
         'Ошибка бронирования',
-        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+        'Пожалуйста, укажите номер телефона для связи'
       );
+      return;
     }
-  };
+
+    await bookingsAPI.create(bookingData);
+    setIsBookingModalOpen(false);
+
+    notification.success(
+      'Бронирование создано',
+      `Услуга "${selectedHaircut.title}" успешно забронирована`
+    );
+  } catch (err) {
+    console.error('Error creating booking:', err);
+    notification.error(
+      'Ошибка бронирования',
+      'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+    );
+  }
+};
 
   // Сброс фильтров
   const resetFilters = () => {

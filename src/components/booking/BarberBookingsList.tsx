@@ -5,12 +5,16 @@ import Button from '../ui/Button';
 import { bookingsAPI } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 const BarberBookingsList: React.FC = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
+
   const { user } = useAuth();
   const notification = useNotification();
 
@@ -71,20 +75,31 @@ const BarberBookingsList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (bookingId: string) => {
-    if (!window.confirm('Вы уверены, что хотите удалить это бронирование?')) {
-      return;
-    }
+const handleDeleteClick = (bookingId: string) => {
+  setBookingToDelete(bookingId);
+  setDeleteConfirmOpen(true);
+};
 
-    try {
-      await bookingsAPI.cancel(bookingId);
-      notification.success('Удалено', 'Бронирование успешно удалено');
-      refreshBookings();
-    } catch (err) {
-      console.error('Error deleting booking:', err);
-      notification.error('Ошибка', 'Не удалось удалить бронирование');
-    }
-  };
+const handleDeleteConfirm = async () => {
+  try {
+    if (!bookingToDelete) return;
+
+    await bookingsAPI.delete(bookingToDelete);
+    setDeleteConfirmOpen(false);
+    setBookingToDelete(null);
+    notification.success('Удалено', 'Бронирование успешно удалено');
+    // Обновляем список
+    refreshBookings();
+  } catch (err) {
+    console.error('Error deleting booking:', err);
+    notification.error('Ошибка', 'Не удалось удалить бронирование');
+  }
+};
+
+const handleDeleteCancel = () => {
+  setDeleteConfirmOpen(false);
+  setBookingToDelete(null);
+};
 
   const BookingStatusBadge = ({ status }) => {
     let colorClass = '';
@@ -154,6 +169,16 @@ const BarberBookingsList: React.FC = () => {
             </CardContent>
           </Card>
         ))}
+            <ConfirmDialog
+      isOpen={deleteConfirmOpen}
+      title="Удаление бронирования"
+      message="Вы уверены, что хотите удалить это бронирование? Это действие невозможно отменить."
+      confirmText="Удалить"
+      cancelText="Отмена"
+      onConfirm={handleDeleteConfirm}
+      onCancel={handleDeleteCancel}
+      confirmVariant="danger"
+    />
       </div>
     );
   }
@@ -295,13 +320,13 @@ const BarberBookingsList: React.FC = () => {
                     </>
                   )}
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(booking.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => handleDeleteClick(booking.id)}
+>
+  <Trash className="h-4 w-4" />
+</Button>
                 </div>
               </div>
             </div>

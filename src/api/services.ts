@@ -144,7 +144,8 @@ export const bookingsAPI = {
   cancel: (id: string) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
   getAvailableSlots: (barberId: string, date: string) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
-  createBooking: (data: any) => apiClient.post('/bookings/', data)
+  createBooking: (data: any) => apiClient.post('/bookings/', data),
+  delete: (id: string) => apiClient.delete(`/bookings/${id}/`) // Добавьте эту строку
 };
 
 export const servicesAPI = {

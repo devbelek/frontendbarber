@@ -1,3 +1,4 @@
+// src/components/ui/ImageWithFallback.tsx
 import React, { useState, forwardRef } from 'react';
 import { ImageOff } from 'lucide-react';
 
@@ -13,9 +14,24 @@ const ImageWithFallback = forwardRef<HTMLImageElement, ImageWithFallbackProps>(
     const [error, setError] = useState(false);
 
     // Обрабатываем URL для корректного отображения медиа-файлов
-    const imageUrl = src && !src.startsWith('http') && !src.startsWith('data:')
-      ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${src.startsWith('/') ? '' : '/'}${src}`
-      : src;
+    let imageUrl = src;
+
+    // Проверяем, является ли URL относительным или абсолютным
+    if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+      // Относительные URL нужно префиксить с base URL или API URL
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      // Удаляем лишний слеш, если он есть и в API URL, и в src
+      const hasApiSlash = apiUrl.endsWith('/');
+      const hasSrcSlash = src.startsWith('/');
+
+      if (hasApiSlash && hasSrcSlash) {
+        imageUrl = `${apiUrl}${src.substring(1)}`;
+      } else if (!hasApiSlash && !hasSrcSlash) {
+        imageUrl = `${apiUrl}/${src}`;
+      } else {
+        imageUrl = `${apiUrl}${src}`;
+      }
+    }
 
     if (error || !src) {
       return (

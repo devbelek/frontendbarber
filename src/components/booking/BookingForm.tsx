@@ -1,3 +1,4 @@
+// src/components/booking/BookingForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MessageSquare } from 'lucide-react';
 import Button from '../ui/Button';
@@ -5,6 +6,7 @@ import { bookingsAPI } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Service } from '../../types';
+import { useNotification } from '../../context/NotificationContext';
 
 interface BookingFormProps {
   service: Service;
@@ -27,6 +29,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
 
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const getTomorrowDate = (): string => {
     const tomorrow = new Date();
@@ -61,9 +64,31 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
   const loadAvailableSlots = async (date: string) => {
     try {
       setLoadingState('loading');
-      const generatedSlots = generateTimeSlots(date);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setTimeSlots(generatedSlots);
+      setErrorMessage('');
+
+      // Проверим ID сервиса
+      const serviceId = service.id;
+      if (!serviceId) {
+        throw new Error('ID сервиса не определен');
+      }
+
+      // Попытаемся загрузить слоты с сервера
+      let availableSlots: TimeSlot[] = [];
+
+      try {
+        const response = await bookingsAPI.getAvailableSlots(serviceId, date);
+        if (response && response.data && Array.isArray(response.data)) {
+          availableSlots = response.data;
+        } else {
+          console.warn('Invalid response format from getAvailableSlots, using generated slots');
+          availableSlots = generateTimeSlots(date);
+        }
+      } catch (err) {
+        console.error('Failed to load available slots from API, using generated slots:', err);
+        availableSlots = generateTimeSlots(date);
+      }
+
+      setTimeSlots(availableSlots);
       setSelectedTime('');
       setLoadingState('idle');
     } catch (error) {
@@ -82,21 +107,32 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (loadingState === 'loading') {
+      return; // Предотвращаем двойную отправку
+    }
+
     if (!isAuthenticated) {
-      alert('Для бронирования необходимо войти в систему.');
+      notification.warning('Требуется вход', 'Для бронирования необходимо войти в систему.');
       return;
     }
 
     if (!selectedTime) {
-      alert('Пожалуйста, выберите время.');
+      notification.warning('Выберите время', 'Пожалуйста, выберите время для бронирования.');
       return;
     }
 
     try {
       setLoadingState('loading');
+      setErrorMessage('');
+
+      // Проверим ID сервиса
+      const serviceId = service.id;
+      if (!serviceId) {
+        throw new Error('ID сервиса не определен');
+      }
 
       const bookingData = {
-        service: service.id,
+        service: serviceId,
         date: selectedDate,
         time: selectedTime,
         notes: notes,
@@ -106,10 +142,19 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         client_phone: user?.profile?.phone || ''
       };
 
-      await bookingsAPI.create(bookingData);
+      // Искусственная задержка для предотвращения двойных нажатий
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const response = await bookingsAPI.create(bookingData);
+      console.log('Booking created:', response);
 
       setLoadingState('success');
-      alert('Бронирование успешно создано! Вы получите уведомление о подтверждении.');
+      notification.success(
+        'Бронирование создано',
+        'Вы получите уведомление о подтверждении бронирования.'
+      );
+
+      // Перенаправляем на страницу профиля с выбранной вкладкой
       navigate('/profile', { state: { activeTab: 'bookings' } });
     } catch (error: any) {
       console.error('Ошибка при создании бронирования:', error);
@@ -117,6 +162,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
       setErrorMessage(
         error.response?.data?.detail || 'Не удалось создать бронирование. Пожалуйста, попробуйте позже.'
       );
+      notification.error('Ошибка бронирования', errorMessage);
     }
   };
 
@@ -210,7 +256,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         </div>
       )}
 
-      <Button type="submit" variant="primary" disabled={loadingState === 'loading'}>
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={loadingState === 'loading'}
+        fullWidth
+      >
         {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
       </Button>
     </form>

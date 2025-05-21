@@ -1,4 +1,4 @@
-// src/context/AuthContext.tsx с улучшенным механизмом управления запросами
+// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
@@ -33,13 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Используем ref для отслеживания активных запросов
+  // Refs для управления запросами и жизненным циклом
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchTime = useRef<number>(0);
-  const MIN_FETCH_INTERVAL = 2000; // Увеличиваем минимальный интервал между запросами (2 секунды)
+  const MIN_FETCH_INTERVAL = 2000; // Минимальный интервал между запросами (2 секунды)
 
-  // Проверяем аутентификацию при загрузке
+  // Проверка аутентификации при загрузке
   useEffect(() => {
     mountedRef.current = true;
 
@@ -48,55 +48,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const refreshToken = localStorage.getItem('refreshToken');
       const googleUser = localStorage.getItem('googleUser');
 
-      // Проверяем минимальный интервал между запросами
+      // Проверка минимального интервала между запросами
       const now = Date.now();
       if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-        console.log('Слишком частые запросы, добавляем задержку');
+        console.log('Слишком частые запросы, ждем задержку');
         await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
       }
 
       if (token && !fetchingRef.current) {
         try {
+          fetchingRef.current = true;
           await fetchCurrentUser();
         } catch (err: any) {
-          console.error('Error fetching user:', err);
+          console.error('Ошибка получения пользователя:', err);
 
-          // Попробуем обновить токен, если есть refreshToken
+          // Пробуем обновить токен
           if (refreshToken) {
             try {
               const response = await authAPI.refreshToken(refreshToken);
               if (response.data && response.data.access) {
                 localStorage.setItem('token', response.data.access);
-                // Повторно пытаемся получить данные пользователя
                 await fetchCurrentUser();
               }
             } catch (refreshErr) {
-              console.error('Failed to refresh token:', refreshErr);
-              // Если не удалось обновить токен, очищаем хранилище
+              console.error('Не удалось обновить токен:', refreshErr);
               localStorage.removeItem('token');
               localStorage.removeItem('refreshToken');
             }
           }
 
-          // Обработка 429 ошибки
+          // Обработка ошибки 429
           if (err?.response?.status === 429 || err?.isRateLimited) {
             const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
-            console.log(`Получена ошибка 429, ждем ${retryAfter} секунд`);
-            setTimeout(() => {
-              if (mountedRef.current) {
-                fetchingRef.current = false;
-              }
-            }, retryAfter * 1000);
+            console.log(`Ошибка 429, ждем ${retryAfter} секунд`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            fetchingRef.current = false;
           }
 
+          // Используем данные Google, если они есть
           if (googleUser) {
             try {
               const userData = JSON.parse(googleUser);
-              if (mountedRef.current) {
-                setUser(userData);
-              }
+              if (mountedRef.current) setUser(userData);
             } catch (parseErr) {
-              console.error('Failed to parse Google user data:', parseErr);
+              console.error('Ошибка парсинга Google данных:', parseErr);
               localStorage.removeItem('googleUser');
             }
           } else {
@@ -105,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
           if (mountedRef.current) {
             setLoading(false);
+            fetchingRef.current = false;
           }
         }
       } else if (googleUser) {
@@ -112,22 +108,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = JSON.parse(googleUser);
           const newToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
           localStorage.setItem('token', newToken);
-
-          if (mountedRef.current) {
-            setUser(userData);
-          }
+          if (mountedRef.current) setUser(userData);
         } catch (err) {
-          console.error('Failed to parse Google user data:', err);
+          console.error('Ошибка парсинга Google данных:', err);
           localStorage.removeItem('googleUser');
         } finally {
-          if (mountedRef.current) {
-            setLoading(false);
-          }
+          if (mountedRef.current) setLoading(false);
         }
       } else {
-        if (mountedRef.current) {
-          setLoading(false);
-        }
+        if (mountedRef.current) setLoading(false);
       }
     };
 
@@ -136,15 +125,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mountedRef.current = false;
     };
-  }, []); // Только при монтировании
+  }, []);
 
+  // Получение текущего пользователя
   const fetchCurrentUser = async () => {
     if (fetchingRef.current) return;
 
-    // Проверяем минимальный интервал
     const now = Date.now();
     if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      console.log('Слишком частые запросы к fetchCurrentUser, добавляем задержку');
+      console.log('Слишком частые запросы в fetchCurrentUser, ждем');
       await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
     }
 
@@ -156,28 +145,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const googleUser = localStorage.getItem('googleUser');
       if (googleUser) {
         const userData = JSON.parse(googleUser);
-        if (mountedRef.current) {
-          setUser(userData);
-        }
+        if (mountedRef.current) setUser(userData);
         return;
       }
 
       const response = await authAPI.getCurrentUser();
-
       let favorites: string[] = [];
-      if (response && response.data && response.data.id) {
+
+      if (response?.data?.id) {
         try {
           const favoritesResponse = await favoritesAPI.getAll();
-          if (favoritesResponse && favoritesResponse.data) {
+          if (favoritesResponse?.data) {
             favorites = Array.isArray(favoritesResponse.data)
               ? favoritesResponse.data.map((favorite: any) => favorite.service)
               : [];
           }
         } catch (err: any) {
-          console.warn('Failed to fetch favorites:', err);
-          // Обработка 429 для избранного
+          console.warn('Не удалось загрузить избранное:', err);
           if (err?.response?.status === 429 || err?.isRateLimited) {
-            console.log('Получена ошибка 429 при загрузке избранного');
+            console.log('Ошибка 429 при загрузке избранного');
           }
         }
       }
@@ -189,14 +175,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         first_name: response.data.first_name,
         last_name: response.data.last_name,
         profile: response.data.profile,
-        favorites: favorites
+        favorites,
       };
 
-      if (mountedRef.current) {
-        setUser(userData);
-      }
+      if (mountedRef.current) setUser(userData);
     } catch (err) {
-      console.error('Failed to fetch user:', err);
+      console.error('Не удалось загрузить пользователя:', err);
       throw err;
     } finally {
       if (mountedRef.current) {
@@ -206,14 +190,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Используем useCallback для предотвращения пересоздания функции
+  // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
     if (fetchingRef.current || loading) return;
 
-    // Проверяем минимальный интервал
     const now = Date.now();
     if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      console.log('Слишком частое обновление данных пользователя, добавляем задержку');
+      console.log('Слишком частое обновление данных, ждем');
       await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
     }
 
@@ -223,35 +206,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
 
       const response = await authAPI.getCurrentUser();
-
       let favorites: string[] = [];
-      if (response && response.data && response.data.id) {
+
+      if (response?.data?.id) {
         try {
           const favoritesResponse = await favoritesAPI.getAll();
-          if (favoritesResponse && favoritesResponse.data) {
+          if (favoritesResponse?.data) {
             favorites = Array.isArray(favoritesResponse.data)
               ? favoritesResponse.data.map((favorite: any) => favorite.service)
-              : (favoritesResponse.data.results
-                  ? favoritesResponse.data.results.map((favorite: any) => favorite.service)
-                  : []);
+              : favoritesResponse.data.results?.map((favorite: any) => favorite.service) || [];
           }
         } catch (err: any) {
-          console.warn('Failed to fetch favorites:', err);
+          console.warn('Не удалось обновить избранное:', err);
           if (err?.response?.status === 429 || err?.isRateLimited) {
-            console.log('Получена ошибка 429 при обновлении избранного');
+            console.log('Ошибка 429 при обновлении избранного');
           }
         }
       }
 
-      // Получаем данные из localStorage для сохранения picture
-      let picture = undefined;
+      let picture: string | undefined;
       const googleUser = localStorage.getItem('googleUser');
       if (googleUser) {
         try {
           const parsedGoogleUser = JSON.parse(googleUser);
           picture = parsedGoogleUser.picture;
         } catch (e) {
-          console.error('Failed to parse googleUser from localStorage:', e);
+          console.error('Ошибка парсинга googleUser:', e);
         }
       }
 
@@ -262,11 +242,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         first_name: response.data.first_name,
         last_name: response.data.last_name,
         profile: response.data.profile,
-        favorites: favorites,
-        picture: response.data.profile?.photo || picture
+        favorites,
+        picture: response.data.profile?.photo || picture,
       };
 
-      // Обновляем googleUser в localStorage если он есть
       if (googleUser) {
         try {
           const parsedGoogleUser = JSON.parse(googleUser);
@@ -275,18 +254,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           parsedGoogleUser.profile = userData.profile;
           localStorage.setItem('googleUser', JSON.stringify(parsedGoogleUser));
         } catch (e) {
-          console.error('Failed to update googleUser in localStorage:', e);
+          console.error('Ошибка обновления googleUser:', e);
         }
       }
 
-      if (mountedRef.current) {
-        setUser(userData);
-      }
+      if (mountedRef.current) setUser(userData);
     } catch (err: any) {
-      console.error('Failed to refresh user data:', err);
+      console.error('Не удалось обновить данные:', err);
       if (err?.response?.status === 429 || err?.isRateLimited) {
         const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
-        console.log(`Получена ошибка 429 при обновлении данных пользователя, ждем ${retryAfter} секунд`);
+        console.log(`Ошибка 429 при обновлении, ждем ${retryAfter} секунд`);
       }
       throw err;
     } finally {
@@ -297,6 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [loading]);
 
+  // Вход в систему
   const login = async (userData: any): Promise<boolean> => {
     setError(null);
     try {
@@ -304,53 +282,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authAPI.login(userData);
 
       localStorage.setItem('token', response.data.access);
-      if (response.data.refresh) {
-        localStorage.setItem('refreshToken', response.data.refresh);
-      }
+      if (response.data.refresh) localStorage.setItem('refreshToken', response.data.refresh);
 
       await fetchCurrentUser();
       return true;
     } catch (err: any) {
-      console.error('Login failed:', err);
-
-      if (err.response && err.response.data) {
-        if (err.response.data.detail) {
-          setError(err.response.data.detail);
-        } else if (err.response.data.non_field_errors) {
-          setError(err.response.data.non_field_errors.join(', '));
-        } else {
-          setError('Ошибка входа. Проверьте свои учетные данные.');
-        }
-      } else {
-        setError('Не удалось соединиться с сервером. Пожалуйста, проверьте свое подключение.');
-      }
+      console.error('Ошибка входа:', err);
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.join(', ') ||
+        'Ошибка входа. Проверьте учетные данные.'
+      );
       return false;
     } finally {
       setLoading(false);
     }
   };
 
+  // Регистрация
   const register = async (userData: any): Promise<void> => {
     setError(null);
     try {
       setLoading(true);
       await authAPI.register(userData);
     } catch (err: any) {
-      console.error('Registration failed:', err);
-      let errorMessage = 'Failed to register. Please try again.';
-
-      if (err.response && err.response.data) {
-        const errorData = err.response.data;
-        if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else if (typeof errorData === 'object') {
-          const errorMessages = Object.entries(errorData)
-            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-            .join('; ');
-          errorMessage = errorMessages || errorMessage;
-        }
+      console.error('Ошибка регистрации:', err);
+      let errorMessage = 'Ошибка регистрации. Попробуйте снова.';
+      if (err.response?.data) {
+        errorMessage = typeof err.response.data === 'string'
+          ? err.response.data
+          : Object.entries(err.response.data)
+              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+              .join('; ') || errorMessage;
       }
-
       setError(errorMessage);
       throw err;
     } finally {
@@ -358,92 +322,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Вход через Google
   const loginWithGoogle = async (userInfo: GoogleUserInfo) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
-      try {
-        // Пытаемся авторизоваться через Google
-        const response = await authAPI.googleAuth(userInfo.email, 'client');
-
-        if (response.data && response.data.access) {
-          localStorage.setItem('token', response.data.access);
-          if (response.data.refresh) {
-            localStorage.setItem('refreshToken', response.data.refresh);
-          }
-
-          // Обновляем информацию о пользователе
-          if (response.data.user) {
-            localStorage.setItem('googleUser', JSON.stringify({
-              ...response.data.user,
-              picture: userInfo.picture
-            }));
-          }
-
-          // Добавляем задержку перед получением данных пользователя
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Получаем данные пользователя с сервера
-          await fetchCurrentUser();
-        } else {
-          // Если сервер не вернул токен, создаем временный в localStorage
-          const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-          localStorage.setItem('token', tempToken);
-
-          // Создаем объект User из данных Google
-          const userData: User = {
-            id: `google-${Date.now()}`,
-            username: userInfo.email.split('@')[0],
-            email: userInfo.email,
-            first_name: userInfo.given_name || userInfo.name.split(' ')[0] || '',
-            last_name: userInfo.family_name || (userInfo.name.split(' ').length > 1 ? userInfo.name.split(' ').slice(1).join(' ') : '') || '',
-            profile: {
-              user_type: 'client',
-              phone: '',
-              offers_home_service: false
-            },
-            favorites: [],
-            picture: userInfo.picture,
-            isGoogleUser: true
-          };
-
-          localStorage.setItem('googleUser', JSON.stringify(userData));
-          setUser(userData);
+      const response = await authAPI.googleAuth(userInfo.email, 'client');
+      if (response.data?.access) {
+        localStorage.setItem('token', response.data.access);
+        if (response.data.refresh) localStorage.setItem('refreshToken', response.data.refresh);
+        if (response.data.user) {
+          localStorage.setItem('googleUser', JSON.stringify({ ...response.data.user, picture: userInfo.picture }));
         }
-      } catch (error) {
-        console.error('Ошибка аутентификации через сервер:', error);
-
-        // В случае ошибки создаем временного пользователя
-        const userData: User = {
-          id: `google-${Date.now()}`,
-          username: userInfo.email.split('@')[0],
-          email: userInfo.email,
-          first_name: userInfo.given_name || userInfo.name.split(' ')[0] || '',
-          last_name: userInfo.family_name || (userInfo.name.split(' ').length > 1 ? userInfo.name.split(' ').slice(1).join(' ') : '') || '',
-          profile: {
-            user_type: 'client',
-            phone: '',
-            offers_home_service: false
-          },
-          favorites: [],
-          picture: userInfo.picture,
-          isGoogleUser: true
-        };
-
-        const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-        localStorage.setItem('token', tempToken);
-        localStorage.setItem('googleUser', JSON.stringify(userData));
-        setUser(userData);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await fetchCurrentUser();
+      } else {
+        throw new Error('Сервер не вернул токен');
       }
     } catch (error) {
-      console.error('Ошибка при входе через Google:', error);
-      setError('Не удалось завершить регистрацию через Google. Пожалуйста, попробуйте позже.');
+      console.error('Ошибка Google-аутентификации:', error);
+      const userData: User = {
+        id: `google-${Date.now()}`,
+        username: userInfo.email.split('@')[0],
+        email: userInfo.email,
+        first_name: userInfo.given_name || userInfo.name.split(' ')[0] || '',
+        last_name: userInfo.family_name || (userInfo.name.split(' ').length > 1 ? userInfo.name.split(' ').slice(1).join(' ') : '') || '',
+        profile: { user_type: 'client', phone: '', offers_home_service: false },
+        favorites: [],
+        picture: userInfo.picture,
+        isGoogleUser: true,
+      };
+      const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      localStorage.setItem('token', tempToken);
+      localStorage.setItem('googleUser', JSON.stringify(userData));
+      setUser(userData);
     } finally {
       setLoading(false);
     }
   };
 
+  // Выход из системы
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -451,59 +368,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  // Переключение избранного
   const toggleFavorite = async (haircutId: string): Promise<void> => {
     if (loading || fetchingRef.current) {
-      console.log("Дождитесь завершения предыдущего запроса...");
+      console.log('Ждем завершения предыдущего запроса...');
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     if (!haircutId) {
-      console.error('haircutId is undefined or empty in toggleFavorite');
+      console.error('haircutId не определен в toggleFavorite');
       throw new Error('ID услуги не определен');
     }
 
+    if (!user) {
+      throw new Error('Необходимо войти в систему');
+    }
+
     try {
-      if (!user) {
-        throw new Error('Необходимо войти в систему для добавления в избранное');
-      }
-
-      console.log('Toggle favorite for haircutId:', haircutId, 'Type:', typeof haircutId);
       const isFavorite = user.favorites?.includes(haircutId) || false;
-      console.log('Is already favorite:', isFavorite);
+      console.log(`Переключение избранного для ${haircutId}, текущее состояние: ${isFavorite}`);
 
-      // Добавляем задержку для предотвращения слишком частых запросов
+      // Оптимистичное обновление UI
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        const newFavorites = isFavorite
+          ? prevUser.favorites.filter(id => id !== haircutId)
+          : [...(prevUser.favorites || []), haircutId];
+        return { ...prevUser, favorites: newFavorites };
+      });
+
+      // Задержка для предотвращения частых запросов
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Запрос к API
       if (isFavorite) {
-        console.log('Removing from favorites');
+        console.log('Удаляем из избранного');
         await favoritesAPI.toggle(haircutId);
-        setUser(prevUser => {
-          if (!prevUser) return null;
-          return {
-            ...prevUser,
-            favorites: prevUser.favorites.filter(id => id !== haircutId)
-          };
-        });
       } else {
-        console.log('Adding to favorites');
+        console.log('Добавляем в избранное');
         await favoritesAPI.toggle(haircutId);
-        setUser(prevUser => {
-          if (!prevUser) return null;
-          return {
-            ...prevUser,
-            favorites: [...(prevUser.favorites || []), haircutId]
-          };
-        });
       }
     } catch (err: any) {
-      console.error('Failed to toggle favorite:', err);
-      if (err?.response) {
-        console.error('Response data:', err.response.data);
-        console.error('Response status:', err.response.status);
-      }
+      console.error('Ошибка переключения избранного:', err);
+
+      // Откат состояния при ошибке
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        const isFavorite = prevUser.favorites?.includes(haircutId) || false;
+        const newFavorites = isFavorite
+          ? [...(prevUser.favorites || []), haircutId]
+          : prevUser.favorites.filter(id => id !== haircutId);
+        return { ...prevUser, favorites: newFavorites };
+      });
+
       if (err?.response?.status === 429 || err?.isRateLimited) {
         const retryAfter = err.retryAfter || err.response?.headers?.['retry-after'] || 60;
-        console.log(`Получена ошибка 429 при изменении избранного, ждем ${retryAfter} секунд`);
+        console.log(`Ошибка 429, ждем ${retryAfter} секунд`);
       }
       throw err;
     }
@@ -522,7 +442,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toggleFavorite,
         loading,
         error,
-        refreshUserData
+        refreshUserData,
       }}
     >
       {children}
@@ -533,7 +453,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth должен использоваться внутри AuthProvider');
   }
   return context;
 };

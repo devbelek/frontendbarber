@@ -21,8 +21,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
-  const isFavorite = user?.favorites?.includes(haircut.id) || haircut.isFavorite || false;
-  const hasMultipleImages = haircut.images && haircut.images.length > 1;
+  // Добавляем проверки для свойств
+  const haircutId = haircut?.id || '';
+  const isFavorite = user?.favorites?.includes(haircutId) || haircut?.isFavorite || false;
+  const hasMultipleImages = haircut?.images && Array.isArray(haircut.images) && haircut.images.length > 1;
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -54,12 +56,13 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
 
     try {
-      await toggleFavorite(haircut.id);
+      await toggleFavorite(haircutId);
       notification.success(
         isFavorite ? 'Удалено из избранного' : 'Добавлено в избранное',
         `Услуга "${haircut.title}" ${isFavorite ? 'удалена из' : 'добавлена в'} избранное`
       );
     } catch (error) {
+      console.error('Error toggling favorite:', error);
       notification.error('Ошибка', 'Не удалось изменить статус избранного');
     }
   };
@@ -69,9 +72,8 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
 
     // Инкрементируем просмотры при нажатии на "Хочу также"
     try {
-      if (haircut.id) {
-        const serviceId = String(haircut.id);
-        await servicesAPI.incrementViews(serviceId);
+      if (haircutId) {
+        await servicesAPI.incrementViews(haircutId);
       }
     } catch (error) {
       console.error('Failed to increment views:', error);
@@ -98,9 +100,17 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
   };
 
-  const currentImage = haircut.images && haircut.images.length > 0
-    ? haircut.images[currentImageIndex].image
-    : haircut.primaryImage || haircut.image;
+  // Безопасное получение текущего изображения
+  let currentImage = '';
+  if (haircut.images && Array.isArray(haircut.images) && haircut.images.length > 0) {
+    const img = haircut.images[currentImageIndex];
+    currentImage = img && typeof img === 'object' && 'image' in img ? img.image : '';
+  }
+
+  // Если не нашли изображение в массиве, используем primaryImage или image
+  if (!currentImage) {
+    currentImage = haircut.primaryImage || haircut.image || '';
+  }
 
   // Проверка наличия контактных данных барбера
   const hasValidWhatsApp = haircut.barberWhatsapp && haircut.barberWhatsapp.length > 5;
@@ -114,7 +124,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
       <div className="relative aspect-square overflow-hidden">
         <ImageWithFallback
           src={currentImage}
-          alt={haircut.title}
+          alt={haircut.title || 'Изображение стрижки'}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
 
@@ -184,7 +194,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
       </div>
 
       <div className="p-3">
-        <h3 className="text-sm font-semibold mb-1 line-clamp-1">{haircut.title}</h3>
+        <h3 className="text-sm font-semibold mb-1 line-clamp-1">{haircut.title || 'Без названия'}</h3>
 
         {haircut.description && (
           <p className="text-xs text-gray-600 line-clamp-2 mb-2">{haircut.description}</p>
@@ -192,13 +202,13 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
 
         <div className="flex justify-between items-center mb-2">
           <span className="text-[#9A0F34] font-bold text-sm">
-            {Math.floor(haircut.price)} сом
+            {Math.floor(haircut.price || 0)} сом
           </span>
           <button
             onClick={handleBarberClick}
             className="text-xs text-gray-600 hover:text-gray-900 transition-colors"
           >
-            {haircut.barber}
+            {haircut.barber || 'Барбер'}
           </button>
         </div>
 
@@ -226,7 +236,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
             </p>
             <div className="space-y-4">
               {hasValidWhatsApp && (
-                <a href={`https://wa.me/${haircut.barberWhatsapp.replace(/\D/g, '')}?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
+                <a href={`https://wa.me/${haircut.barberWhatsapp?.replace(/\D/g, '')}?text=Здравствуйте! Интересует стрижка "${haircut.title}"`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center w-full bg-[#25D366] text-white py-3 rounded-lg hover:bg-opacity-90"
@@ -236,7 +246,7 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
               )}
 
               {hasValidTelegram && (
-                <a href={`https://t.me/${haircut.barberTelegram.replace('@', '')}`}
+                <a href={`https://t.me/${haircut.barberTelegram?.replace('@', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"

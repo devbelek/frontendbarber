@@ -1,17 +1,18 @@
 // src/api/client.ts
 import axios from 'axios';
 
-// Исправляем базовый URL, чтобы он правильно ссылался на API
+// Устанавливаем базовый URL на локальный хост, так как данных по /api нет
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Создаем Map для отслеживания заблокированных запросов
 const blockedEndpoints = new Map<string, number>();
 
 const apiClient = axios.create({
-  baseURL: API_URL, // Теперь включает /api в базовом URL
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000, // Добавлен таймаут для запросов
 });
 
 // Функция для проверки, заблокирован ли эндпоинт
@@ -28,7 +29,7 @@ const isEndpointBlocked = (url: string): boolean => {
   }
 };
 
-// Обновляем интерцептор для правильной работы с Google-аутентификацией
+// Интерцептор запросов
 apiClient.interceptors.request.use(
   (config) => {
     // Проверяем, не заблокирован ли эндпоинт
@@ -76,13 +77,17 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Добавляем интерцептор ответа для обработки ошибок аутентификации и ограничения запросов
+// Интерцептор ответов
 apiClient.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
 
-    // Добавляем обработку ошибки 429 (Too Many Requests)
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // Обработка ошибки 429 (Too Many Requests)
     if (error.response?.status === 429) {
       // Извлекаем информацию о времени ожидания, если она есть
       const retryAfterHeader = error.response.headers['retry-after'];
@@ -110,12 +115,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(customError);
     }
 
-    // Если получаем 401 и у нас есть refreshToken и еще не было попытки обновления
+    // Обработка ошибки 401 (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-      const refreshToken = localStorage.getItem('refresh');
+        const refreshToken = localStorage.getItem('refresh');
         if (refreshToken) {
           // Пытаемся обновить токен
           const response = await axios.post(`${API_URL}/auth/jwt/refresh/`, {
@@ -136,9 +141,11 @@ apiClient.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         // Если не удалось обновить токен, выходим из системы
         localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('refresh'); // Исправлено на 'refresh'
         localStorage.removeItem('googleUser');
-        window.location.href = '/login'; // Перенаправляем на страницу входа
+
+        // Перенаправляем на страницу входа
+        window.location.href = '/login';
       }
     }
 

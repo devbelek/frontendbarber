@@ -145,7 +145,7 @@ export const bookingsAPI = {
   getAvailableSlots: (barberId: string, date: string) =>
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
   createBooking: (data: any) => apiClient.post('/bookings/', data),
-  delete: (id: string) => apiClient.delete(`/bookings/${id}/`) // Добавьте эту строку
+  delete: (id: string) => apiClient.delete(`/bookings/${id}/`)
 };
 
 export const servicesAPI = {
@@ -154,11 +154,13 @@ export const servicesAPI = {
       console.log('Using demo data for services due to error:', error);
       return { data: demoHaircuts };
     }),
+
   getById: (id: string) =>
     apiClient.get(`/services/${id}/`).catch((error: any) => {
       console.log('Using demo data for service due to error:', error);
       return { data: demoHaircuts.find((h) => h.id === id) || demoHaircuts[0] };
     }),
+
   incrementViews: (id: string | number) => {
     if (!id) {
       console.error(`Invalid ID provided: ${id}`);
@@ -168,19 +170,33 @@ export const servicesAPI = {
     console.log(`Incrementing views for service ID: ${serviceId}`);
     return apiClient.post(`/services/${serviceId}/increment_views/`);
   },
+
   getPopular: () =>
     apiClient.get('/services/', { params: { limit: 6, ordering: '-views' } }).catch((error: any) => {
       console.log('Using demo data for popular services due to error:', error);
       return { data: demoHaircuts };
     }),
-  create: (data: any) =>
-    data instanceof FormData
-      ? apiClient.post('/services/', data)
-      : apiClient.post('/services/', data),
-  update: (id: string, data: any) =>
-    data instanceof FormData
-      ? apiClient.patch(`/services/${id}/`, data)
-      : apiClient.patch(`/services/${id}/`, data),
+
+  create: (data: any) => {
+    // Добавляем обработку FormData
+    if (data instanceof FormData) {
+      // Логируем для отладки
+      console.log("Creating service with FormData:", Array.from(data.entries()));
+      return apiClient.post('/services/', data);
+    }
+    return apiClient.post('/services/', data);
+  },
+
+  update: (id: string, data: any) => {
+    // Добавляем обработку FormData
+    if (data instanceof FormData) {
+      // Логируем для отладки
+      console.log(`Updating service ${id} with FormData:`, Array.from(data.entries()));
+      return apiClient.patch(`/services/${id}/`, data);
+    }
+    return apiClient.patch(`/services/${id}/`, data);
+  },
+
   delete: (id: string) => apiClient.delete(`/services/${id}/`)
 };
 

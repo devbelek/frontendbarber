@@ -3,7 +3,6 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Демо-данные для случаев, когда API недоступен
 const demoHaircuts = [
   {
     id: '1',

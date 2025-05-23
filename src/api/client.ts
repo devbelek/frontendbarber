@@ -1,4 +1,3 @@
-// src/api/client.ts
 import axios from 'axios';
 
 // Устанавливаем базовый URL на локальный хост, так как данных по /api нет
@@ -6,6 +5,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Создаем Map для отслеживания заблокированных запросов
 const blockedEndpoints = new Map<string, number>();
+
+// Хранилище времени последних запросов
+const requestTimestamps = new Map<string, number>();
+const MIN_REQUEST_INTERVAL = 3000; // 3 секунды
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -70,6 +73,24 @@ apiClient.interceptors.request.use(
         // Стандартная JWT аутентификация
         config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+
+    // Ограничиваем частоту запросов к критическим эндпоинтам
+    if (config.url && (config.url.includes('/auth/users/me/') || config.url.includes('/profiles/'))) {
+      const lastRequestTime = requestTimestamps.get(config.url) || 0;
+      const now = Date.now();
+
+      if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+        console.log(`Запрос к ${config.url} отклонен из-за ограничения частоты`);
+        const retryAfter = Math.ceil((MIN_REQUEST_INTERVAL - (now - lastRequestTime)) / 1000);
+        const error: any = new Error(`Request frequency limit exceeded. Retry after ${retryAfter} seconds.`);
+        error.isRateLimited = true;
+        error.retryAfter = retryAfter;
+        return Promise.reject(error);
+      }
+
+      // Запоминаем время этого запроса
+      requestTimestamps.set(config.url, now);
     }
 
     return config;
@@ -141,7 +162,7 @@ apiClient.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         // Если не удалось обновить токен, выходим из системы
         localStorage.removeItem('token');
-        localStorage.removeItem('refresh'); // Исправлено на 'refresh'
+        localStorage.removeItem('refresh');
         localStorage.removeItem('googleUser');
 
         // Перенаправляем на страницу входа

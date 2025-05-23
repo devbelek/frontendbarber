@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { authAPI, favoritesAPI } from '../api/services';
@@ -37,7 +36,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const lastFetchTime = useRef<number>(0);
-  const MIN_FETCH_INTERVAL = 2000; // Минимальный интервал между запросами (2 секунды)
+  const dataLoadedRef = useRef(false); // Добавлен для отслеживания загрузки данных
+  const MIN_FETCH_INTERVAL = 5000; // Увеличен до 5 секунд
 
   // Проверка аутентификации при загрузке
   useEffect(() => {
@@ -192,17 +192,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
-    if (fetchingRef.current || loading) return;
+    // Если уже идет запрос или загрузка, не делаем новый запрос
+    if (fetchingRef.current || loading) {
+      console.log('Уже идет запрос или загрузка, пропускаем обновление данных');
+      return;
+    }
 
+    // Проверка минимального интервала между запросами
     const now = Date.now();
-    if (now - lastFetchTime.current < MIN_FETCH_INTERVAL) {
-      console.log('Слишком частое обновление данных, ждем');
-      await new Promise(resolve => setTimeout(resolve, MIN_FETCH_INTERVAL));
+    const timeSinceLastFetch = now - lastFetchTime.current;
+
+    if (timeSinceLastFetch < MIN_FETCH_INTERVAL) {
+      console.log(`Слишком частое обновление данных, ждем ${Math.floor((MIN_FETCH_INTERVAL - timeSinceLastFetch)/1000)} секунд`);
+      return;
     }
 
     try {
       fetchingRef.current = true;
-      lastFetchTime.current = Date.now();
+      lastFetchTime.current = now;
       setLoading(true);
 
       const response = await authAPI.getCurrentUser();

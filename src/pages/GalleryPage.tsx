@@ -5,14 +5,33 @@ import BookingModal from '../components/booking/BookingModal';
 import { servicesAPI, bookingsAPI } from '../api/services';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotification } from '../context/NotificationContext';
-import { useAuth } from '../context/AuthContext'; // Добавлен импорт
+import { useAuth } from '../context/AuthContext';
 import { Search, Filter, ChevronDown, X, Grid3X3, Grid2X2, ChevronUp } from 'lucide-react';
 import Button from '../components/ui/Button';
+
+// Новый компонент для модального окна увеличения изображения
+const ImageZoomModal = ({ isOpen, onClose, imageSrc }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+      <div className="relative max-w-4xl max-h-full">
+        <img src={imageSrc} alt="Увеличенное изображение" className="max-w-full max-h-full" />
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md hover:bg-gray-100"
+        >
+          <X className="h-6 w-6 text-gray-600" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const GalleryPage = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const notification = useNotification();
-  const { isAuthenticated, user } = useAuth(); // Добавлено получение данных аутентификации
+  const { isAuthenticated, user } = useAuth();
   const [filteredHaircuts, setFilteredHaircuts] = useState([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState(null);
@@ -23,6 +42,8 @@ const GalleryPage = ({ openLoginModal }) => {
   const [layout, setLayout] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isImageZoomOpen, setIsImageZoomOpen] = useState(false); // Состояние для модального окна увеличения
+  const [selectedImage, setSelectedImage] = useState(null); // Состояние для выбранного изображения
 
   // Категории для фильтров
   const filterCategories = {
@@ -40,7 +61,7 @@ const GalleryPage = ({ openLoginModal }) => {
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Вызываем при монтировании
+    handleResize();
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -54,13 +75,11 @@ const GalleryPage = ({ openLoginModal }) => {
     setError(null);
 
     try {
-      // Добавляем сортировку к фильтрам
       const params = {
         ...currentFilters,
-        ordering: sortBy === 'popular' ? '-views' : sortBy === 'price' ? 'price' : '-created_at'
+        ordering: sortBy === 'popular' ? '-views' : sortBy === 'price' ? 'price' : '-created_at',
       };
 
-      // Добавляем поисковый запрос, если он есть
       if (searchQuery) {
         params.search = searchQuery;
       }
@@ -91,7 +110,7 @@ const GalleryPage = ({ openLoginModal }) => {
             views: service.views || 0,
             isFavorite: service.is_favorite,
             barberWhatsapp: service.barber_details?.whatsapp,
-            barberTelegram: service.barber_details?.telegram
+            barberTelegram: service.barber_details?.telegram,
           }));
 
           setFilteredHaircuts(haircuts);
@@ -118,7 +137,6 @@ const GalleryPage = ({ openLoginModal }) => {
     const searchFilters = { ...filters, search: searchQuery };
     setFilters(searchFilters);
     fetchHaircuts(searchFilters);
-    // Закрываем панель фильтров после применения на мобильных
     setIsFilterOpen(false);
   };
 
@@ -127,58 +145,59 @@ const GalleryPage = ({ openLoginModal }) => {
     setIsBookingModalOpen(true);
   };
 
-const handleBookingConfirm = async (date, time, contactInfo) => {
-  if (!selectedHaircut) return;
+  const handleBookingConfirm = async (date, time, contactInfo) => {
+    if (!selectedHaircut) return;
 
-  try {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    // Подготавливаем данные для бронирования
-    const bookingData = {
-      service: selectedHaircut.id,
-      date: date,
-      time: time,
-      notes: contactInfo?.notes || '',
-      client_name: contactInfo.name,
-      client_phone: contactInfo.phone
-    };
+      const bookingData = {
+        service: selectedHaircut.id,
+        date: date,
+        time: time,
+        notes: contactInfo?.notes || '',
+        client_name: contactInfo.name,
+        client_phone: contactInfo.phone,
+      };
 
-    console.log("Отправляем запрос на бронирование:", bookingData);
+      console.log('Отправляем запрос на бронирование:', bookingData);
 
-    // Добавляем умышленную задержку, чтобы избежать слишком быстрых запросов
-    await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await bookingsAPI.create(bookingData);
+      console.log('Ответ сервера:', response);
 
-    const response = await bookingsAPI.create(bookingData);
-    console.log("Ответ сервера:", response);
+      setIsBookingModalOpen(false);
 
-    setIsBookingModalOpen(false);
+      notification.success(
+        'Бронирование создано',
+        `Услуга "${selectedHaircut.title}" успешно забронирована`
+      );
 
-    notification.success(
-      'Бронирование создано',
-      `Услуга "${selectedHaircut.title}" успешно забронирована`
-    );
-
-    // После успешного бронирования переходим на страницу профиля
-    if (isAuthenticated) {
-      navigate('/profile', { state: { activeTab: 'bookings' } });
+      if (isAuthenticated) {
+        navigate('/profile', { state: { activeTab: 'bookings' } });
+      }
+    } catch (err) {
+      console.error('Error creating booking:', err);
+      notification.error(
+        'Ошибка бронирования',
+        'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
+      );
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('Error creating booking:', err);
-    notification.error(
-      'Ошибка бронирования',
-      'Не удалось создать бронирование. Пожалуйста, попробуйте снова.'
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-  // Сброс фильтров
   const resetFilters = () => {
     setSearchQuery('');
     setFilters({});
     setSortBy('popular');
     fetchHaircuts({});
+  };
+
+  // Обработчик клика на изображение для увеличения
+  const handleImageClick = (imageSrc) => {
+    setSelectedImage(imageSrc);
+    setIsImageZoomOpen(true);
   };
 
   return (
@@ -223,32 +242,34 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
           <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-xl p-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Фильтры</h3>
-              <button
-                onClick={() => setIsFilterOpen(false)}
-                className="text-gray-500"
-              >
+              <button onClick={() => setIsFilterOpen(false)} className="text-gray-500">
                 Закрыть
               </button>
             </div>
 
-            {/* Тип сортировки */}
             <div className="mb-4">
               <h4 className="font-medium mb-2">Сортировка</h4>
               <div className="flex flex-wrap gap-2">
                 <button
-                  className={`px-3 py-2 rounded-lg text-sm ${sortBy === 'popular' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'}`}
+                  className={`px-3 py-2 rounded-lg text-sm ${
+                    sortBy === 'popular' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
                   onClick={() => setSortBy('popular')}
                 >
                   Популярные
                 </button>
                 <button
-                  className={`px-3 py-2 rounded-lg text-sm ${sortBy === 'price' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'}`}
+                  className={`px-3 py-2 rounded-lg text-sm ${
+                    sortBy === 'price' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
                   onClick={() => setSortBy('price')}
                 >
                   По цене
                 </button>
                 <button
-                  className={`px-3 py-2 rounded-lg text-sm ${sortBy === 'recent' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'}`}
+                  className={`px-3 py-2 rounded-lg text-sm ${
+                    sortBy === 'recent' ? 'bg-[#9A0F34] text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
                   onClick={() => setSortBy('recent')}
                 >
                   Новые
@@ -256,7 +277,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
               </div>
             </div>
 
-            {/* Тип стрижки */}
             <div className="mb-4">
               <h4 className="font-medium mb-2">Тип стрижки</h4>
               <div className="grid grid-cols-2 gap-2">
@@ -269,12 +289,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                       onChange={(e) => {
                         const newTypes = e.target.checked
                           ? [...(filters.types || []), type]
-                          : (filters.types || []).filter(t => t !== type);
-
-                        handleFilterChange({
-                          ...filters,
-                          types: newTypes
-                        });
+                          : (filters.types || []).filter((t) => t !== type);
+                        handleFilterChange({ ...filters, types: newTypes });
                       }}
                     />
                     <span className="text-sm">{type}</span>
@@ -283,7 +299,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
               </div>
             </div>
 
-            {/* Длина волос */}
             <div className="mb-4">
               <h4 className="font-medium mb-2">Длина волос</h4>
               <div className="grid grid-cols-3 gap-2">
@@ -296,12 +311,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                       onChange={(e) => {
                         const newLengths = e.target.checked
                           ? [...(filters.lengths || []), length]
-                          : (filters.lengths || []).filter(l => l !== length);
-
-                        handleFilterChange({
-                          ...filters,
-                          lengths: newLengths
-                        });
+                          : (filters.lengths || []).filter((l) => l !== length);
+                        handleFilterChange({ ...filters, lengths: newLengths });
                       }}
                     />
                     <span className="text-sm">{length}</span>
@@ -310,12 +321,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
               </div>
             </div>
 
-            {/* Кнопки управления */}
             <div className="flex gap-2 mt-6">
-              <button
-                className="w-full py-2 bg-gray-200 rounded-lg"
-                onClick={resetFilters}
-              >
+              <button className="w-full py-2 bg-gray-200 rounded-lg" onClick={resetFilters}>
                 Сбросить
               </button>
               <button
@@ -332,7 +339,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
       {/* Панель управления отображением для десктопа */}
       <div className="hidden md:flex justify-between items-center bg-white p-4 container mx-auto">
         <h1 className="text-xl font-bold">{t('gallery')}</h1>
-
         <div className="flex items-center gap-3">
           <div className="flex items-center">
             <div className="relative mr-4">
@@ -357,12 +363,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                 </button>
               )}
             </div>
-
-            <Button onClick={handleSearch}>
-              {t('search')}
-            </Button>
+            <Button onClick={handleSearch}>{t('search')}</Button>
           </div>
-
           <div className="flex border rounded-lg overflow-hidden">
             <button
               onClick={() => setLayout('grid')}
@@ -377,7 +379,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
               <Grid2X2 className="h-5 w-5" />
             </button>
           </div>
-
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -399,9 +400,7 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
               <span className="font-medium">Фильтры</span>
               <ChevronDown className="h-5 w-5" />
             </summary>
-
             <div className="mt-4 grid grid-cols-3 gap-6">
-              {/* Тип стрижки */}
               <div>
                 <h4 className="font-medium mb-2">Тип стрижки</h4>
                 <div className="space-y-2">
@@ -414,12 +413,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                         onChange={(e) => {
                           const newTypes = e.target.checked
                             ? [...(filters.types || []), type]
-                            : (filters.types || []).filter(t => t !== type);
-
-                          handleFilterChange({
-                            ...filters,
-                            types: newTypes
-                          });
+                            : (filters.types || []).filter((t) => t !== type);
+                          handleFilterChange({ ...filters, types: newTypes });
                         }}
                       />
                       <span>{type}</span>
@@ -427,8 +422,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                   ))}
                 </div>
               </div>
-
-              {/* Длина волос */}
               <div>
                 <h4 className="font-medium mb-2">Длина волос</h4>
                 <div className="space-y-2">
@@ -441,12 +434,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                         onChange={(e) => {
                           const newLengths = e.target.checked
                             ? [...(filters.lengths || []), length]
-                            : (filters.lengths || []).filter(l => l !== length);
-
-                          handleFilterChange({
-                            ...filters,
-                            lengths: newLengths
-                          });
+                            : (filters.lengths || []).filter((l) => l !== length);
+                          handleFilterChange({ ...filters, lengths: newLengths });
                         }}
                       />
                       <span>{length}</span>
@@ -454,8 +443,6 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                   ))}
                 </div>
               </div>
-
-              {/* Стиль */}
               <div>
                 <h4 className="font-medium mb-2">Стиль</h4>
                 <div className="space-y-2">
@@ -468,12 +455,8 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                         onChange={(e) => {
                           const newStyles = e.target.checked
                             ? [...(filters.styles || []), style]
-                            : (filters.styles || []).filter(s => s !== style);
-
-                          handleFilterChange({
-                            ...filters,
-                            styles: newStyles
-                          });
+                            : (filters.styles || []).filter((s) => s !== style);
+                          handleFilterChange({ ...filters, styles: newStyles });
                         }}
                       />
                       <span>{style}</span>
@@ -482,19 +465,11 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
                 </div>
               </div>
             </div>
-
             <div className="mt-4 flex justify-end">
-              <Button
-                variant="outline"
-                onClick={resetFilters}
-                className="mr-2"
-              >
+              <Button variant="outline" onClick={resetFilters} className="mr-2">
                 Сбросить
               </Button>
-              <Button
-                variant="primary"
-                onClick={handleSearch}
-              >
+              <Button variant="primary" onClick={handleSearch}>
                 Применить фильтры
               </Button>
             </div>
@@ -519,17 +494,17 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
           </div>
         ) : filteredHaircuts.length > 0 ? (
           <div className="mt-6">
-            <HaircutGrid haircuts={filteredHaircuts} onBookClick={handleBookClick} />
+            <HaircutGrid
+              haircuts={filteredHaircuts}
+              onBookClick={handleBookClick}
+              onImageClick={handleImageClick} // Передаем обработчик клика на изображение
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-1">{t('noResults')}</h3>
             <p className="text-gray-500">Попробуйте изменить параметры поиска или сбросить фильтры.</p>
-            <Button
-              variant="primary"
-              onClick={resetFilters}
-              className="mt-4"
-            >
+            <Button variant="primary" onClick={resetFilters} className="mt-4">
               Сбросить фильтры
             </Button>
           </div>
@@ -541,6 +516,13 @@ const handleBookingConfirm = async (date, time, contactInfo) => {
         onClose={() => setIsBookingModalOpen(false)}
         haircut={selectedHaircut}
         onConfirm={handleBookingConfirm}
+      />
+
+      {/* Добавляем модальное окно для увеличения изображения */}
+      <ImageZoomModal
+        isOpen={isImageZoomOpen}
+        onClose={() => setIsImageZoomOpen(false)}
+        imageSrc={selectedImage}
       />
     </Layout>
   );

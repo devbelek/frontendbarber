@@ -1,7 +1,7 @@
-// src/components/layout/Header.tsx - улучшенная версия
+// src/components/layout/Header.tsx - обновленная версия без мобильного меню
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User, Globe, MapPin, LogOut, Search } from 'lucide-react';
+import { Globe, MapPin, LogOut, Search, X } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,7 +15,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const location = useLocation();
@@ -46,11 +45,6 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
     };
   }, []);
 
-  // Закрыть меню при смене страницы
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
   // Обработчик клика вне области выпадающего меню для закрытия
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -65,15 +59,9 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
     };
   }, [isRegionDropdownOpen]);
 
-  // Обработчик клика на мобильной кнопке меню
-  const handleMenuClick = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
   // Обработчик для открытия модального окна входа
   const handleLoginClick = () => {
     setLoginModalOpen(true);
-    setIsMenuOpen(false);
   };
 
   // Обработчик поиска
@@ -81,7 +69,6 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/gallery?search=${encodeURIComponent(searchQuery)}`);
-      setIsMenuOpen(false);
     }
   };
 
@@ -216,7 +203,6 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
                     size="sm"
                     className={isTransparent && !isScrolled ? "border-white text-white" : ""}
                   >
-                    <User className="h-5 w-5 mr-1.5" />
                     {t('profile')}
                   </Button>
                 </Link>
@@ -240,181 +226,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
               </Button>
             )}
           </div>
-
-          {/* Мобильная кнопка меню */}
-          <button
-            className="md:hidden p-2 rounded-full transition-colors"
-            onClick={handleMenuClick}
-            aria-label={isMenuOpen ? "Закрыть меню" : "Открыть меню"}
-          >
-            {isMenuOpen ? (
-              <X className={`h-6 w-6 ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
-            ) : (
-              <Menu className={`h-6 w-6 ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`} />
-            )}
-          </button>
         </div>
-
-        {/* Мобильное меню с анимацией */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden bg-white absolute left-0 right-0 top-16 shadow-lg rounded-b-lg z-40 overflow-hidden"
-            >
-              <div className="p-4 space-y-4">
-                {/* Поиск в мобильном меню */}
-                <form onSubmit={handleSearch} className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Найти стрижку..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    fullWidth
-                    className="mt-2"
-                  >
-                    Поиск
-                  </Button>
-                </form>
-
-                {/* Навигационные ссылки */}
-                <div className="space-y-2">
-                  <Link
-                    to="/"
-                    className={`block py-2 px-3 text-lg font-medium rounded-lg ${location.pathname === '/' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-800 hover:bg-gray-50'}`}
-                  >
-                    {t('home')}
-                  </Link>
-                  <Link
-                    to="/gallery"
-                    className={`block py-2 px-3 text-lg font-medium rounded-lg ${location.pathname === '/gallery' ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-800 hover:bg-gray-50'}`}
-                  >
-                    {t('gallery')}
-                  </Link>
-                  <Link
-                    to="/barbers"
-                    className={`block py-2 px-3 text-lg font-medium rounded-lg ${location.pathname.includes('/barber') ? 'bg-gray-100 text-[#9A0F34]' : 'text-gray-800 hover:bg-gray-50'}`}
-                  >
-                    {t('barbers')}
-                  </Link>
-                </div>
-
-                {/* Регион и Язык в мобильном меню */}
-                <div className="border-t border-gray-200 pt-4 pb-2">
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
-                      className="flex items-center text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-50 w-full"
-                    >
-                      <MapPin className="h-5 w-5 mr-2 text-[#9A0F34]" />
-                      <span>{currentRegion.name}</span>
-                      <svg
-                        className={`h-4 w-4 ml-auto transition-transform ${isRegionDropdownOpen ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Выпадающий список регионов */}
-                  <AnimatePresence>
-                    {isRegionDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-gray-50 rounded-lg mt-1 overflow-hidden"
-                      >
-                        {regions.map((region) => (
-                          <button
-                            key={region.id}
-                            onClick={() => {
-                              setCurrentRegion(region);
-                              setIsRegionDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-2 text-sm ${
-                              currentRegion.id === region.id
-                                ? 'bg-gray-100 text-[#9A0F34]'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            {region.name}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Переключатель языка */}
-                  <button
-                    onClick={toggleLanguage}
-                    className="mt-2 flex items-center text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-50 w-full"
-                  >
-                    <Globe className="h-5 w-5 mr-2 text-[#9A0F34]" />
-                    <span>{language === 'ru' ? 'Русский язык' : 'Кыргыз тили'}</span>
-                    <span className="ml-auto px-2 py-1 bg-gray-200 rounded text-xs font-medium">
-                      {language === 'ru' ? 'RU' : 'KG'}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Кнопки авторизации в мобильном меню */}
-                <div className="border-t border-gray-200 pt-4">
-                  {isAuthenticated ? (
-                    <div className="space-y-2">
-                      <Link to="/profile">
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          className="py-3"
-                        >
-                          <User className="h-5 w-5 mr-2" />
-                          {t('profile')}
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        fullWidth
-                        className="py-3"
-                        onClick={() => {
-                          logout();
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <LogOut className="h-5 w-5 mr-2" />
-                        {t('logout')}
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      className="py-3"
-                      onClick={handleLoginClick}
-                    >
-                      {t('signIn')}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Модальное окно входа */}

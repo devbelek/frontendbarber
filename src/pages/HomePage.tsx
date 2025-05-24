@@ -438,9 +438,10 @@ const HomePage = ({ openLoginModal }) => {
       )}
 
       <div className="pb-20 md:pb-0 font-['Inter']">
+        {/* Фиксированный блок поиска - исправлен отступ сверху */}
         <motion.div
-          className={`fixed top-0 pt-16 left-0 right-0 z-30 bg-white shadow-lg transition-all duration-300 ${
-            isSearchActive ? 'pb-6' : 'pb-3'
+          className={`fixed top-0 pt-12 left-0 right-0 z-30 bg-white shadow-lg transition-all duration-300 ${
+            isSearchActive ? 'pb-6' : 'pb-2'
           }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -448,7 +449,7 @@ const HomePage = ({ openLoginModal }) => {
         >
           {userLocation.address && (
             <div className="flex items-center justify-center mb-2 text-sm text-gray-600">
-              <MapPin className="h-5 w-5 mr-1 text-[#9A0F34]" />
+              <MapPin className="h-4 w-4 mr-1 text-[#9A0F34]" />
               <span>{userLocation.address}</span>
             </div>
           )}
@@ -468,7 +469,7 @@ const HomePage = ({ openLoginModal }) => {
               <input
                 type="text"
                 placeholder="Найти стрижку..."
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none transition-shadow text-base"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none transition-shadow text-base"
                 onClick={handleSearchFocus}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -486,14 +487,13 @@ const HomePage = ({ openLoginModal }) => {
 
             <div className="flex-shrink-0 relative">
               <button
-                className={`flex items-center h-full px-4 border border-gray-300 rounded-lg ${
+                className={`flex items-center h-full px-3 border border-gray-300 rounded-lg ${
                   showCategoryDropdown ? 'bg-gray-100 text-[#9A0F34]' : 'bg-white text-gray-700'
                 }`}
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
               >
                 <Scissors className="h-5 w-5 mr-1" />
-                <span className="hidden sm:inline">Категории</span>
-                <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {showCategoryDropdown && (
@@ -509,9 +509,9 @@ const HomePage = ({ openLoginModal }) => {
                       <button
                         key={category.name}
                         onClick={() => handleCategoryClick(category.icon)}
-                        className={`flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors ${category.color}`}
+                        className={`flex flex-col items-center p-2 rounded-lg hover:bg-gray-50 transition-colors ${category.color}`}
                       >
-                        <Scissors className="h-6 w-6 mb-1" />
+                        <Scissors className="h-5 w-5 mb-1" />
                         <span className="text-xs font-medium">{category.name}</span>
                       </button>
                     ))}
@@ -532,7 +532,7 @@ const HomePage = ({ openLoginModal }) => {
                 variant="primary"
                 fullWidth
                 onClick={handleSearch}
-                className="py-3"
+                className="py-2"
               >
                 <Search className="h-5 w-5 mr-2" />
                 Искать
@@ -557,7 +557,8 @@ const HomePage = ({ openLoginModal }) => {
           )}
         </motion.div>
 
-        <div className={`pt-28 ${isSearchActive ? 'pt-44' : ''}`}></div>
+        {/* Скорректированный отступ для учета фиксированного заголовка */}
+        <div className={`pt-24 ${isSearchActive ? 'pt-40' : ''}`}></div>
 
         <div className="py-4 px-4 bg-gray-50">
           <div className="flex justify-between items-center mb-3">

@@ -1,3 +1,4 @@
+// src/components/layout/Layout.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -6,7 +7,7 @@ import MobileNavigation from './MobileNavigation';
 import FloatingActionButton from '../ui/FloatingActionButton';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import InstallModal from '../ui/InstallModal'; // Укажи правильный путь
+import InstallModal from '../ui/InstallModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,20 +25,18 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
     location.pathname.startsWith('/edit-service/');
   const isHomePage = location.pathname === '/';
 
-  // Логика для PWA и модального окна
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e); // Сохраняем событие для вызова установки
-      setIsInstallModalOpen(true); // Открываем модальное окно
+      setDeferredPrompt(e);
+      setIsInstallModalOpen(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Очищаем слушатель при размонтировании компонента
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
     };
@@ -45,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
 
   const handleInstall = () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt(); // Запускаем установку
+      deferredPrompt.prompt();
       deferredPrompt.userChoice.then((choiceResult: any) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('Пользователь установил приложение');
@@ -53,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
           console.log('Пользователь отказался от установки');
         }
         setDeferredPrompt(null);
-        setIsInstallModalOpen(false); // Закрываем модальное окно
+        setIsInstallModalOpen(false);
       });
     }
   };
@@ -65,7 +64,7 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header openLoginModal={openLoginModal} isTransparent={isHomePage} />
-      <main className="flex-grow">{children}</main>
+      <main className="flex-grow pb-safe">{children}</main>
       <Footer />
 
       {isMobile && <MobileNavigation openLoginModal={openLoginModal} />}
@@ -78,7 +77,6 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
         />
       )}
 
-      {/* Добавляем модальное окно */}
       <InstallModal
         isOpen={isInstallModalOpen}
         onClose={closeInstallModal}

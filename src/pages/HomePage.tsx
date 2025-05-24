@@ -1,12 +1,14 @@
+// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Scissors, MapPin, Heart, Clock, Star, MessageCircle, Eye } from 'lucide-react';
+import { Search, Scissors, MapPin, Heart, Clock, Star, MessageCircle, Eye, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { servicesAPI, profileAPI } from '../api/services';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import ImageWithFallback from '../components/ui/ImageWithFallback';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const HomePage = ({ openLoginModal }) => {
   const [popularHaircuts, setPopularHaircuts] = useState([]);
@@ -27,20 +29,19 @@ const HomePage = ({ openLoginModal }) => {
   ]);
   const [showBarberContactModal, setShowBarberContactModal] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState(null);
+  const [selectedHaircut, setSelectedHaircut] = useState(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const navigate = useNavigate();
   const notification = useNotification();
   const { user, toggleFavorite } = useAuth();
 
   useEffect(() => {
-    // Определяем местоположение пользователя
     getUserLocation();
 
-    // Загрузка популярных стрижек и барберов
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Загружаем популярные стрижки
         const haircutsResponse = await servicesAPI.getPopular();
 
         if (haircutsResponse && haircutsResponse.data) {
@@ -55,7 +56,6 @@ const HomePage = ({ openLoginModal }) => {
           }
         }
 
-        // Загружаем барберов
         const barbersResponse = await profileAPI.getAllBarbers();
 
         if (barbersResponse && barbersResponse.data) {
@@ -67,7 +67,6 @@ const HomePage = ({ openLoginModal }) => {
             barbersData = barbersResponse.data;
           }
 
-          // Добавляем расстояние до барберов, если есть координаты
           if (userLocation.latitude && userLocation.longitude) {
             barbersData = barbersData.map(barber => {
               let distance = null;
@@ -87,7 +86,7 @@ const HomePage = ({ openLoginModal }) => {
             });
           }
 
-          setNearbyBarbers(barbersData.slice(0, 4)); // Берем только первых 4 барбера
+          setNearbyBarbers(barbersData.slice(0, 4));
         }
 
       } catch (error) {
@@ -101,7 +100,6 @@ const HomePage = ({ openLoginModal }) => {
     fetchData();
   }, [userLocation.latitude, userLocation.longitude]);
 
-  // Функция для определения местоположения пользователя
   const getUserLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -109,13 +107,11 @@ const HomePage = ({ openLoginModal }) => {
           const { latitude, longitude } = position.coords;
 
           try {
-            // Получаем адрес из координат
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
             );
             const data = await response.json();
 
-            // Формируем адрес
             let address = '';
             if (data.address) {
               const parts = [];
@@ -124,12 +120,6 @@ const HomePage = ({ openLoginModal }) => {
               }
               if (data.address.suburb) {
                 parts.push(data.address.suburb);
-              }
-              if (data.address.road) {
-                parts.push(data.address.road);
-                if (data.address.house_number) {
-                  parts.push(data.address.house_number);
-                }
               }
               address = parts.join(', ');
             }
@@ -155,9 +145,8 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  // Расчет расстояния между координатами
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // радиус Земли в км
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -165,7 +154,7 @@ const HomePage = ({ openLoginModal }) => {
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c; // Расстояние в км
+    const distance = R * c;
     return parseFloat(distance.toFixed(1));
   };
 
@@ -173,12 +162,10 @@ const HomePage = ({ openLoginModal }) => {
     return deg * (Math.PI/180);
   };
 
-  // Функция для навигации
   const goTo = (path) => {
     navigate(path);
   };
 
-  // Форматирование полного имени барбера
   const getBarberName = (barber) => {
     if (barber.first_name || barber.last_name) {
       return `${barber.first_name || ''} ${barber.last_name || ''}`.trim();
@@ -186,11 +173,11 @@ const HomePage = ({ openLoginModal }) => {
     return barber.username || 'Барбер';
   };
 
-  // Обработчик избранного
-  const handleFavoriteToggle = async (haircutId) => {
+  const handleFavoriteToggle = async (haircutId, e) => {
+    e.stopPropagation();
+    e.preventDefault();
     try {
       await toggleFavorite(haircutId);
-      // Обновляем состояние в списке
       setPopularHaircuts(prev => prev.map(h => {
         if (h.id === haircutId) {
           return { ...h, is_favorite: !h.is_favorite };
@@ -204,7 +191,13 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  // Показать контакты барбера
+  const handleContactClick = (haircut, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedHaircut(haircut);
+    setShowContactModal(true);
+  };
+
   const showBarberContacts = (barberId) => {
     const barber = nearbyBarbers.find(b => b.id === barberId);
     if (barber) {
@@ -213,18 +206,146 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  // Обработчик клика на категорию
   const handleCategoryClick = (categoryType) => {
     navigate(`/gallery`, {
       state: { appliedFilters: { types: [categoryType] } }
     });
   };
 
+  const HaircutCard = ({ haircut }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const hasMultipleImages = haircut.images && haircut.images.length > 1;
+
+    const handlePrevImage = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (hasMultipleImages) {
+        setCurrentImageIndex(prev =>
+          prev === 0 ? haircut.images.length - 1 : prev - 1
+        );
+      }
+    };
+
+    const handleNextImage = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (hasMultipleImages) {
+        setCurrentImageIndex(prev =>
+          prev === haircut.images.length - 1 ? 0 : prev + 1
+        );
+      }
+    };
+
+    const currentImage = haircut.images && haircut.images.length > 0
+      ? haircut.images[currentImageIndex].image
+      : haircut.primary_image || haircut.image;
+
+    return (
+      <div className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100">
+        <div className="relative aspect-square overflow-hidden">
+          <ImageWithFallback
+            src={currentImage}
+            alt={haircut.title}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+
+          {hasMultipleImages && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+
+          {hasMultipleImages && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {haircut.images.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === currentImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
+            <Eye className="h-3 w-3 mr-1" />
+            {haircut.views || 0}
+          </div>
+
+          <div className="absolute top-2 right-2 flex gap-1 z-10">
+            <button
+              className={`p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors ${
+                haircut.is_favorite ? 'text-red-400' : 'text-white'
+              }`}
+              onClick={(e) => handleFavoriteToggle(haircut.id, e)}
+            >
+              <Heart size={18} className={haircut.is_favorite ? 'fill-red-400' : ''} />
+            </button>
+
+            {(haircut.barber_details?.telegram || haircut.barber_details?.whatsapp) && (
+              <button
+                className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors text-white"
+                onClick={(e) => handleContactClick(haircut, e)}
+              >
+                <MessageCircle size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="p-3">
+          <h3 className="text-sm font-semibold mb-1 line-clamp-1">{haircut.title}</h3>
+
+          {haircut.description && (
+            <p className="text-xs text-gray-600 line-clamp-2 mb-2">{haircut.description}</p>
+          )}
+
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[#9A0F34] font-bold text-sm">
+              {Math.floor(haircut.price || 0)} сом
+            </span>
+            <span className="text-xs text-gray-600">
+              {haircut.barber_details?.full_name || 'Барбер'}
+            </span>
+          </div>
+
+          <button
+            className="w-full bg-[#9A0F34] text-white text-sm py-2 rounded-lg hover:bg-[#7b0c29] transition-colors"
+            onClick={() => {
+              servicesAPI.incrementViews(haircut.id);
+              goTo(`/gallery?service=${haircut.id}`);
+            }}
+          >
+            Хочу такую же
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout openLoginModal={openLoginModal}>
-      <div className="pb-16 mb-3 md:pb-0">
-        {/* Поисковая панель */}
-    <div className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3 mt-16">
+      <div className="pb-20 md:pb-0">
+        {/* Локация и поиск */}
+        <div className="sticky top-14 md:top-0 z-10 bg-white shadow-sm px-4 py-3">
+          {userLocation.address && (
+            <div className="flex items-center justify-center mb-2 text-sm text-gray-600">
+              <Navigation className="h-4 w-4 mr-1 text-[#9A0F34]" />
+              <span>{userLocation.address}</span>
+            </div>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             <input
@@ -263,14 +384,7 @@ const HomePage = ({ openLoginModal }) => {
         {/* Ближайшие барберы */}
         <div className="py-4 px-4 bg-gray-50">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">
-              Барберы рядом
-              {userLocation.address && (
-                <span className="text-sm font-normal text-gray-500 ml-2">
-                  • {userLocation.address}
-                </span>
-              )}
-            </h2>
+            <h2 className="text-lg font-semibold">Барберы рядом</h2>
             <button onClick={() => goTo('/barbers')} className="text-sm text-[#9A0F34]">
               Смотреть все
             </button>
@@ -335,52 +449,7 @@ const HomePage = ({ openLoginModal }) => {
               ))
             ) : popularHaircuts.length > 0 ? (
               popularHaircuts.slice(0, 4).map((haircut) => (
-                <div key={haircut.id} className="bg-white rounded-lg overflow-hidden shadow-sm relative">
-                  <div className="absolute top-2 right-2 flex gap-1 z-10">
-                    <button
-                      className="bg-white rounded-full p-1.5 shadow-md"
-                      onClick={() => handleFavoriteToggle(haircut.id)}
-                    >
-                      <Heart className={`h-4 w-4 ${haircut.is_favorite ? "fill-[#9A0F34] text-[#9A0F34]" : "text-gray-500"}`} />
-                    </button>
-                    {(haircut.barber_details?.telegram || haircut.barber_details?.whatsapp) && (
-                      <button
-                        className="bg-white rounded-full p-1.5 shadow-md"
-                        onClick={() => showBarberContacts(haircut.barber_details?.id)}
-                      >
-                        <MessageCircle className="h-4 w-4 text-gray-500" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="relative" onClick={() => goTo(`/gallery?service=${haircut.id}`)}>
-                    <ImageWithFallback
-                      src={haircut.primary_image || haircut.image}
-                      alt={haircut.title}
-                      className="w-full h-36 object-cover"
-                    />
-                    <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
-                      <Eye className="h-3 w-3 mr-1" />
-                      {haircut.views || 0}
-                    </div>
-                  </div>
-
-                  <div className="p-2">
-                    <h3 className="font-medium text-sm mb-1 line-clamp-1">{haircut.title}</h3>
-                    <div className="flex justify-between items-center">
-                      <p className="text-[#9A0F34] font-bold text-sm">{Math.floor(haircut.price)} сом</p>
-                      <button
-                        className="text-xs bg-[#9A0F34]/10 text-[#9A0F34] px-2 py-1 rounded"
-                        onClick={() => {
-                          servicesAPI.incrementViews(haircut.id);
-                          goTo(`/gallery?service=${haircut.id}`);
-                        }}
-                      >
-                        Хочу также
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <HaircutCard key={haircut.id} haircut={haircut} />
               ))
             ) : (
               <div className="col-span-2 md:col-span-4 text-center py-4 text-gray-500">
@@ -412,6 +481,76 @@ const HomePage = ({ openLoginModal }) => {
           </div>
         </div>
       </div>
+
+      {/* Модальное окно контактов стрижки */}
+      <AnimatePresence>
+        {showContactModal && selectedHaircut && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowContactModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Связаться с барбером</h3>
+                <p className="text-gray-600">Узнайте подойдет ли вам эта стрижка</p>
+              </div>
+
+              <div className="space-y-3">
+                {selectedHaircut.barber_details?.whatsapp && (
+                  <motion.a
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={`https://wa.me/${selectedHaircut.barber_details.whatsapp.replace(/\D/g, '')}?text=Здравствуйте! Меня интересует стрижка "${selectedHaircut.title}"`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium"
+                  >
+                    <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                    </svg>
+                    WhatsApp
+                  </motion.a>
+                )}
+
+                {selectedHaircut.barber_details?.telegram && (
+                  <motion.a
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={`https://t.me/${selectedHaircut.barber_details.telegram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium"
+                  >
+                    <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+                    </svg>
+                    Telegram
+                  </motion.a>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="mt-6 w-full text-gray-500 py-3 hover:text-gray-700 transition-colors font-medium"
+              >
+                Закрыть
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Модальное окно контактов барбера */}
       {showBarberContactModal && selectedBarber && (

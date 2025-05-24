@@ -1,4 +1,3 @@
-// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Scissors, MapPin, Heart, Clock, Star, MessageCircle, Eye, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
@@ -241,12 +240,16 @@ const HomePage = ({ openLoginModal }) => {
       : haircut.primary_image || haircut.image;
 
     return (
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100">
+      <motion.div
+        className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100"
+        whileHover={{ scale: 1.03 }}
+      >
         <div className="relative aspect-square overflow-hidden">
           <ImageWithFallback
             src={currentImage}
             alt={haircut.title}
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            loading="lazy"
           />
 
           {hasMultipleImages && (
@@ -331,52 +334,58 @@ const HomePage = ({ openLoginModal }) => {
             Хочу такую же
           </button>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
   return (
     <Layout openLoginModal={openLoginModal}>
-      <div className="pb-20 md:pb-0">
+      <div className="pb-20 md:pb-0 font-['Inter']">
         {/* Локация и поиск */}
-        <div className="sticky top-14 md:top-0 z-10 bg-white shadow-sm px-4 py-3">
+        <motion.div
+          className="sticky top-14 md:top-0 z-10 bg-white shadow-sm px-4 py-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           {userLocation.address && (
             <div className="flex items-center justify-center mb-2 text-sm text-gray-600">
-              <Navigation className="h-4 w-4 mr-1 text-[#9A0F34]" />
+              <Navigation className="h-5 w-5 mr-1 text-[#9A0F34]" />
               <span>{userLocation.address}</span>
             </div>
           )}
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 h-6 w-6 text-gray-400" />
             <input
               type="text"
               placeholder="Найти стрижку..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none"
+              className="w-full pl-12 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none text-base"
               onKeyDown={(e) => e.key === 'Enter' && goTo('/gallery')}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Категории стрижек */}
         <div className="py-4 px-4">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Категории</h2>
-            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34]">
+            <h2 className="text-xl font-semibold">Категории</h2>
+            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34] hover:underline">
               Все категории
             </button>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {categories.map((category, index) => (
-              <button
+              <motion.button
                 key={index}
                 onClick={() => handleCategoryClick(category.icon)}
                 className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
+                whileTap={{ scale: 0.95 }}
               >
-                <div className={`w-12 h-12 rounded-full ${category.color} flex items-center justify-center mb-2`}>
-                  <Scissors className="h-6 w-6" />
+                <div className={`w-14 h-14 rounded-full ${category.color} flex items-center justify-center mb-2`}>
+                  <Scissors className="h-8 w-8" />
                 </div>
-                <span className="text-xs text-center">{category.name}</span>
-              </button>
+                <span className="text-sm text-center">{category.name}</span>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -384,8 +393,8 @@ const HomePage = ({ openLoginModal }) => {
         {/* Ближайшие барберы */}
         <div className="py-4 px-4 bg-gray-50">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Барберы рядом</h2>
-            <button onClick={() => goTo('/barbers')} className="text-sm text-[#9A0F34]">
+            <h2 className="text-xl font-semibold">Барберы рядом</h2>
+            <button onClick={() => goTo('/barbers')} className="text-sm text-[#9A0F34] hover:underline">
               Смотреть все
             </button>
           </div>
@@ -402,21 +411,23 @@ const HomePage = ({ openLoginModal }) => {
                 ))
               ) : nearbyBarbers.length > 0 ? (
                 nearbyBarbers.map((barber) => (
-                  <button
+                  <motion.button
                     key={barber.id}
                     onClick={() => goTo(`/barber/${barber.id}`)}
-                    className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-sm"
+                    className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-md"
+                    whileHover={{ scale: 1.05 }}
                   >
                     <img
                       src={barber.profile?.photo || 'https://via.placeholder.com/100'}
                       alt={getBarberName(barber)}
                       className="w-14 h-14 rounded-full mx-auto mb-2 object-cover"
+                      loading="lazy"
                     />
-                    <p className="text-center font-medium">{getBarberName(barber)}</p>
+                    <p className="text-center font-medium text-sm">{getBarberName(barber)}</p>
                     {barber.distance !== null && (
                       <p className="text-xs text-center text-gray-500">{barber.distance} км от вас</p>
                     )}
-                  </button>
+                  </motion.button>
                 ))
               ) : (
                 <div className="w-full text-center py-4 text-gray-500">
@@ -430,8 +441,8 @@ const HomePage = ({ openLoginModal }) => {
         {/* Популярные стрижки */}
         <div className="py-4 px-4">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Популярные стрижки</h2>
-            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34]">
+            <h2 className="text-xl font-semibold">Популярные стрижки</h2>
+            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34] hover:underline">
               Смотреть все
             </button>
           </div>
@@ -461,23 +472,25 @@ const HomePage = ({ openLoginModal }) => {
 
         {/* Как это работает */}
         <div className="py-4 px-4 bg-gray-50">
-          <h2 className="text-lg font-semibold mb-3">Как это работает</h2>
+          <h2 className="text-xl font-semibold mb-3">Как это работает</h2>
           <div className="flex overflow-x-auto -mx-4 px-4 space-x-3 pb-2">
-            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
-              <div className="text-2xl mb-2">🔍</div>
-              <h3 className="font-medium mb-1">Выбери стрижку</h3>
-              <p className="text-xs text-gray-600">Просматривай фото реальных стрижек</p>
-            </div>
-            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
-              <div className="text-2xl mb-2">📅</div>
-              <h3 className="font-medium mb-1">Забронируй время</h3>
-              <p className="text-xs text-gray-600">Запишись к барберу онлайн</p>
-            </div>
-            <div className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm">
-              <div className="text-2xl mb-2">✨</div>
-              <h3 className="font-medium mb-1">Получи результат</h3>
-              <p className="text-xs text-gray-600">Точно такую же стрижку как на фото</p>
-            </div>
+            {[
+              { emoji: '🔍', title: 'Выбери стрижку', desc: 'Просматривай фото реальных стрижек' },
+              { emoji: '📅', title: 'Забронируй время', desc: 'Запишись к барберу онлайн' },
+              { emoji: '✨', title: 'Получи результат', desc: 'Точно такую же стрижку как на фото' },
+            ].map((step, index) => (
+              <motion.div
+                key={index}
+                className="flex-shrink-0 w-44 p-3 bg-white rounded-lg shadow-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.2 }}
+              >
+                <div className="text-3xl mb-2">{step.emoji}</div>
+                <h3 className="font-medium mb-1 text-sm">{step.title}</h3>
+                <p className="text-xs text-gray-600">{step.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>
@@ -515,7 +528,7 @@ const HomePage = ({ openLoginModal }) => {
                     href={`https://wa.me/${selectedHaircut.barber_details.whatsapp.replace(/\D/g, '')}?text=Здравствуйте! Меня интересует стрижка "${selectedHaircut.title}"`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium"
+                    className="flex items-center justify-center w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium text-base"
                   >
                     <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -531,7 +544,7 @@ const HomePage = ({ openLoginModal }) => {
                     href={`https://t.me/${selectedHaircut.barber_details.telegram.replace('@', '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium"
+                    className="flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium text-base"
                   >
                     <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
@@ -543,7 +556,7 @@ const HomePage = ({ openLoginModal }) => {
 
               <button
                 onClick={() => setShowContactModal(false)}
-                className="mt-6 w-full text-gray-500 py-3 hover:text-gray-700 transition-colors font-medium"
+                className="mt-6 w-full text-gray-500 py-3 hover:text-gray-700 transition-colors font-medium text-base"
               >
                 Закрыть
               </button>
@@ -553,60 +566,79 @@ const HomePage = ({ openLoginModal }) => {
       </AnimatePresence>
 
       {/* Модальное окно контактов барбера */}
-      {showBarberContactModal && selectedBarber && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-             onClick={() => setShowBarberContactModal(false)}>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md"
-               onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold mb-4">Контакты барбера</h3>
-            <div className="flex items-center mb-4">
-              <img
-                src={selectedBarber.profile?.photo || 'https://via.placeholder.com/100'}
-                alt={getBarberName(selectedBarber)}
-                className="w-16 h-16 rounded-full mr-4 object-cover"
-              />
-              <div>
-                <p className="font-medium">{getBarberName(selectedBarber)}</p>
-                <p className="text-sm text-gray-600">{selectedBarber.profile?.address || 'Адрес не указан'}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {selectedBarber.profile?.whatsapp && (
-                <a href={`https://wa.me/${selectedBarber.profile.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full bg-[#25D366] text-white py-3 rounded-lg hover:bg-opacity-90"
-                >
-                  WhatsApp
-                </a>
-              )}
-
-              {selectedBarber.profile?.telegram && (
-                <a href={`https://t.me/${selectedBarber.profile.telegram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full bg-[#0088cc] text-white py-3 rounded-lg hover:bg-opacity-90"
-                >
-                  Telegram
-                </a>
-              )}
-
-              {!selectedBarber.profile?.whatsapp && !selectedBarber.profile?.telegram && (
-                <div className="text-center text-gray-600 py-4">
-                  <p>Барбер не указал контактные данные.</p>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => setShowBarberContactModal(false)}
-              className="mt-4 w-full text-gray-600 py-2 hover:text-gray-800"
+      <AnimatePresence>
+        {showBarberContactModal && selectedBarber && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowBarberContactModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              Закрыть
-            </button>
-          </div>
-        </div>
-      )}
+              <h3 className="text-2xl font-semibold mb-4">Контакты барбера</h3>
+              <div className="flex items-center mb-4">
+                <img
+                  src={selectedBarber.profile?.photo || 'https://via.placeholder.com/100'}
+                  alt={getBarberName(selectedBarber)}
+                  className="w-16 h-16 rounded-full mr-4 object-cover"
+                  loading="lazy"
+                />
+                <div>
+                  <p className="font-medium text-lg">{getBarberName(selectedBarber)}</p>
+                  <p className="text-sm text-gray-600">{selectedBarber.profile?.address || 'Адрес не указан'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {selectedBarber.profile?.whatsapp && (
+                  <motion.a
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={`https://wa.me/${selectedBarber.profile.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full bg-[#25D366] text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium text-base"
+                  >
+                    WhatsApp
+                  </motion.a>
+                )}
+
+                {selectedBarber.profile?.telegram && (
+                  <motion.a
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={`https://t.me/${selectedBarber.profile.telegram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full bg-[#0088cc] text-white py-4 rounded-2xl hover:shadow-lg transition-all duration-300 font-medium text-base"
+                  >
+                    Telegram
+                  </motion.a>
+                )}
+
+                {!selectedBarber.profile?.whatsapp && !selectedBarber.profile?.telegram && (
+                  <div className="text-center text-gray-600 py-4">
+                    <p>Барбер не указал контактные данные.</p>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setShowBarberContactModal(false)}
+                className="mt-6 w-full text-gray-500 py-3 hover:text-gray-700 transition-colors font-medium text-base"
+              >
+                Закрыть
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 };

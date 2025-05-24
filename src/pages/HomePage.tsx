@@ -243,12 +243,29 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  const handleCategoryClick = (categoryType) => {
-    navigate(`/gallery`, {
-      state: { appliedFilters: { types: [categoryType] } }
-    });
-    setShowCategoryDropdown(false);
+// src/pages/HomePage.tsx - Исправление handleCategoryClick
+const handleCategoryClick = (categoryType) => {
+  // Преобразуем тип категории в читаемое название
+  const categoryNames = {
+    'classic': 'Классическая',
+    'fade': 'Фейд',
+    'undercut': 'Андеркат',
+    'textured': 'Текстурная',
+    'crop': 'Кроп',
+    'pompadour': 'Помпадур'
   };
+
+  const categoryName = categoryNames[categoryType] || categoryType;
+
+  navigate(`/gallery`, {
+    state: {
+      filters: {
+        types: [categoryName]
+      }
+    }
+  });
+  setShowCategoryDropdown(false);
+};
 
   const handleSearchFocus = () => {
     setIsSearchActive(true);

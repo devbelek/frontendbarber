@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom'; // Добавляем импорт useLocation
 import Layout from '../components/layout/Layout';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
@@ -9,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { Search, Filter, ChevronDown, X, Grid3X3, Grid2X2, ChevronUp } from 'lucide-react';
 import Button from '../components/ui/Button';
 
-// Новый компонент для модального окна увеличения изображения
+// Компонент для модального окна увеличения изображения
 const ImageZoomModal = ({ isOpen, onClose, imageSrc }) => {
   if (!isOpen) return null;
 
@@ -31,7 +32,8 @@ const ImageZoomModal = ({ isOpen, onClose, imageSrc }) => {
 const GalleryPage = ({ openLoginModal }) => {
   const { t } = useLanguage();
   const notification = useNotification();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const location = useLocation(); // Используем useLocation для доступа к location.state
   const [filteredHaircuts, setFilteredHaircuts] = useState([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState(null);
@@ -42,8 +44,8 @@ const GalleryPage = ({ openLoginModal }) => {
   const [layout, setLayout] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isImageZoomOpen, setIsImageZoomOpen] = useState(false); // Состояние для модального окна увеличения
-  const [selectedImage, setSelectedImage] = useState(null); // Состояние для выбранного изображения
+  const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // Категории для фильтров
   const filterCategories = {
@@ -52,11 +54,22 @@ const GalleryPage = ({ openLoginModal }) => {
     styles: ['Деловой', 'Повседневный', 'Трендовый', 'Винтажный', 'Современный'],
   };
 
+  // Обработка переданных фильтров из location.state
+  useEffect(() => {
+    const locationState = location.state as any;
+    if (locationState?.filters) {
+      setFilters(locationState.filters);
+      fetchHaircuts(locationState.filters);
+      // Очищаем state после использования
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Слушатель изменения размера экрана
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setLayout('grid'); // На мобильных всегда сетка
+        setLayout('grid');
       }
     };
 
@@ -66,23 +79,39 @@ const GalleryPage = ({ openLoginModal }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Обновление стрижек при изменении сортировки
   useEffect(() => {
     fetchHaircuts(filters);
   }, [sortBy]);
 
+  // Функция для получения стрижек с учетом фильтров
   const fetchHaircuts = async (currentFilters = {}) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const params = {
-        ...currentFilters,
-        ordering: sortBy === 'popular' ? '-views' : sortBy === 'price' ? 'price' : '-created_at',
-      };
+      const params: any = {};
+
+      if (currentFilters.types && currentFilters.types.length > 0) {
+        params['types[]'] = currentFilters.types;
+      }
+
+      if (currentFilters.lengths && currentFilters.lengths.length > 0) {
+        params['lengths[]'] = currentFilters.lengths;
+      }
+
+      if (currentFilters.styles && currentFilters.styles.length > 0) {
+        params['styles[]'] = currentFilters.styles;
+      }
+
+      params.ordering =
+        sortBy === 'popular' ? '-views' : sortBy === 'price' ? 'price' : '-created_at';
 
       if (searchQuery) {
         params.search = searchQuery;
       }
+
+      console.log('Отправляем параметры:', params);
 
       const response = await servicesAPI.getAll(params);
 
@@ -111,6 +140,7 @@ const GalleryPage = ({ openLoginModal }) => {
             isFavorite: service.is_favorite,
             barberWhatsapp: service.barber_details?.whatsapp,
             barberTelegram: service.barber_details?.telegram,
+            description: service.description,
           }));
 
           setFilteredHaircuts(haircuts);
@@ -194,7 +224,6 @@ const GalleryPage = ({ openLoginModal }) => {
     fetchHaircuts({});
   };
 
-  // Обработчик клика на изображение для увеличения
   const handleImageClick = (imageSrc) => {
     setSelectedImage(imageSrc);
     setIsImageZoomOpen(true);
@@ -497,7 +526,7 @@ const GalleryPage = ({ openLoginModal }) => {
             <HaircutGrid
               haircuts={filteredHaircuts}
               onBookClick={handleBookClick}
-              onImageClick={handleImageClick} // Передаем обработчик клика на изображение
+              onImageClick={handleImageClick}
             />
           </div>
         ) : (
@@ -518,7 +547,6 @@ const GalleryPage = ({ openLoginModal }) => {
         onConfirm={handleBookingConfirm}
       />
 
-      {/* Добавляем модальное окно для увеличения изображения */}
       <ImageZoomModal
         isOpen={isImageZoomOpen}
         onClose={() => setIsImageZoomOpen(false)}

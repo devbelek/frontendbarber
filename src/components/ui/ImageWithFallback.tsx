@@ -1,4 +1,4 @@
-// src/components/ui/ImageWithFallback.tsx
+// src/components/ui/ImageWithFallback.tsx - Исправленная версия
 import React, { useState, forwardRef } from 'react';
 import { ImageOff } from 'lucide-react';
 
@@ -18,18 +18,16 @@ const ImageWithFallback = forwardRef<HTMLImageElement, ImageWithFallbackProps>(
 
     // Проверяем, является ли URL относительным или абсолютным
     if (src && !src.startsWith('http') && !src.startsWith('data:')) {
-      // Относительные URL нужно префиксить с base URL или API URL
-      const apiUrl = import.meta.env.VITE_API_URL || '/api';
-      // Удаляем лишний слеш, если он есть и в API URL, и в src
-      const hasApiSlash = apiUrl.endsWith('/');
-      const hasSrcSlash = src.startsWith('/');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-      if (hasApiSlash && hasSrcSlash) {
-        imageUrl = `${apiUrl}${src.substring(1)}`;
-      } else if (!hasApiSlash && !hasSrcSlash) {
-        imageUrl = `${apiUrl}/${src}`;
+      // Убираем /api из URL если он есть
+      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+
+      // Добавляем слеш если его нет
+      if (!src.startsWith('/')) {
+        imageUrl = `${baseUrl}/${src}`;
       } else {
-        imageUrl = `${apiUrl}${src}`;
+        imageUrl = `${baseUrl}${src}`;
       }
     }
 
@@ -49,6 +47,7 @@ const ImageWithFallback = forwardRef<HTMLImageElement, ImageWithFallbackProps>(
         className={className}
         onError={() => setError(true)}
         onLoad={onLoad}
+        crossOrigin="anonymous"
       />
     );
   }

@@ -148,11 +148,28 @@ export const bookingsAPI = {
 };
 
 export const servicesAPI = {
-  getAll: (params: any = {}) =>
-    apiClient.get('/services/', { params }).catch((error: any) => {
+  getAll: (params: any = {}) => {
+    // Преобразуем массивы в формат, понятный axios
+    const searchParams = new URLSearchParams();
+
+    Object.keys(params).forEach(key => {
+      if (Array.isArray(params[key])) {
+        params[key].forEach((value: string) => {
+          searchParams.append(key, value);
+        });
+      } else if (params[key] !== undefined && params[key] !== null) {
+        searchParams.append(key, params[key]);
+      }
+    });
+
+    return apiClient.get('/services/', {
+      params: searchParams,
+      paramsSerializer: () => searchParams.toString()
+    }).catch((error: any) => {
       console.log('Using demo data for services due to error:', error);
       return { data: demoHaircuts };
-    }),
+    });
+  },
 
   getById: (id: string) =>
     apiClient.get(`/services/${id}/`).catch((error: any) => {

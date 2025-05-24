@@ -1,4 +1,3 @@
-// src/components/layout/Layout.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -64,7 +63,9 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header openLoginModal={openLoginModal} isTransparent={isHomePage} />
-      <main className="flex-grow pb-safe">{children}</main>
+      <main className={`flex-grow ${isMobile ? 'pb-16' : ''}`}>
+        {children}
+      </main>
       <Footer />
 
       {isMobile && <MobileNavigation openLoginModal={openLoginModal} />}

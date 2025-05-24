@@ -11,9 +11,9 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  Navigation,
   ChevronDown,
-  X
+  X,
+  Calendar // Добавлена для раздела "Как это работает"
 } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { servicesAPI, profileAPI } from '../api/services';
@@ -45,7 +45,7 @@ const HomePage = ({ openLoginModal }) => {
   const [selectedHaircut, setSelectedHaircut] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
 
-  // Новые состояния для улучшений
+  // Состояния для поиска
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -63,30 +63,24 @@ const HomePage = ({ openLoginModal }) => {
       setLoading(true);
       try {
         const haircutsResponse = await servicesAPI.getPopular();
-
         if (haircutsResponse && haircutsResponse.data) {
           let results = haircutsResponse.data;
-
           if (haircutsResponse.data.results && Array.isArray(haircutsResponse.data.results)) {
             results = haircutsResponse.data.results;
           }
-
           if (Array.isArray(results)) {
             setPopularHaircuts(results);
           }
         }
 
         const barbersResponse = await profileAPI.getAllBarbers();
-
         if (barbersResponse && barbersResponse.data) {
           let barbersData = [];
-
           if (barbersResponse.data.results && Array.isArray(barbersResponse.data.results)) {
             barbersData = barbersResponse.data.results;
           } else if (Array.isArray(barbersResponse.data)) {
             barbersData = barbersResponse.data;
           }
-
           if (userLocation.latitude && userLocation.longitude) {
             barbersData = barbersData.map(barber => {
               let distance = null;
@@ -105,10 +99,8 @@ const HomePage = ({ openLoginModal }) => {
               return a.distance - b.distance;
             });
           }
-
           setNearbyBarbers(barbersData.slice(0, 4));
         }
-
       } catch (error) {
         console.error('Error fetching data:', error);
         notification.error('Ошибка загрузки', 'Не удалось загрузить данные');
@@ -119,7 +111,6 @@ const HomePage = ({ openLoginModal }) => {
 
     fetchData();
 
-    // Клик вне зоны поиска закрывает активный поиск
     const handleClickOutside = (event) => {
       if (isSearchActive && searchInputRef.current && !searchInputRef.current.contains(event.target)) {
         setIsSearchActive(false);
@@ -132,7 +123,6 @@ const HomePage = ({ openLoginModal }) => {
     };
   }, [userLocation.latitude, userLocation.longitude]);
 
-  // Когда поиск активирован, добавить обработчик Escape для закрытия
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape') {
@@ -155,13 +145,11 @@ const HomePage = ({ openLoginModal }) => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-
           try {
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
             );
             const data = await response.json();
-
             let address = '';
             if (data.address) {
               const parts = [];
@@ -173,7 +161,6 @@ const HomePage = ({ openLoginModal }) => {
               }
               address = parts.join(', ');
             }
-
             setUserLocation({
               address: address || 'Неизвестное местоположение',
               latitude,
@@ -200,16 +187,16 @@ const HomePage = ({ openLoginModal }) => {
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
     return parseFloat(distance.toFixed(1));
   };
 
   const deg2rad = (deg) => {
-    return deg * (Math.PI/180);
+    return deg * (Math.PI / 180);
   };
 
   const goTo = (path) => {
@@ -288,16 +275,14 @@ const HomePage = ({ openLoginModal }) => {
     const autoSlideIntervalRef = useRef(null);
     const [autoSlideEnabled, setAutoSlideEnabled] = useState(true);
 
-    // Автоматическая смена изображений
     useEffect(() => {
       if (hasMultipleImages && autoSlideEnabled) {
         autoSlideIntervalRef.current = setInterval(() => {
           setCurrentImageIndex(prev =>
             prev === haircut.images.length - 1 ? 0 : prev + 1
           );
-        }, 5000); // Смена каждые 5 секунд
+        }, 5000);
       }
-
       return () => {
         if (autoSlideIntervalRef.current) {
           clearInterval(autoSlideIntervalRef.current);
@@ -308,7 +293,7 @@ const HomePage = ({ openLoginModal }) => {
     const handlePrevImage = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      setAutoSlideEnabled(false); // Остановка автоматической смены при ручном управлении
+      setAutoSlideEnabled(false);
       if (hasMultipleImages) {
         setCurrentImageIndex(prev =>
           prev === 0 ? haircut.images.length - 1 : prev - 1
@@ -359,15 +344,15 @@ const HomePage = ({ openLoginModal }) => {
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm"
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-3 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all shadow-lg"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all shadow-lg"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               </button>
             </>
           )}
@@ -427,7 +412,9 @@ const HomePage = ({ openLoginModal }) => {
             </span>
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             className="w-full bg-[#9A0F34] text-white text-sm py-2 rounded-lg hover:bg-[#7b0c29] transition-colors"
             onClick={() => {
               servicesAPI.incrementViews(haircut.id);
@@ -435,7 +422,7 @@ const HomePage = ({ openLoginModal }) => {
             }}
           >
             Хочу такую же
-          </button>
+          </motion.button>
         </div>
       </motion.div>
     );
@@ -443,7 +430,6 @@ const HomePage = ({ openLoginModal }) => {
 
   return (
     <Layout openLoginModal={openLoginModal}>
-      {/* Затемняющий оверлей при активном поиске */}
       {isSearchActive && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
@@ -452,7 +438,6 @@ const HomePage = ({ openLoginModal }) => {
       )}
 
       <div className="pb-20 md:pb-0 font-['Inter']">
-        {/* Улучшенная секция локации и поиска */}
         <motion.div
           className={`fixed top-0 pt-16 left-0 right-0 z-30 bg-white shadow-lg transition-all duration-300 ${
             isSearchActive ? 'pb-6' : 'pb-3'
@@ -463,7 +448,7 @@ const HomePage = ({ openLoginModal }) => {
         >
           {userLocation.address && (
             <div className="flex items-center justify-center mb-2 text-sm text-gray-600">
-              <Navigation className="h-5 w-5 mr-1 text-[#9A0F34]" />
+              <MapPin className="h-5 w-5 mr-1 text-[#9A0F34]" />
               <span>{userLocation.address}</span>
             </div>
           )}
@@ -511,7 +496,6 @@ const HomePage = ({ openLoginModal }) => {
                 <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Выпадающее меню категорий */}
               {showCategoryDropdown && (
                 <motion.div
                   className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-100 p-3 z-40 w-64"
@@ -573,10 +557,8 @@ const HomePage = ({ openLoginModal }) => {
           )}
         </motion.div>
 
-        {/* Дополнительный отступ для основного контента, когда поиск активен */}
         <div className={`pt-28 ${isSearchActive ? 'pt-44' : ''}`}></div>
 
-        {/* Ближайшие барберы */}
         <div className="py-4 px-4 bg-gray-50">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold">Барберы рядом</h2>
@@ -611,7 +593,10 @@ const HomePage = ({ openLoginModal }) => {
                     />
                     <p className="text-center font-medium text-sm">{getBarberName(barber)}</p>
                     {barber.distance !== null && (
-                      <p className="text-xs text-center text-gray-500">{barber.distance} км от вас</p>
+                      <p className="text-xs text-center text-gray-500 flex items-center justify-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {barber.distance} км от вас
+                      </p>
                     )}
                   </motion.button>
                 ))
@@ -624,7 +609,6 @@ const HomePage = ({ openLoginModal }) => {
           </div>
         </div>
 
-        {/* Популярные стрижки */}
         <div className="py-4 px-4">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold">Популярные стрижки</h2>
@@ -656,14 +640,13 @@ const HomePage = ({ openLoginModal }) => {
           </div>
         </div>
 
-        {/* Как это работает */}
         <div className="py-4 px-4 bg-gray-50">
           <h2 className="text-xl font-semibold mb-3">Как это работает</h2>
           <div className="flex overflow-x-auto -mx-4 px-4 space-x-3 pb-2">
             {[
-              { emoji: '🔍', title: 'Выбери стрижку', desc: 'Просматривай фото реальных стрижек' },
-              { emoji: '📅', title: 'Забронируй время', desc: 'Запишись к барберу онлайн' },
-              { emoji: '✨', title: 'Получи результат', desc: 'Точно такую же стрижку как на фото' },
+              { icon: <Search className="h-8 w-8 text-[#9A0F34]" />, title: 'Выбери стрижку', desc: 'Просматривай фото реальных стрижек' },
+              { icon: <Calendar className="h-8 w-8 text-[#9A0F34]" />, title: 'Забронируй время', desc: 'Запишись к барберу онлайн' },
+              { icon: <Star className="h-8 w-8 text-[#9A0F34]" />, title: 'Получи результат', desc: 'Точно такую же стрижку как на фото' },
             ].map((step, index) => (
               <motion.div
                 key={index}
@@ -672,7 +655,7 @@ const HomePage = ({ openLoginModal }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.2 }}
               >
-                <div className="text-3xl mb-2">{step.emoji}</div>
+                <div className="mb-2">{step.icon}</div>
                 <h3 className="font-medium mb-1 text-sm">{step.title}</h3>
                 <p className="text-xs text-gray-600">{step.desc}</p>
               </motion.div>
@@ -681,7 +664,6 @@ const HomePage = ({ openLoginModal }) => {
         </div>
       </div>
 
-      {/* Модальное окно контактов стрижки */}
       <AnimatePresence>
         {showContactModal && selectedHaircut && (
           <motion.div
@@ -751,7 +733,6 @@ const HomePage = ({ openLoginModal }) => {
         )}
       </AnimatePresence>
 
-      {/* Модальное окно контактов барбера */}
       <AnimatePresence>
         {showBarberContactModal && selectedBarber && (
           <motion.div

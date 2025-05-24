@@ -1,6 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Scissors, MapPin, Heart, Clock, Star, MessageCircle, Eye, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
+import {
+  Search,
+  Scissors,
+  MapPin,
+  Heart,
+  Clock,
+  Star,
+  MessageCircle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Navigation,
+  ChevronDown,
+  X
+} from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { servicesAPI, profileAPI } from '../api/services';
 import { useNotification } from '../context/NotificationContext';
@@ -30,6 +44,13 @@ const HomePage = ({ openLoginModal }) => {
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedHaircut, setSelectedHaircut] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
+
+  // Новые состояния для улучшений
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  const searchInputRef = useRef(null);
 
   const navigate = useNavigate();
   const notification = useNotification();
@@ -97,7 +118,37 @@ const HomePage = ({ openLoginModal }) => {
     };
 
     fetchData();
+
+    // Клик вне зоны поиска закрывает активный поиск
+    const handleClickOutside = (event) => {
+      if (isSearchActive && searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setIsSearchActive(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [userLocation.latitude, userLocation.longitude]);
+
+  // Когда поиск активирован, добавить обработчик Escape для закрытия
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        setIsSearchActive(false);
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    if (isSearchActive) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [isSearchActive]);
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -209,15 +260,55 @@ const HomePage = ({ openLoginModal }) => {
     navigate(`/gallery`, {
       state: { appliedFilters: { types: [categoryType] } }
     });
+    setShowCategoryDropdown(false);
+  };
+
+  const handleSearchFocus = () => {
+    setIsSearchActive(true);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigate(`/gallery?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   const HaircutCard = ({ haircut }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const hasMultipleImages = haircut.images && haircut.images.length > 1;
+    const autoSlideIntervalRef = useRef(null);
+    const [autoSlideEnabled, setAutoSlideEnabled] = useState(true);
+
+    // Автоматическая смена изображений
+    useEffect(() => {
+      if (hasMultipleImages && autoSlideEnabled) {
+        autoSlideIntervalRef.current = setInterval(() => {
+          setCurrentImageIndex(prev =>
+            prev === haircut.images.length - 1 ? 0 : prev + 1
+          );
+        }, 5000); // Смена каждые 5 секунд
+      }
+
+      return () => {
+        if (autoSlideIntervalRef.current) {
+          clearInterval(autoSlideIntervalRef.current);
+        }
+      };
+    }, [haircut.images, autoSlideEnabled, hasMultipleImages]);
 
     const handlePrevImage = (e) => {
       e.stopPropagation();
       e.preventDefault();
+      setAutoSlideEnabled(false); // Остановка автоматической смены при ручном управлении
       if (hasMultipleImages) {
         setCurrentImageIndex(prev =>
           prev === 0 ? haircut.images.length - 1 : prev - 1
@@ -228,6 +319,7 @@ const HomePage = ({ openLoginModal }) => {
     const handleNextImage = (e) => {
       e.stopPropagation();
       e.preventDefault();
+      setAutoSlideEnabled(false);
       if (hasMultipleImages) {
         setCurrentImageIndex(prev =>
           prev === haircut.images.length - 1 ? 0 : prev + 1
@@ -241,28 +333,39 @@ const HomePage = ({ openLoginModal }) => {
 
     return (
       <motion.div
-        className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100"
+        className="bg-white rounded-lg overflow-hidden shadow-md transform transition-all duration-200 h-full border border-gray-100 hover:shadow-xl"
         whileHover={{ scale: 1.03 }}
       >
         <div className="relative aspect-square overflow-hidden">
-          <ImageWithFallback
-            src={currentImage}
-            alt={haircut.title}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-            loading="lazy"
-          />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full h-full"
+            >
+              <ImageWithFallback
+                src={currentImage}
+                alt={haircut.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </motion.div>
+          </AnimatePresence>
 
           {hasMultipleImages && (
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -282,7 +385,7 @@ const HomePage = ({ openLoginModal }) => {
             </div>
           )}
 
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
+          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center backdrop-blur-sm">
             <Eye className="h-3 w-3 mr-1" />
             {haircut.views || 0}
           </div>
@@ -340,13 +443,23 @@ const HomePage = ({ openLoginModal }) => {
 
   return (
     <Layout openLoginModal={openLoginModal}>
+      {/* Затемняющий оверлей при активном поиске */}
+      {isSearchActive && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+          onClick={() => setIsSearchActive(false)}
+        />
+      )}
+
       <div className="pb-20 md:pb-0 font-['Inter']">
-        {/* Локация и поиск */}
+        {/* Улучшенная секция локации и поиска */}
         <motion.div
-          className="sticky top-14 md:top-0 z-10 bg-white shadow-sm px-4 py-3"
+          className={`fixed top-0 pt-16 left-0 right-0 z-30 bg-white shadow-lg transition-all duration-300 ${
+            isSearchActive ? 'pb-6' : 'pb-3'
+          }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.3 }}
         >
           {userLocation.address && (
             <div className="flex items-center justify-center mb-2 text-sm text-gray-600">
@@ -354,41 +467,114 @@ const HomePage = ({ openLoginModal }) => {
               <span>{userLocation.address}</span>
             </div>
           )}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-6 w-6 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Найти стрижку..."
-              className="w-full pl-12 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none text-base"
-              onKeyDown={(e) => e.key === 'Enter' && goTo('/gallery')}
-            />
+
+          <div className="flex px-4 gap-2 relative">
+            <div
+              className={`relative flex-grow transition-all ${
+                isSearchActive ? 'ring-2 ring-[#9A0F34]' : ''
+              }`}
+              ref={searchInputRef}
+            >
+              <Search
+                className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors ${
+                  isSearchActive ? 'text-[#9A0F34]' : 'text-gray-400'
+                }`}
+              />
+              <input
+                type="text"
+                placeholder="Найти стрижку..."
+                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none transition-shadow text-base"
+                onClick={handleSearchFocus}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                value={searchQuery}
+              />
+              {searchQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex-shrink-0 relative">
+              <button
+                className={`flex items-center h-full px-4 border border-gray-300 rounded-lg ${
+                  showCategoryDropdown ? 'bg-gray-100 text-[#9A0F34]' : 'bg-white text-gray-700'
+                }`}
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              >
+                <Scissors className="h-5 w-5 mr-1" />
+                <span className="hidden sm:inline">Категории</span>
+                <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Выпадающее меню категорий */}
+              {showCategoryDropdown && (
+                <motion.div
+                  className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-100 p-3 z-40 w-64"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Выберите категорию</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category.name}
+                        onClick={() => handleCategoryClick(category.icon)}
+                        className={`flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors ${category.color}`}
+                      >
+                        <Scissors className="h-6 w-6 mb-1" />
+                        <span className="text-xs font-medium">{category.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </div>
+
+          {isSearchActive && (
+            <motion.div
+              className="mt-4 px-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleSearch}
+                className="py-3"
+              >
+                <Search className="h-5 w-5 mr-2" />
+                Искать
+              </Button>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <p className="text-sm text-gray-500 mr-2">Популярные запросы:</p>
+                {['Фейд', 'Андеркат', 'Классика', 'Помпадур'].map((term) => (
+                  <button
+                    key={term}
+                    className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700 hover:bg-gray-200"
+                    onClick={() => {
+                      setSearchQuery(term);
+                      handleSearch();
+                    }}
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Категории стрижек */}
-        <div className="py-4 px-4">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xl font-semibold">Категории</h2>
-            <button onClick={() => goTo('/gallery')} className="text-sm text-[#9A0F34] hover:underline">
-              Все категории
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {categories.map((category, index) => (
-              <motion.button
-                key={index}
-                onClick={() => handleCategoryClick(category.icon)}
-                className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50"
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className={`w-14 h-14 rounded-full ${category.color} flex items-center justify-center mb-2`}>
-                  <Scissors className="h-8 w-8" />
-                </div>
-                <span className="text-sm text-center">{category.name}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
+        {/* Дополнительный отступ для основного контента, когда поиск активен */}
+        <div className={`pt-28 ${isSearchActive ? 'pt-44' : ''}`}></div>
 
         {/* Ближайшие барберы */}
         <div className="py-4 px-4 bg-gray-50">

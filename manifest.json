@@ -1,6 +1,6 @@
 {
-  "name": "BarberHub",
-  "short_name": "BarberHub",
+  "name": "Tarak",
+  "short_name": "Tarak",
   "description": "Выбирай стрижку, а не барбера",
   "start_url": "/",
   "display": "standalone",

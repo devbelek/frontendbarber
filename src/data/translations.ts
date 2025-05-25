@@ -39,9 +39,10 @@ export const translations = {
     filterByStyle: 'Стиль',
     filterByPrice: 'Цена',
     filterByLocation: 'Местоположение',
-    search: 'Поиск',
-    searchPlaceholder: 'Найти стрижку...',
+    search: 'Искать', // Оставлено одно значение вместо двух
+    searchPlaceholder: 'Поиск стрижек, барберов...', // Выбрано более общее значение
     clearFilters: 'Сбросить фильтры',
+    noResults: 'Ничего не найдено', // Оставлено одно значение из "Gallery"
 
     // Haircut Card
     iWantThis: 'Хочу так же',
@@ -91,12 +92,10 @@ export const translations = {
 
     // Misc
     loading: 'Загрузка...',
-    noResults: 'Нет результатов',
-    error: 'Произошла ошибка',
-    tryAgain: 'Попробуйте снова',
+    error: 'Произошла ошибка', // Уникальное значение из "Misc"
+    tryAgain: 'Попробуйте снова', // Уникальное значение из "Misc"
     close: 'Закрыть',
   },
-
   kg: {
     // Header & Navigation
     home: 'Башкы',
@@ -130,24 +129,25 @@ export const translations = {
     // CTA
     readyToTry: 'Сынап көрүүгө даярсызбы?',
     readyToTryDescription: 'Бүгүн tarakка кошулуп, мыкты чач тарамын табыңыз. Барберлер үчүн — кардарлар базаңызды кеңейтиңиз.',
-    
+
     // Gallery
     filterByType: 'Чач тарам түрү',
     filterByLength: 'Чач узундугу',
     filterByStyle: 'Стили',
     filterByPrice: 'Баасы',
     filterByLocation: 'Жайгашкан жери',
-    search: 'Издөө',
-    searchPlaceholder: 'Чач тарамын издөө...',
+    search: 'Издөө', // Оставлено одно значение (дубликаты идентичны)
+    searchPlaceholder: 'Чач тарачты, устаны издөө...', // Выбрано более общее значение
     clearFilters: 'Чыпкаларды тазалоо',
-    
+    noResults: 'Эч нерсе табылган жок', // Оставлено одно значение из "Gallery"
+
     // Haircut Card
     iWantThis: 'Мен ушундай каалайм',
     from: 'баштап',
     som: 'сом',
     favorite: 'Сактоо',
     removeFavorite: 'Сакталгандардан чыгаруу',
-    
+
     // Barber Profile
     about: 'Барбер жөнүндө',
     portfolio: 'Портфолио',
@@ -157,7 +157,7 @@ export const translations = {
     workingHours: 'Иш убактысы',
     bookAppointment: 'Жазылуу',
     specialization: 'Адистик',
-    
+
     // Booking
     selectDate: 'Күндү тандаңыз',
     selectTime: 'Убакытты тандаңыз',
@@ -169,7 +169,7 @@ export const translations = {
     price: 'Баасы',
     cancel: 'Жокко чыгаруу',
     confirm: 'Ырастоо',
-    
+
     // Profile
     personalInfo: 'Жеке маалымат',
     myBookings: 'Менин жазылууларым',
@@ -180,18 +180,17 @@ export const translations = {
     email: 'Email',
     phone: 'Телефон',
     save: 'Сактоо',
-    
+
     // Status
     pending: 'Ырастоону күтүүдө',
     confirmed: 'Ырасталды',
     completed: 'Аткарылды',
     cancelled: 'Жокко чыгарылды',
-    
+
     // Misc
     loading: 'Жүктөлүүдө...',
-    noResults: 'Натыйжа жок',
-    error: 'Ката кетти',
-    tryAgain: 'Кайра аракет кылыңыз',
+    error: 'Ката кетти', // Уникальное значение из "Misc"
+    tryAgain: 'Кайра аракет кылыңыз', // Уникальное значение из "Misc"
     close: 'Жабуу',
   }
 };

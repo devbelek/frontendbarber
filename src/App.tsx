@@ -1,12 +1,11 @@
-// src/App.tsx с обновлённой интеграцией новой главной страницы
+// src/App.tsx с обновлённой интеграцией - галерея перенаправляется на главную
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
-// Импортируем новую версию HomePage
-import NewHomePage from './pages/HomePage'; // Обратите внимание: файл остаётся тем же, но компонент внутри обновлён
-import GalleryPage from './pages/GalleryPage';
+// Импортируем обновленную HomePage
+import HomePage from './pages/HomePage';
 import BarberProfilePage from './pages/BarberProfilePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -56,11 +55,13 @@ const AppRoutes = () => {
     <Router>
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
-        {/* Используем новую главную страницу */}
-        <Route path="/" element={<NewHomePage />} />
+        {/* Главная страница с интегрированной галереей */}
+        <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
 
-        {/* Остальные маршруты остаются прежними */}
-        <Route path="/gallery" element={<GalleryPage openLoginModal={openLoginModal} />} />
+        {/* Перенаправление галереи на главную страницу */}
+        <Route path="/gallery" element={<Navigate to="/" replace />} />
+
+        {/* Остальные маршруты */}
         <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
         <Route path="/profile" element={
           <ProtectedRoute>

@@ -20,6 +20,22 @@ const MobileNavigation = ({ openLoginModal }) => {
     }
   };
 
+  const scrollToGallery = () => {
+    // Если мы на главной странице, скроллим к галерее
+    if (location.pathname === '/') {
+      const gallerySection = document.querySelector('[data-section="gallery"]');
+      if (gallerySection) {
+        gallerySection.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // Если секция не найдена, скроллим вниз
+        window.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' });
+      }
+    } else {
+      // Если не на главной, переходим на главную
+      window.location.href = '/';
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
       <div className="flex items-center justify-around h-16 px-2">
@@ -34,16 +50,14 @@ const MobileNavigation = ({ openLoginModal }) => {
           <span className="text-xs mt-1">Главная</span>
         </Link>
 
-        {/* Поиск/Галерея */}
-        <Link
-          to="/gallery"
-          className={`flex flex-col items-center justify-center w-full ${
-            isActive('/gallery') ? 'text-[#9A0F34]' : 'text-gray-500'
-          }`}
+        {/* Галерея (теперь скролл к галерее на главной странице) */}
+        <button
+          onClick={scrollToGallery}
+          className="flex flex-col items-center justify-center w-full text-gray-500 hover:text-[#9A0F34]"
         >
           <Search className="h-6 w-6" />
-          <span className="text-xs mt-1">Поиск</span>
-        </Link>
+          <span className="text-xs mt-1">Галерея</span>
+        </button>
 
         {/* Центральная кнопка: + для барберов или избранное для обычных пользователей */}
         {isBarber ? (

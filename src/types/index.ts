@@ -1,6 +1,37 @@
-// src/types/index.ts
+// src/types/index.ts - добавьте новые типы
+export interface Barbershop {
+  id: string;
+  name: string;
+  logo?: string;
+  description: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  phone: string;
+  whatsapp?: string;
+  telegram?: string;
+  instagram?: string;
+  workingHours: {
+    from: string;
+    to: string;
+    days: string[];
+  };
+  barbers: string[]; // ID барберов
+  services: string[]; // ID услуг
+  photos: string[];
+  rating: number;
+  reviewCount: number;
+  isVerified: boolean;
+  owner: string; // ID владельца
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Общие типы, используемые в приложении
+export interface BarberProfile extends UserProfile {
+  barbershopId?: string; // Связь с барбершопом
+  barbershop?: Barbershop;
+  isIndependent: boolean; // Работает самостоятельно или в барбершопе
+}
 
 export interface Haircut {
   id: string;
@@ -111,3 +142,4 @@ export interface Favorite {
 }
 
 export type Language = 'ru' | 'kg';
+

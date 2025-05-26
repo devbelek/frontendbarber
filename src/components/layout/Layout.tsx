@@ -1,3 +1,4 @@
+// src/components/layout/Layout.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -22,7 +23,6 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
   const isAddEditServicePage =
     location.pathname === '/add-service' ||
     location.pathname.startsWith('/edit-service/');
-  const isHomePage = location.pathname === '/';
 
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -62,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children, openLoginModal }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header openLoginModal={openLoginModal} isTransparent={isHomePage} />
+      <Header openLoginModal={openLoginModal} />
       <main className={`flex-grow ${isMobile ? 'pb-16' : ''}`}>
         {children}
       </main>

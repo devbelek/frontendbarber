@@ -1,21 +1,18 @@
-// src/components/layout/Header.tsx - обновленная версия без мобильного меню
-import React, { useState, useEffect } from 'react';
+// src/components/layout/Header.tsx
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Globe, MapPin, LogOut, Search, X } from 'lucide-react';
+import { Globe, MapPin, LogOut, Search, X, Scissors } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useLocation as useLocationContext } from '../../context/LocationContext';
 import UnifiedLoginModal from '../ui/UnifiedLoginModal';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeaderProps {
   openLoginModal: () => void;
-  isTransparent?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }) => {
-  const [isScrolled, setIsScrolled] = useState(false);
+const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -23,78 +20,24 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
   const { t, language, setLanguage } = useLanguage();
   const { currentRegion, regions, setCurrentRegion } = useLocationContext();
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  // Переключение языка
   const toggleLanguage = () => {
     setLanguage(language === 'ru' ? 'kg' : 'ru');
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  // Обработчик клика вне области выпадающего меню для закрытия
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isRegionDropdownOpen) {
-        setIsRegionDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isRegionDropdownOpen]);
-
-  // Обработчик для открытия модального окна входа
   const handleLoginClick = () => {
     setLoginModalOpen(true);
   };
 
-  // Обработчик поиска
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/gallery?search=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
-  // Динамические стили для прозрачного/непрозрачного заголовка
-  const headerStyles = isTransparent && !isScrolled
-    ? 'fixed top-0 left-0 right-0 bg-transparent text-white z-50 py-2'
-    : 'sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-2 backdrop-blur-md bg-white/90';
-
-  const linkStyles = {
-    default: isTransparent && !isScrolled
-      ? 'text-white/80 hover:text-white'
-      : 'text-gray-600 hover:text-gray-900',
-    active: isTransparent && !isScrolled
-      ? 'text-white font-medium'
-      : 'text-[#9A0F34] font-medium'
-  };
-
   return (
-    <header className={`transition-all duration-300 ${headerStyles}`}>
+    <header className="sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-2 backdrop-blur-md bg-white/95">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-14">
           {/* Логотип */}
           <Link to="/" className="flex items-center">
             <svg
               viewBox="0 0 24 24"
-              className={`h-7 w-7 ${isTransparent && !isScrolled ? 'text-white' : 'text-[#9A0F34]'}`}
+              className="h-7 w-7 text-[#9A0F34]"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -107,30 +50,17 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
               <path d="M8 14h8" />
               <path d="M8 18h8" />
             </svg>
-            <span className={`ml-2 text-xl font-bold ${isTransparent && !isScrolled ? 'text-white' : 'text-gray-900'}`}>
-              TARAK
-            </span>
+            <span className="ml-2 text-xl font-bold text-gray-900">TARAK</span>
           </Link>
 
-          {/* Навигация для десктопов */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              to="/"
-              className={`font-medium transition-colors ${location.pathname === '/' ? linkStyles.active : linkStyles.default}`}
-            >
-              {t('home')}
-            </Link>
-            <Link
-              to="/gallery"
-              className={`font-medium transition-colors ${location.pathname === '/gallery' ? linkStyles.active : linkStyles.default}`}
-            >
-              {t('gallery')}
-            </Link>
+          {/* Кнопка барберов с красивой иконкой для десктопов */}
+          <nav className="hidden md:flex items-center">
             <Link
               to="/barbers"
-              className={`font-medium transition-colors ${location.pathname.includes('/barber') ? linkStyles.active : linkStyles.default}`}
+              className="flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
-              {t('barbers')}
+              <Scissors className="h-5 w-5 mr-2" />
+              Найти барбера
             </Link>
           </nav>
 
@@ -140,11 +70,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
             <div className="relative">
               <button
                 onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
-                className={`flex items-center space-x-1 rounded-md py-1 px-2 ${
-                  isTransparent && !isScrolled
-                    ? 'text-white hover:bg-white/10'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className="flex items-center space-x-1 rounded-md py-1 px-2 text-gray-700 hover:bg-gray-100"
               >
                 <MapPin className="h-4 w-4" />
                 <span className="text-sm">{currentRegion.name}</span>
@@ -184,11 +110,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
             {/* Переключатель языка */}
             <button
               onClick={toggleLanguage}
-              className={`p-2 rounded-full ${
-                isTransparent && !isScrolled
-                  ? 'text-white hover:bg-white/10'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              className="p-2 rounded-full text-gray-700 hover:bg-gray-100"
               aria-label="Сменить язык"
             >
               <Globe className="h-5 w-5" />
@@ -198,11 +120,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
             {isAuthenticated ? (
               <>
                 <Link to="/profile">
-                  <Button
-                    variant={isTransparent && !isScrolled ? "outline" : "ghost"}
-                    size="sm"
-                    className={isTransparent && !isScrolled ? "border-white text-white" : ""}
-                  >
+                  <Button variant="ghost" size="sm">
                     {t('profile')}
                   </Button>
                 </Link>
@@ -210,21 +128,26 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal, isTransparent = false }
                   variant="outline"
                   size="sm"
                   onClick={logout}
-                  className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
                 >
                   <LogOut className="h-4 w-4 mr-1.5" />
                   {t('logout')}
                 </Button>
               </>
             ) : (
-              <Button
-                variant={isTransparent && !isScrolled ? "outline" : "primary"}
-                onClick={handleLoginClick}
-                className={isTransparent && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
-              >
+              <Button variant="primary" onClick={handleLoginClick}>
                 {t('signIn')}
               </Button>
             )}
+          </div>
+
+          {/* Мобильная кнопка барберов */}
+          <div className="md:hidden">
+            <Link
+              to="/barbers"
+              className="flex items-center px-3 py-1.5 rounded-lg bg-[#9A0F34] text-white text-sm font-medium shadow"
+            >
+              <Scissors className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>

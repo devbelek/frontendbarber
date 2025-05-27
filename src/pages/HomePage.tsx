@@ -26,7 +26,6 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import ImageWithFallback from '../components/ui/ImageWithFallback';
 import BookingModal from '../components/booking/BookingModal';
-import HaircutGrid from '../components/haircuts/HaircutGrid';
 
 const HomePage = ({ openLoginModal }) => {
   const [popularHaircuts, setPopularHaircuts] = useState([]);
@@ -118,7 +117,16 @@ const HomePage = ({ openLoginModal }) => {
           results = haircutsResponse.data.results;
         }
         if (Array.isArray(results)) {
-          setPopularHaircuts(results);
+          // Преобразуем данные для корректного отображения
+          const formattedHaircuts = results.map(service => ({
+            ...service,
+            barber: service.barber_details?.full_name || service.barber_details?.username || 'Барбер',
+            barberId: service.barber_details?.id || service.barber,
+            barberWhatsapp: service.barber_details?.whatsapp,
+            barberTelegram: service.barber_details?.telegram,
+            is_favorite: service.is_favorite || false
+          }));
+          setPopularHaircuts(formattedHaircuts);
         }
       }
 
@@ -189,7 +197,7 @@ const HomePage = ({ openLoginModal }) => {
             primaryImage: service.primary_image || service.image,
             title: service.title,
             price: service.price,
-            barber: service.barber_details?.full_name || 'Unknown',
+            barber: service.barber_details?.full_name || service.barber_details?.username || 'Барбер',
             barberId: service.barber_details?.id || service.barber,
             type: service.type,
             length: service.length,
@@ -197,7 +205,7 @@ const HomePage = ({ openLoginModal }) => {
             location: service.location,
             duration: service.duration,
             views: service.views || 0,
-            isFavorite: service.is_favorite,
+            is_favorite: service.is_favorite || false,
             barberWhatsapp: service.barber_details?.whatsapp,
             barberTelegram: service.barber_details?.telegram,
             description: service.description
@@ -271,6 +279,12 @@ const HomePage = ({ openLoginModal }) => {
   const handleFavoriteToggle = async (haircutId, e) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      notification.info('Требуется вход', 'Чтобы добавить в избранное, необходимо войти');
+      return;
+    }
+
     try {
       await toggleFavorite(haircutId);
       // Обновляем в обоих массивах
@@ -360,6 +374,14 @@ const HomePage = ({ openLoginModal }) => {
     fetchGalleryData(true);
   };
 
+  const handleBarberClick = (barberId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (barberId) {
+      navigate(`/barber/${barberId}`);
+    }
+  };
+
   const HaircutCard = ({ haircut }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const hasMultipleImages = haircut.images && haircut.images.length > 1;
@@ -393,15 +415,15 @@ const HomePage = ({ openLoginModal }) => {
 
     const currentImage = haircut.images && haircut.images.length > 0
       ? haircut.images[currentImageIndex].image
-      : haircut.primary_image || haircut.image;
+      : haircut.primaryImage || haircut.image;
 
     return (
-      <div className="bg-white rounded-lg overflow-hidden shadow-md h-full border border-gray-100 hover:shadow-xl">
+      <div className="bg-white rounded-lg overflow-hidden shadow-md h-full border border-gray-100 hover:shadow-xl transition-all duration-300">
         <div className="relative aspect-square overflow-hidden">
           <ImageWithFallback
             src={currentImage}
             alt={haircut.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             loading="lazy"
           />
           {hasMultipleImages && (
@@ -439,7 +461,7 @@ const HomePage = ({ openLoginModal }) => {
             >
               <Heart size={18} className={haircut.is_favorite ? 'fill-red-400' : ''} />
             </button>
-            {(haircut.barber_details?.telegram || haircut.barber_details?.whatsapp) && (
+            {(haircut.barberWhatsapp || haircut.barberTelegram) && (
               <button
                 className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors text-white"
                 onClick={(e) => handleContactClick(haircut, e)}
@@ -456,12 +478,21 @@ const HomePage = ({ openLoginModal }) => {
           )}
           <div className="flex justify-between items-center mb-2">
             <span className="text-[#9A0F34] font-bold text-sm">{Math.floor(haircut.price || 0)} сом</span>
-            <span className="text-xs text-gray-600">{haircut.barber_details?.full_name || 'Барбер'}</span>
+            <button
+              onClick={(e) => handleBarberClick(haircut.barberId, e)}
+              className="text-xs text-gray-600 hover:text-[#9A0F34] transition-colors"
+            >
+              {haircut.barber}
+            </button>
           </div>
           <button
             className="w-full bg-[#9A0F34] text-white text-sm py-2 rounded-lg hover:bg-[#7b0c29] transition-colors"
-            onClick={() => {
-              servicesAPI.incrementViews(haircut.id);
+            onClick={async () => {
+              try {
+                await servicesAPI.incrementViews(haircut.id);
+              } catch (error) {
+                console.error('Failed to increment views:', error);
+              }
               handleBookClick(haircut);
             }}
           >
@@ -574,7 +605,7 @@ const HomePage = ({ openLoginModal }) => {
         <div className="py-4 px-4 bg-gray-50">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold">Барберы рядом</h2>
-            <button onClick={() => navigate('/barbers')} className="text-sm text-[#9A0F34] hover:underline">
+            <button onClick={() => navigate('/discover')} className="text-sm text-[#9A0F34] hover:underline">
               Смотреть все
             </button>
           </div>
@@ -593,7 +624,7 @@ const HomePage = ({ openLoginModal }) => {
                   <button
                     key={barber.id}
                     onClick={() => navigate(`/barber/${barber.id}`)}
-                    className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-md hover:shadow-xl"
+                    className="flex-shrink-0 w-36 bg-white rounded-lg p-3 shadow-md hover:shadow-xl transition-all duration-300"
                   >
                     <img
                       src={barber.profile?.photo || 'https://via.placeholder.com/100'}
@@ -831,6 +862,11 @@ const HomePage = ({ openLoginModal }) => {
                   </svg>
                   Telegram
                 </a>
+              )}
+              {!selectedHaircut.barberWhatsapp && !selectedHaircut.barberTelegram && (
+                <p className="text-center text-gray-500 py-4">
+                  Контактные данные барбера не указаны
+                </p>
               )}
             </div>
             <button

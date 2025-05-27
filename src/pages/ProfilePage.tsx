@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation, Briefcase, UserPlus } from 'lucide-react';
+import { User, Clock, Heart, LogOut, MapPin, MessageCircle, Scissors, X, Navigation, Briefcase, UserPlus, BarChart } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -17,13 +17,14 @@ import ImageCropper from '../components/ui/ImageCropper';
 import BarberBookingsList from '../components/booking/BarberBookingsList';
 import MyServicesList from '../components/profile/MyServicesList';
 import MyHaircuts from '../components/profile/MyHaircuts';
+import BarberAnalytics from '../components/barber/BarberAnalytics';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();
   const { user, logout, isAuthenticated, refreshUserData } = useAuth();
   const notification = useNotification();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites' | 'barberBookings' | 'myHaircuts'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'favorites' | 'barberBookings' | 'myHaircuts' | 'analytics'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -522,6 +523,18 @@ const ProfilePage: React.FC = () => {
                     </button>
                   )}
 
+                  {user.profile?.user_type === 'barber' && (
+                    <button
+                      onClick={() => setActiveTab('analytics')}
+                      className={`flex items-center w-full p-3 rounded-md text-left transition-all duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-100 ${
+                        activeTab === 'analytics' ? 'bg-gray-200 text-[#9A0F34] font-semibold' : 'text-gray-700'
+                      }`}
+                    >
+                      <BarChart className="h-5 w-5 mr-3" />
+                      Аналитика
+                    </button>
+                  )}
+
                   {user.profile?.user_type === 'client' ? (
                     <button
                       onClick={() => handleUserTypeChange('barber')}
@@ -866,7 +879,7 @@ const ProfilePage: React.FC = () => {
                           </div>
                         </form>
                       ) : (
-                        <div class REN="space-y-6">
+                        <div className="space-y-6">
                           <div className="border-b pb-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Имя и фамилия
@@ -1036,6 +1049,13 @@ const ProfilePage: React.FC = () => {
                 <div className="animate-fade-in">
                   <h3 className="text-xl font-bold mb-4 text-gray-800">Мои стрижки</h3>
                   <MyHaircuts />
+                </div>
+              )}
+
+              {activeTab === 'analytics' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-xl font-bold mb-4 text-gray-800">Аналитика</h3>
+                  <BarberAnalytics />
                 </div>
               )}
             </div>

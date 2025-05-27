@@ -11,7 +11,7 @@ interface ReviewsListProps {
 }
 
 const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = false }) => {
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<any[]>([]); // Явно указываем тип массива
   const [loading, setLoading] = useState(true);
   const [showAddReview, setShowAddReview] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
@@ -22,17 +22,34 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
     fetchReviews();
   }, [barberId]);
 
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const response = await reviewsAPI.getForBarber(barberId);
-      setReviews(response.data || []);
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    } finally {
-      setLoading(false);
+const fetchReviews = async () => {
+  try {
+    setLoading(true);
+    const response = await reviewsAPI.getForBarber(barberId);
+
+    // Более надежная обработка ответа API
+    let reviewsData = [];
+
+    if (response && response.data) {
+      if (Array.isArray(response.data)) {
+        reviewsData = response.data;
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        reviewsData = response.data.results;
+      } else if (typeof response.data === 'object') {
+        // Если response.data - объект, но не массив, заворачиваем в массив
+        reviewsData = [response.data];
+      }
     }
-  };
+
+    setReviews(reviewsData);
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    // В случае ошибки устанавливаем пустой массив
+    setReviews([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSubmitReview = async () => {
     try {

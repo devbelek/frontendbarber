@@ -4,8 +4,8 @@ import { MapPin, Clock, Phone, Instagram, MessageCircle, Star, Users, ChevronRig
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
-import { barbershopsAPI, servicesAPI } from '../api/services';
-
+import { barbershopsAPI } from '../api/barbershops';
+import { servicesAPI } from '../api/services';
 const BarbershopDetailPage = ({ openLoginModal }) => {
   const { id } = useParams();
   const [barbershop, setBarbershop] = useState(null);

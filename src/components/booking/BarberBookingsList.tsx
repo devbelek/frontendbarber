@@ -297,7 +297,7 @@ const handleDeleteCancel = () => {
                     </>
                   )}
 
-                  {booking.status === 'confirmed' && (
+                   {booking.status === 'confirmed' && (
                     <>
                       <Button
                         variant="outline"
@@ -320,13 +320,16 @@ const handleDeleteCancel = () => {
                     </>
                   )}
 
-<Button
-  variant="ghost"
-  size="sm"
-  onClick={() => handleDeleteClick(booking.id)}
->
-  <Trash className="h-4 w-4" />
-</Button>
+                  {/* Кнопка удаления - показываем для всех статусов */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50"
+                    onClick={() => handleDeleteClick(booking.id)}
+                    title="Удалить бронирование"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>

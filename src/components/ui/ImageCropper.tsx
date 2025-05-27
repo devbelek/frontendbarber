@@ -1,7 +1,5 @@
-// src/components/ui/ImageCropper.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
-import Button from './Button';
+import { X, Check, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -14,31 +12,40 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   imageSrc,
   onCropComplete,
   onCancel,
-  aspectRatio = 1 // 1:1 для квадрата
+  aspectRatio = 1
 }) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [rotation, setRotation] = useState(0);
+
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // При загрузке изображения центрируем его
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
       const { width, height } = img;
       setImageSize({ width, height });
 
-      // Центрируем изображение при загрузке
       if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight;
+        const containerSize = 300; // размер области обрезки
+
+        // Вычисляем минимальный масштаб, чтобы изображение покрывало всю область обрезки
+        const minScale = Math.max(
+          containerSize / width,
+          containerSize / height
+        ) * 1.2; // добавляем 20% запаса
+
+        setScale(minScale);
+
+        // Центрируем изображение
         setPosition({
-          x: (containerWidth - width) / 2,
-          y: (containerHeight - height) / 2
+          x: 0,
+          y: 0
         });
       }
     };
@@ -46,6 +53,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   }, [imageSrc]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -56,11 +64,24 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
 
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+
+    // Ограничиваем перемещение, чтобы изображение не выходило за пределы области обрезки
+    const containerSize = 300;
+    const scaledWidth = imageSize.width * scale;
+    const scaledHeight = imageSize.height * scale;
+
+    const maxX = Math.min(0, (containerSize - scaledWidth) / 2);
+    const minX = Math.max((containerSize - scaledWidth) / 2, 0);
+    const maxY = Math.min(0, (containerSize - scaledHeight) / 2);
+    const minY = Math.max((containerSize - scaledHeight) / 2, 0);
+
     setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
+      x: Math.max(minX, Math.min(maxX, newX)),
+      y: Math.max(minY, Math.min(maxY, newY)),
     });
-  }, [isDragging, dragStart]);
+  }, [isDragging, dragStart, imageSize, scale]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -69,8 +90,21 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale(prevScale => Math.max(0.5, Math.min(3, prevScale * delta)));
-  }, []);
+    const newScale = Math.max(0.5, Math.min(5, scale * delta));
+
+    // Масштабируем относительно центра
+    const containerSize = 300;
+    const scaleDiff = newScale - scale;
+    const newX = position.x - (imageSize.width * scaleDiff) / 2;
+    const newY = position.y - (imageSize.height * scaleDiff) / 2;
+
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
+  }, [scale, position, imageSize]);
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
 
   const handleCrop = async () => {
     if (!imageRef.current || !canvasRef.current || !containerRef.current) return;
@@ -80,52 +114,57 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Размер выходного изображения
-    const outputSize = 300;
+    const outputSize = 400; // увеличиваем выходной размер для лучшего качества
     canvas.width = outputSize;
     canvas.height = outputSize;
 
-    // Очищаем canvas
     ctx.clearRect(0, 0, outputSize, outputSize);
 
-    // Размер области обрезки в интерфейсе
-    const cropAreaSize = 200;
+    // Сохраняем текущее состояние контекста
+    ctx.save();
 
-    // Рассчитываем центр области обрезки относительно контейнера
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const cropAreaCenterX = containerRect.width / 2;
-    const cropAreaCenterY = containerRect.height / 2;
+    // Переносим центр координат в центр canvas
+    ctx.translate(outputSize / 2, outputSize / 2);
 
-    // Рассчитываем позицию на исходном изображении с учетом масштаба и смещения
-    const sourceX = (cropAreaCenterX - position.x) / scale;
-    const sourceY = (cropAreaCenterY - position.y) / scale;
+    // Применяем поворот
+    ctx.rotate((rotation * Math.PI) / 180);
+
+    // Размер области обрезки в UI
+    const cropAreaSize = 300;
+
+    // Вычисляем, какую часть исходного изображения нужно взять
     const sourceSize = cropAreaSize / scale;
+    const sourceX = (imageSize.width - sourceSize) / 2 - position.x / scale;
+    const sourceY = (imageSize.height - sourceSize) / 2 - position.y / scale;
 
-    // Рисуем обрезанное изображение
+    // Рисуем изображение
     ctx.drawImage(
       image,
-      sourceX - sourceSize / 2,
-      sourceY - sourceSize / 2,
+      sourceX,
+      sourceY,
       sourceSize,
       sourceSize,
-      0,
-      0,
+      -outputSize / 2,
+      -outputSize / 2,
       outputSize,
       outputSize
     );
 
-    // Конвертируем в blob
+    // Восстанавливаем состояние контекста
+    ctx.restore();
+
+    // Конвертируем в blob с высоким качеством
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
         onCropComplete(file);
       }
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.95);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md my-8">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Обрезать изображение</h3>
           <button
@@ -139,23 +178,22 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
         <div className="p-4">
           <div
             ref={containerRef}
-            className="relative w-full h-64 bg-gray-100 overflow-hidden cursor-move flex items-center justify-center"
+            className="relative w-[300px] h-[300px] mx-auto bg-gray-100 overflow-hidden cursor-move rounded-lg"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
           >
-            {/* Изображение */}
             <img
               ref={imageRef}
               src={imageSrc}
               alt="Обрезка изображения"
-              className="absolute"
+              className="absolute top-1/2 left-1/2"
               style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                maxWidth: 'none',
+                transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
                 transformOrigin: 'center',
+                maxWidth: 'none',
               }}
               draggable={false}
             />
@@ -164,7 +202,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 bg-black bg-opacity-50"></div>
               <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white rounded-full"
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-white rounded-full"
                 style={{
                   boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
                 }}
@@ -175,35 +213,58 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Инструкции */}
-          <p className="text-sm text-gray-600 mt-4">
+          <p className="text-sm text-gray-600 mt-4 text-center">
             Перетаскивайте изображение и используйте колесо мыши для масштабирования
           </p>
 
-          {/* Контроль масштаба */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Масштаб
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="3"
-              step="0.1"
-              value={scale}
-              onChange={(e) => setScale(parseFloat(e.target.value))}
-              className="w-full"
-            />
+          {/* Контролы */}
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}
+                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={scale}
+                onChange={(e) => setScale(parseFloat(e.target.value))}
+                className="flex-1"
+              />
+              <button
+                onClick={() => setScale(prev => Math.min(5, prev + 0.1))}
+                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleRotate}
+                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <RotateCw className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="flex gap-3 p-4 border-t">
-          <Button variant="outline" onClick={onCancel} className="flex-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Отмена
-          </Button>
-          <Button variant="primary" onClick={handleCrop} className="flex-1">
+          </button>
+          <button
+            onClick={handleCrop}
+            className="flex-1 px-4 py-2 bg-[#9A0F34] text-white rounded-lg hover:bg-[#7b0c29] transition-colors flex items-center justify-center"
+          >
             <Check className="h-4 w-4 mr-2" />
             Применить
-          </Button>
+          </button>
         </div>
       </div>
     </div>

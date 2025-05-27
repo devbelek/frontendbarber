@@ -15,7 +15,7 @@ import AddServicePage from './pages/AddServicePage';
 import EditServicePage from './pages/EditServicePage';
 import BarbershopsPage from './pages/BarbershopsPage';
 import BarbershopDetailPage from './pages/BarbershopDetailPage';
-
+import DiscoverPage from './pages/DiscoverPage';
 // Тип для пропсов защищенного маршрута
 interface RouteProps {
   children: React.ReactNode;
@@ -85,6 +85,13 @@ const AppRoutes = () => {
 
         {/* Страница логина */}
         <Route path="/login" element={<LoginPage />} />
+
+                {/* Единая страница для барберов и барбершопов */}
+        <Route path="/discover" element={<DiscoverPage openLoginModal={openLoginModal} />} />
+
+        {/* Старые маршруты для обратной совместимости */}
+        <Route path="/barbers" element={<Navigate to="/discover" replace />} />
+        <Route path="/barbershops" element={<Navigate to="/discover" replace />} />
 
         {/* Защищенный маршрут для добавления услуги */}
         <Route

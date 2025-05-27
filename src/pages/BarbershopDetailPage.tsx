@@ -152,7 +152,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                   <div className="flex gap-2">
                     {barbershop.whatsapp && (
 
-                        href={`https://wa.me/${barbershop.whatsapp}`}
+                       <a href={`https://wa.me/${barbershop.whatsapp}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors"
@@ -162,7 +162,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                     )}
                     {barbershop.instagram && (
 
-                        href={`https://instagram.com/${barbershop.instagram}`}
+                       <a  href={`https://instagram.com/${barbershop.instagram}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-500 text-white rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"

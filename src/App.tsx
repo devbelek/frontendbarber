@@ -13,6 +13,8 @@ import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
 import AddServicePage from './pages/AddServicePage';
 import EditServicePage from './pages/EditServicePage';
+import BarbershopsPage from './pages/BarbershopsPage';
+import BarbershopDetailPage from './pages/BarbershopDetailPage';
 
 // Тип для пропсов защищенного маршрута
 interface RouteProps {
@@ -106,6 +108,8 @@ const AppRoutes = () => {
 
         {/* Обработка неизвестных маршрутов (404) */}
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/barbershops" element={<BarbershopsPage openLoginModal={openLoginModal} />} />
+        <Route path="/barbershop/:id" element={<BarbershopDetailPage openLoginModal={openLoginModal} />} />
       </Routes>
     </Router>
   );

@@ -1,4 +1,3 @@
-// src/components/layout/Layout.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
@@ -8,6 +7,7 @@ import FloatingActionButton from '../ui/FloatingActionButton';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import InstallModal from '../ui/InstallModal';
+import HelpButton from '../ui/HelpButton';
 
 interface LayoutProps {
   children: React.ReactNode;

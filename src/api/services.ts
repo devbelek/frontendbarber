@@ -138,6 +138,7 @@ export const notificationsAPI = {
 
 export const bookingsAPI = {
   getAll: () => apiClient.get('/bookings/'),
+  statistics: () => apiClient.get('/bookings/statistics/'),
   create: (data: any) => apiClient.post('/bookings/', data),
   updateStatus: (id: string, status: string) => apiClient.patch(`/bookings/${id}/`, { status }),
   cancel: (id: string) => apiClient.patch(`/bookings/${id}/`, { status: 'cancelled' }),
@@ -145,6 +146,7 @@ export const bookingsAPI = {
     apiClient.get(`/bookings/available-slots/?barber=${barberId}&date=${date}`),
   createBooking: (data: any) => apiClient.post('/bookings/', data),
   delete: (id: string) => apiClient.delete(`/bookings/${id}/`)
+
 };
 
 export const servicesAPI = {

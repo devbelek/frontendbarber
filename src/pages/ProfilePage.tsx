@@ -17,7 +17,7 @@ import ImageCropper from '../components/ui/ImageCropper';
 import BarberBookingsList from '../components/booking/BarberBookingsList';
 import MyServicesList from '../components/profile/MyServicesList';
 import MyHaircuts from '../components/profile/MyHaircuts';
-import BarberAnalytics from '../components/barber/BarberAnalytics';
+import BarberAnalytics from '../components/analytics/BarberAnalytics';
 
 const ProfilePage: React.FC = () => {
   const { t } = useLanguage();

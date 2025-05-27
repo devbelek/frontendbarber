@@ -1,7 +1,8 @@
-// src/components/layout/Header.tsx
+// src/components/layout/Header.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Globe, MapPin, LogOut, Search, X, Scissors } from 'lucide-react';
+import { Globe, MapPin, LogOut, Search, X, Scissors, Store } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -53,14 +54,30 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             <span className="ml-2 text-xl font-bold text-gray-900">TARAK</span>
           </Link>
 
-          {/* Кнопка барберов с красивой иконкой для десктопов */}
-          <nav className="hidden md:flex items-center">
+          {/* ДОБАВЛЕННАЯ НАВИГАЦИЯ ДЛЯ ДЕСКТОПА */}
+          <nav className="hidden md:flex items-center space-x-6">
             <Link
               to="/barbers"
-              className="flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                location.pathname === '/barbers'
+                  ? 'bg-[#9A0F34] text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Scissors className="h-5 w-5 mr-2" />
-              Найти барбера
+              Барберы
+            </Link>
+
+            <Link
+              to="/barbershops"
+              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                location.pathname === '/barbershops'
+                  ? 'bg-[#9A0F34] text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Store className="h-5 w-5 mr-2" />
+              Барбершопы
             </Link>
           </nav>
 
@@ -140,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             )}
           </div>
 
-          {/* Мобильная кнопка барберов */}
+          {/* Мобильная кнопка (пока одна) */}
           <div className="md:hidden">
             <Link
               to="/barbers"

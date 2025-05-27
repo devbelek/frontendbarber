@@ -1,4 +1,3 @@
-// src/api/barbershops.ts
 import apiClient from './client';
 
 export const barbershopsAPI = {
@@ -16,14 +15,6 @@ export const barbershopsAPI = {
 
   // Удалить барбершоп
   delete: (id: string) => apiClient.delete(`/barbershops/${id}/`),
-
-  // Добавить барбера в барбершоп
-  addBarber: (barbershopId: string, barberId: string) =>
-    apiClient.post(`/barbershops/${barbershopId}/add-barber/`, { barber_id: barberId }),
-
-  // Удалить барбера из барбершопа
-  removeBarber: (barbershopId: string, barberId: string) =>
-    apiClient.post(`/barbershops/${barbershopId}/remove-barber/`, { barber_id: barberId }),
 
   // Получить барберов барбершопа
   getBarbers: (barbershopId: string) =>

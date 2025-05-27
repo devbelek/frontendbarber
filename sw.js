@@ -5,6 +5,17 @@ const urlsToCache = [
   '/vite.svg',
   '/src/main.tsx'
 ];
+self.addEventListener('push', function(event) {
+  const options = {
+    body: event.data.text(),
+    icon: '/icon-192x192.png',
+    badge: '/badge-72x72.png'
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('TARAK', options)
+  );
+});
 
 self.addEventListener('install', event => {
   event.waitUntil(

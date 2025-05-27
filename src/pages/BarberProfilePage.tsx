@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
 import HaircutGrid from '../components/haircuts/HaircutGrid';
 import BookingModal from '../components/booking/BookingModal';
+import ReviewsList from '../components/reviews/ReviewsList'; // Импортируем ReviewsList
 import { servicesAPI, profileAPI } from '../api/services';
 import { Barber, Haircut } from '../types';
 import { useLanguage } from "../context/LanguageContext";
@@ -25,9 +26,10 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
   const [barberHaircuts, setBarberHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'info'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'info' | 'reviews'>('portfolio'); // Добавляем 'reviews'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null); // Предполагаем, что user будет загружен где-то в коде
 
   useEffect(() => {
     const fetchBarberData = async () => {
@@ -37,7 +39,6 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
         setLoading(true);
         setError(null);
 
-        // Используем дополнительную обработку ошибок
         let barberResponse;
         try {
           barberResponse = await profileAPI.getBarberProfile(id);
@@ -45,7 +46,6 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
           console.error('Error fetching barber profile:', e);
 
           if (e.response?.status === 500) {
-            // Специальная обработка ошибки 500
             notification.error(
               'Ошибка сервера',
               'Произошла ошибка при загрузке данных барбера. Попробуйте позже или обратитесь в поддержку.'
@@ -55,7 +55,7 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
             return;
           }
 
-          throw e; // Прокидываем ошибку дальше для общей обработки
+          throw e;
         }
 
         const barberData = barberResponse.data;
@@ -128,7 +128,6 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
           }
         } catch (e) {
           console.error('Failed to fetch barber haircuts:', e);
-          // Если не удалось загрузить стрижки, всё равно показываем профиль
         }
 
         setLoading(false);
@@ -319,6 +318,16 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
             >
               {t('information')}
             </button>
+            <button
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'reviews'
+                  ? 'border-[#9A0F34] text-[#9A0F34]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setActiveTab('reviews')}
+            >
+              Отзывы ({barber.reviewCount || 0})
+            </button>
           </div>
         </div>
 
@@ -424,6 +433,16 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {activeTab === 'reviews' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Отзывы</h2>
+              <ReviewsList
+                barberId={id}
+                canAddReview={user && user.profile?.user_type === 'client'}
+              />
             </div>
           )}
         </div>

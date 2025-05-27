@@ -1,111 +1,82 @@
-// src/components/layout/MobileNavigation.tsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, User, Scissors, Plus, Heart } from 'lucide-react';
+import { Home, Search, User, Scissors, Plus, Heart, Store } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const MobileNavigation = ({ openLoginModal }) => {
   const location = useLocation();
   const { isAuthenticated, user } = useAuth();
-
-  // Определяем, является ли пользователь барбером
   const isBarber = user?.profile?.user_type === 'barber';
-
   const isActive = (path) => location.pathname === path;
 
-  const handleProfileClick = (e) => {
-    if (!isAuthenticated) {
-      e.preventDefault();
-      openLoginModal();
-    }
-  };
-
-  const scrollToGallery = () => {
-    // Если мы на главной странице, скроллим к галерее
-    if (location.pathname === '/') {
-      const gallerySection = document.querySelector('[data-section="gallery"]');
-      if (gallerySection) {
-        gallerySection.scrollIntoView({ behavior: 'smooth' });
-      } else {
-        // Если секция не найдена, скроллим вниз
-        window.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' });
-      }
-    } else {
-      // Если не на главной, переходим на главную
-      window.location.href = '/';
-    }
-  };
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40 pb-safe">
       <div className="flex items-center justify-around h-16 px-2">
         {/* Главная */}
         <Link
           to="/"
-          className={`flex flex-col items-center justify-center w-full ${
+          className={`flex flex-col items-center justify-center w-full py-2 ${
             isActive('/') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
-          <Home className="h-6 w-6" />
-          <span className="text-xs mt-1">Главная</span>
+          <Home className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Главная</span>
         </Link>
 
-        {/* Галерея (теперь скролл к галерее на главной странице) */}
-        <button
-          onClick={scrollToGallery}
-          className="flex flex-col items-center justify-center w-full text-gray-500 hover:text-[#9A0F34]"
+        {/* Барбершопы */}
+        <Link
+          to="/barbershops"
+          className={`flex flex-col items-center justify-center w-full py-2 ${
+            isActive('/barbershops') ? 'text-[#9A0F34]' : 'text-gray-500'
+          }`}
         >
-          <Search className="h-6 w-6" />
-          <span className="text-xs mt-1">Галерея</span>
-        </button>
+          <Store className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Барбершопы</span>
+        </Link>
 
-        {/* Центральная кнопка: + для барберов или избранное для обычных пользователей */}
+        {/* Центральная кнопка */}
         {isBarber ? (
           <Link
             to="/add-service"
-            className="relative flex flex-col items-center justify-center w-full"
+            className="relative flex items-center justify-center w-16 h-16"
           >
-            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
-              <Plus className="h-8 w-8" />
+            <div className="absolute flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
+              <Plus className="h-7 w-7" />
             </div>
-            <div className="h-6"></div>
-            <span className="text-xs mt-5 text-gray-500">Добавить</span>
           </Link>
         ) : (
           <Link
-            to={isAuthenticated ? "/profile?tab=favorites" : "#"}
-            onClick={e => isAuthenticated ? null : handleProfileClick(e)}
-            className="relative flex flex-col items-center justify-center w-full"
+            to="/barbers"
+            className="relative flex items-center justify-center w-16 h-16"
           >
-            <div className="absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
-              <Heart className="h-8 w-8" />
+            <div className="absolute flex items-center justify-center w-14 h-14 rounded-full bg-[#9A0F34] text-white shadow-lg">
+              <Scissors className="h-7 w-7" />
             </div>
-            <div className="h-6"></div>
-            <span className="text-xs mt-5 text-gray-500">Избранное</span>
           </Link>
         )}
 
-        {/* Барберы */}
+        {/* Избранное */}
         <Link
-          to="/barbers"
-          className={`flex flex-col items-center justify-center w-full ${
-            isActive('/barbers') ? 'text-[#9A0F34]' : 'text-gray-500'
+          to={isAuthenticated ? "/profile?tab=favorites" : "#"}
+          onClick={e => !isAuthenticated && (e.preventDefault(), openLoginModal())}
+          className={`flex flex-col items-center justify-center w-full py-2 ${
+            location.search.includes('favorites') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
-          <Scissors className="h-6 w-6" />
-          <span className="text-xs mt-1">Барберы</span>
+          <Heart className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Избранное</span>
         </Link>
 
         {/* Профиль */}
         <Link
           to={isAuthenticated ? "/profile" : "#"}
-          onClick={handleProfileClick}
-          className={`flex flex-col items-center justify-center w-full ${
+          onClick={e => !isAuthenticated && (e.preventDefault(), openLoginModal())}
+          className={`flex flex-col items-center justify-center w-full py-2 ${
             isActive('/profile') ? 'text-[#9A0F34]' : 'text-gray-500'
           }`}
         >
-          <User className="h-6 w-6" />
-          <span className="text-xs mt-1">Профиль</span>
+          <User className="h-5 w-5" />
+          <span className="text-[10px] mt-1">Профиль</span>
         </Link>
       </div>
     </nav>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, User, Calendar } from 'lucide-react';
+import { Star, User, Calendar, MessageSquare } from 'lucide-react';
 import { reviewsAPI } from '../../api/services';
 import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -11,47 +11,55 @@ interface ReviewsListProps {
 }
 
 const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = false }) => {
-  const [reviews, setReviews] = useState<any[]>([]); // Явно указываем тип массива
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddReview, setShowAddReview] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
-  const { user } = useAuth();
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   const notification = useNotification();
 
   useEffect(() => {
     fetchReviews();
   }, [barberId]);
 
-const fetchReviews = async () => {
-  try {
-    setLoading(true);
-    const response = await reviewsAPI.getForBarber(barberId);
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const response = await reviewsAPI.getForBarber(barberId);
 
-    // Более надежная обработка ответа API
-    let reviewsData = [];
-
-    if (response && response.data) {
-      if (Array.isArray(response.data)) {
-        reviewsData = response.data;
-      } else if (response.data.results && Array.isArray(response.data.results)) {
-        reviewsData = response.data.results;
-      } else if (typeof response.data === 'object') {
-        // Если response.data - объект, но не массив, заворачиваем в массив
-        reviewsData = [response.data];
+      let reviewsData = [];
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          reviewsData = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          reviewsData = response.data.results;
+        }
       }
-    }
 
-    setReviews(reviewsData);
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    // В случае ошибки устанавливаем пустой массив
-    setReviews([]);
-  } finally {
-    setLoading(false);
-  }
-};
+      setReviews(reviewsData);
+
+      // Проверяем, оставлял ли текущий пользователь отзыв
+      if (user && reviewsData.length > 0) {
+        const userReview = reviewsData.find(review =>
+          review.author === user.id || review.author_details?.id === user.id
+        );
+        setHasUserReviewed(!!userReview);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmitReview = async () => {
+    if (!newReview.comment.trim()) {
+      notification.error('Ошибка', 'Пожалуйста, напишите комментарий');
+      return;
+    }
+
     try {
       await reviewsAPI.create({
         barber: barberId,
@@ -62,13 +70,17 @@ const fetchReviews = async () => {
       setShowAddReview(false);
       setNewReview({ rating: 5, comment: '' });
       fetchReviews();
-    } catch (error) {
-      notification.error('Ошибка', 'Не удалось добавить отзыв');
+    } catch (error: any) {
+      if (error.response?.status === 400 && error.response?.data?.non_field_errors) {
+        notification.error('Ошибка', 'Вы уже оставляли отзыв для этого барбера');
+      } else {
+        notification.error('Ошибка', 'Не удалось добавить отзыв');
+      }
     }
   };
 
-  const StarRating = ({ rating, onChange = null, size = 'md' }) => {
-    const sizes = {
+  const StarRating = ({ rating, onChange = null, size = 'md' }: any) => {
+    const sizes: any = {
       sm: 'h-4 w-4',
       md: 'h-5 w-5',
       lg: 'h-6 w-6'
@@ -82,6 +94,7 @@ const fetchReviews = async () => {
             onClick={() => onChange && onChange(star)}
             disabled={!onChange}
             className={onChange ? 'cursor-pointer' : 'cursor-default'}
+            type="button"
           >
             <Star
               className={`${sizes[size]} ${
@@ -95,6 +108,12 @@ const fetchReviews = async () => {
       </div>
     );
   };
+
+  // Проверяем, может ли пользователь добавить отзыв
+  const canUserAddReview = isAuthenticated &&
+    user?.profile?.user_type === 'client' &&
+    canAddReview &&
+    !hasUserReviewed;
 
   if (loading) {
     return (
@@ -113,7 +132,7 @@ const fetchReviews = async () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Отзывы ({reviews.length})</h3>
-        {canAddReview && user && (
+        {canUserAddReview && (
           <Button
             variant="outline"
             size="sm"
@@ -122,9 +141,29 @@ const fetchReviews = async () => {
             Добавить отзыв
           </Button>
         )}
+        {hasUserReviewed && (
+          <p className="text-sm text-gray-500">Вы уже оставили отзыв</p>
+        )}
       </div>
 
-      {showAddReview && (
+      {!isAuthenticated && (
+        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <p className="text-sm text-blue-700 flex items-center">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Войдите в систему как клиент, чтобы оставить отзыв
+          </p>
+        </div>
+      )}
+
+      {user?.profile?.user_type === 'barber' && (
+        <div className="bg-yellow-50 p-4 rounded-lg mb-4">
+          <p className="text-sm text-yellow-700">
+            Барберы не могут оставлять отзывы. Переключитесь на аккаунт клиента в профиле.
+          </p>
+        </div>
+      )}
+
+      {showAddReview && canUserAddReview && (
         <div className="bg-gray-50 rounded-lg p-4 mb-4">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -132,7 +171,7 @@ const fetchReviews = async () => {
             </label>
             <StarRating
               rating={newReview.rating}
-              onChange={(rating) => setNewReview({ ...newReview, rating })}
+              onChange={(rating: number) => setNewReview({ ...newReview, rating })}
               size="lg"
             />
           </div>
@@ -180,7 +219,7 @@ const fetchReviews = async () => {
                   </div>
                   <div>
                     <p className="font-medium">
-                      {review.author_details?.first_name} {review.author_details?.last_name}
+                      {review.author_details?.first_name || 'Аноним'} {review.author_details?.last_name || ''}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <StarRating rating={review.rating} size="sm" />

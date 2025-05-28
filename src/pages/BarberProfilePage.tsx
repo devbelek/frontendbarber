@@ -436,15 +436,15 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({ openLoginModal })
             </div>
           )}
 
-          {activeTab === 'reviews' && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">Отзывы</h2>
-              <ReviewsList
-                barberId={id}
-                canAddReview={user && user.profile?.user_type === 'client'}
-              />
-            </div>
-          )}
+            {activeTab === 'reviews' && (
+              <div>
+                <h2 className="text-xl font-bold mb-4">Отзывы</h2>
+                <ReviewsList
+                  barberId={id || ''}
+                  canAddReview={true} // Всегда true, внутри компонента будет проверка
+                />
+              </div>
+            )}
         </div>
       </div>
 

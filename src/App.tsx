@@ -9,23 +9,18 @@ import BarberProfilePage from './pages/BarberProfilePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginModal from './components/auth/LoginModal';
-import BarberListPage from './pages/BarberListPage';
 import LoginPage from './pages/LoginPage';
 import AddServicePage from './pages/AddServicePage';
 import EditServicePage from './pages/EditServicePage';
-import BarbershopsPage from './pages/BarbershopsPage';
-import BarbershopDetailPage from './pages/BarbershopDetailPage';
 import DiscoverPage from './pages/DiscoverPage';
-// Тип для пропсов защищенного маршрута
+
 interface RouteProps {
   children: React.ReactNode;
 }
 
-// Компонент защищенного маршрута для авторизованных пользователей
 const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // Отображаем загрузку, пока проверяется статус авторизации
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -34,7 +29,6 @@ const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
     );
   }
 
-  // Если пользователь не авторизован, перенаправляем на страницу логина
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
@@ -42,35 +36,28 @@ const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Компонент маршрутизации приложения
 const AppRoutes = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // Функция открытия модального окна логина
   const openLoginModal = () => {
     setIsLoginModalOpen(true);
   };
 
-  // Функция закрытия модального окна логина
   const closeLoginModal = () => {
     setIsLoginModalOpen(false);
   };
 
   return (
     <Router>
-      {/* Модальное окно логина, управляемое состоянием */}
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
-        {/* Главная страница с интегрированной галереей */}
+        {/* Главная страница */}
         <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
 
-        {/* Перенаправление с /gallery на главную страницу */}
-        <Route path="/gallery" element={<Navigate to="/" replace />} />
-
-        {/* Маршрут для профиля барбера */}
+        {/* Профиль барбера */}
         <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
 
-        {/* Защищенный маршрут для профиля пользователя */}
+        {/* Защищенный профиль пользователя */}
         <Route
           path="/profile"
           element={
@@ -80,20 +67,17 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Список барберов */}
-        <Route path="/barbers" element={<BarberListPage openLoginModal={openLoginModal} />} />
-
         {/* Страница логина */}
         <Route path="/login" element={<LoginPage />} />
 
-                {/* Единая страница для барберов и барбершопов */}
+        {/* Страница поиска барберов */}
         <Route path="/discover" element={<DiscoverPage openLoginModal={openLoginModal} />} />
 
         {/* Старые маршруты для обратной совместимости */}
         <Route path="/barbers" element={<Navigate to="/discover" replace />} />
         <Route path="/barbershops" element={<Navigate to="/discover" replace />} />
 
-        {/* Защищенный маршрут для добавления услуги */}
+        {/* Защищенные маршруты для барберов */}
         <Route
           path="/add-service"
           element={
@@ -103,7 +87,6 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Защищенный маршрут для редактирования услуги */}
         <Route
           path="/edit-service/:id"
           element={
@@ -113,16 +96,13 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Обработка неизвестных маршрутов (404) */}
+        {/* 404 страница */}
         <Route path="*" element={<NotFoundPage />} />
-        <Route path="/barbershops" element={<BarbershopsPage openLoginModal={openLoginModal} />} />
-        <Route path="/barbershop/:id" element={<BarbershopDetailPage openLoginModal={openLoginModal} />} />
       </Routes>
     </Router>
   );
 };
 
-// Основной компонент приложения
 function App() {
   return (
     <LanguageProvider>

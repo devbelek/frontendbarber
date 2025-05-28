@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Phone, Star, Users, Search, Filter, Store, User } from 'lucide-react';
+import { MapPin, Clock, Phone, Star, Users, Search, Filter, Store, User, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import ImageWithFallback from '../components/ui/ImageWithFallback';
 import { profileAPI } from '../api/services';
 import { barbershopsAPI } from '../api/barbershops';
-import { useNavigate } from 'react-router-dom';
 
 interface DiscoverPageProps {
   openLoginModal: () => void;
@@ -20,6 +20,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState('all');
 
   useEffect(() => {
     fetchData();
@@ -53,14 +54,37 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   const filteredBarbers = barbers.filter(barber => {
     const fullName = `${barber.first_name || ''} ${barber.last_name || ''}`.toLowerCase();
     const address = (barber.profile?.address || '').toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase()) ||
-           address.includes(searchQuery.toLowerCase());
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = fullName.includes(query) || address.includes(query);
+    const matchesRegion = selectedRegion === 'all' ||
+      (barber.profile?.address || '').toLowerCase().includes(selectedRegion.toLowerCase());
+
+    return matchesSearch && matchesRegion;
   });
 
-  const filteredBarbershops = barbershops.filter(shop =>
-    shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shop.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBarbershops = barbershops.filter(shop => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = shop.name.toLowerCase().includes(query) ||
+      shop.address.toLowerCase().includes(query);
+    const matchesRegion = selectedRegion === 'all' ||
+      shop.address.toLowerCase().includes(selectedRegion.toLowerCase());
+
+    return matchesSearch && matchesRegion;
+  });
+
+  const handleBarberClick = (barberId: string) => {
+    navigate(`/barber/${barberId}`);
+  };
+
+  const handleBarbershopClick = (barbershopId: string) => {
+    navigate(`/barbershop/${barbershopId}`);
+  };
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedRegion('all');
+  };
 
   return (
     <Layout openLoginModal={openLoginModal}>
@@ -75,7 +99,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
           </div>
         </div>
 
-        {/* Поиск и табы */}
+        {/* Поиск и фильтры */}
         <div className="container mx-auto px-4 -mt-6">
           <div className="bg-white rounded-lg shadow-lg p-4">
             {/* Поисковая строка */}
@@ -88,6 +112,27 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
               />
+            </div>
+
+            {/* Фильтры */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#9A0F34] focus:outline-none"
+              >
+                <option value="all">Все регионы</option>
+                <option value="Бишкек">Бишкек</option>
+                <option value="Ош">Ош</option>
+                <option value="Джалал-Абад">Джалал-Абад</option>
+                <option value="Каракол">Каракол</option>
+              </select>
+
+              {(searchQuery || selectedRegion !== 'all') && (
+                <Button onClick={resetFilters} variant="outline" size="sm">
+                  Сбросить фильтры
+                </Button>
+              )}
             </div>
 
             {/* Табы */}
@@ -152,8 +197,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     filteredBarbers.map((barber) => (
                       <Card
                         key={barber.id}
-                        className="overflow-hidden hover:shadow-xl transition-all cursor-pointer"
-                        onClick={() => navigate(`/barber/${barber.id}`)}
+                        className="overflow-hidden hover:shadow-xl transition-all duration-300"
                       >
                         <div className="relative h-48">
                           <ImageWithFallback
@@ -195,7 +239,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             </div>
                           )}
 
-                          <Button variant="primary" fullWidth>
+                          <Button
+                            variant="primary"
+                            fullWidth
+                            onClick={() => handleBarberClick(barber.id)}
+                          >
                             Посмотреть профиль
                           </Button>
                         </div>
@@ -214,16 +262,18 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                       <h3 className="text-xl font-medium text-gray-900 mb-2">
                         Барбершопы не найдены
                       </h3>
-                      <p className="text-gray-600">
-                        Попробуйте изменить параметры поиска
+                      <p className="text-gray-600 mb-4">
+                        В данный момент в системе нет зарегистрированных барбершопов
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Вы можете просмотреть индивидуальных барберов во вкладке "Барберы"
                       </p>
                     </div>
                   ) : (
                     filteredBarbershops.map((shop) => (
                       <Card
                         key={shop.id}
-                        className="overflow-hidden hover:shadow-xl transition-all cursor-pointer"
-                        onClick={() => navigate(`/barbershop/${shop.id}`)}
+                        className="overflow-hidden hover:shadow-xl transition-all duration-300"
                       >
                         <div className="relative h-48">
                           <img
@@ -275,7 +325,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             </div>
                           </div>
 
-                          <Button variant="primary" fullWidth>
+                          <Button
+                            variant="primary"
+                            fullWidth
+                            onClick={() => handleBarbershopClick(shop.id)}
+                          >
                             Подробнее
                           </Button>
                         </div>

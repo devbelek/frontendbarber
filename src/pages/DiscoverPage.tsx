@@ -86,6 +86,26 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
     setSelectedRegion('all');
   };
 
+  // Безопасная функция для получения рабочих часов
+  const getWorkingHours = (shop: any) => {
+    if (shop.working_hours) {
+      return `${shop.working_hours.from || '09:00'} - ${shop.working_hours.to || '21:00'}`;
+    } else if (shop.working_hours_from && shop.working_hours_to) {
+      return `${shop.working_hours_from} - ${shop.working_hours_to}`;
+    }
+    return '09:00 - 21:00'; // Значение по умолчанию
+  };
+
+  // Безопасная функция для получения рабочих дней
+  const getWorkingDays = (shop: any) => {
+    if (shop.working_hours?.days && Array.isArray(shop.working_hours.days)) {
+      return shop.working_hours.days;
+    } else if (shop.working_days && Array.isArray(shop.working_days)) {
+      return shop.working_days;
+    }
+    return ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']; // Значение по умолчанию
+  };
+
   return (
     <Layout openLoginModal={openLoginModal}>
       <div className="min-h-screen bg-gray-50">
@@ -281,7 +301,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             alt={shop.name}
                             className="w-full h-full object-cover"
                           />
-                          {shop.isVerified && (
+                          {shop.is_verified && (
                             <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center">
                               ✓ Проверено
                             </div>
@@ -295,7 +315,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             <Star className="h-5 w-5 text-yellow-400 mr-1" />
                             <span className="font-medium">{shop.rating || 0}</span>
                             <span className="text-gray-500 ml-1">
-                              ({shop.reviewCount || 0} отзывов)
+                              ({shop.review_count || 0} отзывов)
                             </span>
                           </div>
 
@@ -306,9 +326,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             </div>
                             <div className="flex items-center">
                               <Clock className="h-4 w-4 mr-2" />
-                              <span>
-                                {shop.workingHours.from} - {shop.workingHours.to}
-                              </span>
+                              <span>{getWorkingHours(shop)}</span>
                             </div>
                             <div className="flex items-center">
                               <Phone className="h-4 w-4 mr-2" />

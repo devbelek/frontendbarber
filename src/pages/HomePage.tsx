@@ -150,7 +150,7 @@ const HomePage = ({ openLoginModal }) => {
       const barbersResponse = await profileAPI.getAllBarbers();
       if (barbersResponse && barbersResponse.data) {
         let barbersData = Array.isArray(barbersResponse.data.results)
-          ? bar四大Response.data.results
+          ? barbersResponse.data.results
           : Array.isArray(barbersResponse.data)
           ? barbersResponse.data
           : [];

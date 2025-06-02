@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Star, User, Calendar, MessageSquare } from 'lucide-react';
-import { reviewsAPI } from '../../api/services';
-import Button from '../ui/Button';
-import { useAuth } from '../../context/AuthContext';
-import { useNotification } from '../../context/NotificationContext';
+import React, { useState, useEffect } from "react";
+import { Star, User, MessageSquare } from "lucide-react";
+import { reviewsAPI } from "../../api/services";
+import Button from "../ui/Button";
+import { useAuth } from "../../context/AuthContext";
+import { useNotification } from "../../context/NotificationContext";
 
 interface ReviewsListProps {
   barberId: string;
   canAddReview?: boolean;
 }
 
-const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = false }) => {
+const ReviewsList: React.FC<ReviewsListProps> = ({
+  barberId,
+  canAddReview = false,
+}) => {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddReview, setShowAddReview] = useState(false);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const notification = useNotification();
@@ -32,7 +35,10 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
       if (response && response.data) {
         if (Array.isArray(response.data)) {
           reviewsData = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
+        } else if (
+          response.data.results &&
+          Array.isArray(response.data.results)
+        ) {
           reviewsData = response.data.results;
         }
       }
@@ -41,13 +47,14 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
 
       // Проверяем, оставлял ли текущий пользователь отзыв
       if (user && reviewsData.length > 0) {
-        const userReview = reviewsData.find(review =>
-          review.author === user.id || review.author_details?.id === user.id
+        const userReview = reviewsData.find(
+          (review: any) =>
+            review.author === user.id || review.author_details?.id === user.id
         );
         setHasUserReviewed(!!userReview);
       }
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      console.error("Error fetching reviews:", error);
       setReviews([]);
     } finally {
       setLoading(false);
@@ -56,7 +63,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
 
   const handleSubmitReview = async () => {
     if (!newReview.comment.trim()) {
-      notification.error('Ошибка', 'Пожалуйста, напишите комментарий');
+      notification.error("Ошибка", "Пожалуйста, напишите комментарий");
       return;
     }
 
@@ -64,26 +71,32 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
       await reviewsAPI.create({
         barber: barberId,
         rating: newReview.rating,
-        comment: newReview.comment
+        comment: newReview.comment,
       });
-      notification.success('Успешно', 'Отзыв добавлен');
+      notification.success("Успешно", "Отзыв добавлен");
       setShowAddReview(false);
-      setNewReview({ rating: 5, comment: '' });
+      setNewReview({ rating: 5, comment: "" });
       fetchReviews();
     } catch (error: any) {
-      if (error.response?.status === 400 && error.response?.data?.non_field_errors) {
-        notification.error('Ошибка', 'Вы уже оставляли отзыв для этого барбера');
+      if (
+        error.response?.status === 400 &&
+        error.response?.data?.non_field_errors
+      ) {
+        notification.error(
+          "Ошибка",
+          "Вы уже оставляли отзыв для этого барбера"
+        );
       } else {
-        notification.error('Ошибка', 'Не удалось добавить отзыв');
+        notification.error("Ошибка", "Не удалось добавить отзыв");
       }
     }
   };
 
-  const StarRating = ({ rating, onChange = null, size = 'md' }: any) => {
+  const StarRating = ({ rating, onChange = null, size = "md" }: any) => {
     const sizes: any = {
-      sm: 'h-4 w-4',
-      md: 'h-5 w-5',
-      lg: 'h-6 w-6'
+      sm: "h-4 w-4",
+      md: "h-5 w-5",
+      lg: "h-6 w-6",
     };
 
     return (
@@ -93,14 +106,14 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
             key={star}
             onClick={() => onChange && onChange(star)}
             disabled={!onChange}
-            className={onChange ? 'cursor-pointer' : 'cursor-default'}
+            className={onChange ? "cursor-pointer" : "cursor-default"}
             type="button"
           >
             <Star
               className={`${sizes[size]} ${
                 star <= rating
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'text-gray-300'
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-gray-300"
               }`}
             />
           </button>
@@ -110,8 +123,9 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
   };
 
   // Проверяем, может ли пользователь добавить отзыв
-  const canUserAddReview = isAuthenticated &&
-    user?.profile?.user_type === 'client' &&
+  const canUserAddReview =
+    isAuthenticated &&
+    user?.profile?.user_type === "client" &&
     canAddReview &&
     !hasUserReviewed;
 
@@ -155,10 +169,11 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
         </div>
       )}
 
-      {user?.profile?.user_type === 'barber' && (
+      {user?.profile?.user_type === "barber" && (
         <div className="bg-yellow-50 p-4 rounded-lg mb-4">
           <p className="text-sm text-yellow-700">
-            Барберы не могут оставлять отзывы. Переключитесь на аккаунт клиента в профиле.
+            Барберы не могут оставлять отзывы. Переключитесь на аккаунт клиента
+            в профиле.
           </p>
         </div>
       )}
@@ -171,7 +186,9 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
             </label>
             <StarRating
               rating={newReview.rating}
-              onChange={(rating: number) => setNewReview({ ...newReview, rating })}
+              onChange={(rating: number) =>
+                setNewReview({ ...newReview, rating })
+              }
               size="lg"
             />
           </div>
@@ -181,7 +198,9 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
             </label>
             <textarea
               value={newReview.comment}
-              onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+              onChange={(e) =>
+                setNewReview({ ...newReview, comment: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
               placeholder="Поделитесь своим опытом..."
@@ -195,7 +214,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
               variant="outline"
               onClick={() => {
                 setShowAddReview(false);
-                setNewReview({ rating: 5, comment: '' });
+                setNewReview({ rating: 5, comment: "" });
               }}
             >
               Отмена
@@ -219,12 +238,17 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ barberId, canAddReview = fals
                   </div>
                   <div>
                     <p className="font-medium">
-                      {review.author_details?.first_name || 'Аноним'} {review.author_details?.last_name || ''}
+                      {review.author_details?.first_name || "Аноним"}{" "}
+                      {review.author_details?.last_name || ""}
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <StarRating rating={review.rating} size="sm" />
                       <span>•</span>
-                      <span>{new Date(review.created_at).toLocaleDateString('ru-RU')}</span>
+                      <span>
+                        {new Date(review.created_at).toLocaleDateString(
+                          "ru-RU"
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>

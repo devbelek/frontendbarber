@@ -1,13 +1,13 @@
 // src/components/location/LocationBasedRecommendations.tsx
-import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import Card, { CardHeader, CardContent } from '../ui/Card';
-import Button from '../ui/Button';
-import { profileAPI } from '../../api/services';
-import { Barber } from '../../types';
-import ImageWithFallback from '../ui/ImageWithFallback';
-import { PageLoader } from '../ui/GlobalLoader';
+import React, { useState, useEffect } from "react";
+import { MapPin, Navigation, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import Card, { CardHeader, CardContent } from "../ui/Card";
+import Button from "../ui/Button";
+import { profileAPI } from "../../api/services";
+import { Barber } from "../../types";
+import ImageWithFallback from "../ui/ImageWithFallback";
+import { PageLoader } from "../ui/GlobalLoader";
 
 const LocationBasedBarbers: React.FC = () => {
   const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
@@ -26,8 +26,11 @@ const LocationBasedBarbers: React.FC = () => {
     city: null,
     district: null,
   });
-  const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [showRecommendations, setShowRecommendations] =
+    useState<boolean>(false);
+  const [locationPermission, setLocationPermission] = useState<
+    "granted" | "denied" | "prompt"
+  >("prompt");
 
   useEffect(() => {
     checkLocationPermission();
@@ -35,26 +38,28 @@ const LocationBasedBarbers: React.FC = () => {
 
   const checkLocationPermission = async () => {
     try {
-      if ('permissions' in navigator) {
+      if ("permissions" in navigator) {
         const permission = await navigator.permissions.query({
-          name: 'geolocation' as PermissionName,
+          name: "geolocation" as PermissionName,
         });
-        setLocationPermission(permission.state as 'granted' | 'denied' | 'prompt');
+        setLocationPermission(
+          permission.state as "granted" | "denied" | "prompt"
+        );
 
-        if (permission.state === 'granted') {
+        if (permission.state === "granted") {
           getUserLocation();
         }
       } else {
         getUserLocation();
       }
     } catch (err) {
-      console.error('Ошибка при проверке разрешений геолокации:', err);
+      console.error("Ошибка при проверке разрешений геолокации:", err);
     }
   };
 
   const getUserLocation = () => {
     if (!navigator.geolocation) {
-      setError('Геолокация не поддерживается вашим браузером');
+      setError("Геолокация не поддерживается вашим браузером");
       return;
     }
 
@@ -63,7 +68,7 @@ const LocationBasedBarbers: React.FC = () => {
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        setUserLocation(prev => ({
+        setUserLocation((prev) => ({
           ...prev,
           latitude,
           longitude,
@@ -83,18 +88,20 @@ const LocationBasedBarbers: React.FC = () => {
 
           if (data.address) {
             // Определяем город
-            locationDetails.city = data.address.city ||
-                                  data.address.town ||
-                                  data.address.village ||
-                                  data.address.municipality ||
-                                  'Неизвестный город';
+            locationDetails.city =
+              data.address.city ||
+              data.address.town ||
+              data.address.village ||
+              data.address.municipality ||
+              "Неизвестный город";
 
             // Определяем район или микрорайон
-            locationDetails.district = data.address.suburb ||
-                                      data.address.neighbourhood ||
-                                      data.address.district ||
-                                      data.address.quarter ||
-                                      null;
+            locationDetails.district =
+              data.address.suburb ||
+              data.address.neighbourhood ||
+              data.address.district ||
+              data.address.quarter ||
+              null;
 
             // Формируем полный адрес
             const parts = [];
@@ -114,23 +121,25 @@ const LocationBasedBarbers: React.FC = () => {
               }
             }
 
-            locationDetails.address = parts.join(', ');
+            locationDetails.address = parts.join(", ");
           }
 
-          setUserLocation(prev => ({
+          setUserLocation((prev) => ({
             ...prev,
-            address: locationDetails.address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            address:
+              locationDetails.address ||
+              `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
             city: locationDetails.city,
             district: locationDetails.district,
           }));
 
           getBarbers();
         } catch (err) {
-          console.error('Ошибка при получении адреса:', err);
-          setUserLocation(prev => ({
+          console.error("Ошибка при получении адреса:", err);
+          setUserLocation((prev) => ({
             ...prev,
             address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-            city: 'Неизвестный город',
+            city: "Неизвестный город",
             district: null,
           }));
 
@@ -138,10 +147,12 @@ const LocationBasedBarbers: React.FC = () => {
         }
       },
       (error) => {
-        console.error('Ошибка при получении геолокации:', error);
+        console.error("Ошибка при получении геолокации:", error);
         setLoading(false);
-        setLocationPermission('denied');
-        setError('Для получения рекомендаций поблизости разрешите доступ к геолокации');
+        setLocationPermission("denied");
+        setError(
+          "Для получения рекомендаций поблизости разрешите доступ к геолокации"
+        );
       },
       {
         enableHighAccuracy: true,
@@ -171,8 +182,12 @@ const LocationBasedBarbers: React.FC = () => {
           let distance = null;
 
           // Рассчитываем расстояние, если есть координаты барбера и пользователя
-          if (user.profile?.latitude && user.profile?.longitude &&
-              userLocation.latitude && userLocation.longitude) {
+          if (
+            user.profile?.latitude &&
+            user.profile?.longitude &&
+            userLocation.latitude &&
+            userLocation.longitude
+          ) {
             distance = calculateDistance(
               userLocation.latitude,
               userLocation.longitude,
@@ -183,28 +198,36 @@ const LocationBasedBarbers: React.FC = () => {
 
           return {
             id: user.id,
-            name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+            name:
+              `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+              user.username,
             avatar: user.profile?.photo || null,
             rating: 0,
             reviewCount: 0,
             specialization: user.profile?.specialization || [],
-            location: user.profile?.address || 'Не указано',
+            location: user.profile?.address || "Не указано",
             distance: distance,
             workingHours: {
-              from: user.profile?.working_hours_from || '09:00',
-              to: user.profile?.working_hours_to || '18:00',
-              days: user.profile?.working_days || ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']
+              from: user.profile?.working_hours_from || "09:00",
+              to: user.profile?.working_hours_to || "18:00",
+              days: user.profile?.working_days || [
+                "Пн",
+                "Вт",
+                "Ср",
+                "Чт",
+                "Пт",
+              ],
             },
             portfolio: [],
-            description: user.profile?.bio || 'Информация о барбере',
-            whatsapp: user.profile?.whatsapp || '',
-            telegram: user.profile?.telegram || '',
-            offerHomeService: user.profile?.offers_home_service || false
+            description: user.profile?.bio || "Информация о барбере",
+            whatsapp: user.profile?.whatsapp || "",
+            telegram: user.profile?.telegram || "",
+            offerHomeService: user.profile?.offers_home_service || false,
           };
         });
 
         // Сортируем по расстоянию, если оно есть
-        const sortedBarbers = barbersWithProfile.sort((a, b) => {
+        const sortedBarbers = barbersWithProfile.sort((a: any, b: any) => {
           if (a.distance === null) return 1;
           if (b.distance === null) return -1;
           return a.distance - b.distance;
@@ -216,28 +239,30 @@ const LocationBasedBarbers: React.FC = () => {
       setShowRecommendations(true);
       setLoading(false);
     } catch (e) {
-      console.error('Error getting barbers:', e);
-      setError('Не удалось загрузить барберов');
+      console.error("Error getting barbers:", e);
+      setError("Не удалось загрузить барберов");
       setLoading(false);
     }
   };
 
   // Расчет расстояния между двумя точками с координатами
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const calculateDistance = (lat1: any, lon1: any, lat2: any, lon2: any) => {
     const R = 6371; // радиус Земли в км
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c; // Расстояние в км
     return parseFloat(distance.toFixed(1));
   };
 
-  const deg2rad = (deg) => {
-    return deg * (Math.PI/180);
+  const deg2rad = (deg: any) => {
+    return deg * (Math.PI / 180);
   };
 
   const handleRequestLocation = () => {
@@ -247,7 +272,7 @@ const LocationBasedBarbers: React.FC = () => {
 
   // Формируем строку местоположения для отображения
   const getLocationDisplay = () => {
-    if (!userLocation.latitude) return '';
+    if (!userLocation.latitude) return "";
 
     if (userLocation.district && userLocation.city) {
       return `${userLocation.city}, ${userLocation.district}`;
@@ -257,7 +282,7 @@ const LocationBasedBarbers: React.FC = () => {
       return userLocation.address;
     }
 
-    return 'Ваше местоположение';
+    return "Ваше местоположение";
   };
 
   if (!showRecommendations) {
@@ -289,7 +314,8 @@ const LocationBasedBarbers: React.FC = () => {
               <div className="text-center">
                 <Navigation className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 mb-4">
-                  Разрешите доступ к вашему местоположению, чтобы увидеть барберов поблизости
+                  Разрешите доступ к вашему местоположению, чтобы увидеть
+                  барберов поблизости
                 </p>
                 <Button variant="primary" onClick={handleRequestLocation}>
                   Показать барберов рядом
@@ -328,7 +354,8 @@ const LocationBasedBarbers: React.FC = () => {
           <div className="text-center py-8">
             <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">
-              К сожалению, рядом с вами не найдено барберов. Попробуйте расширить область поиска.
+              К сожалению, рядом с вами не найдено барберов. Попробуйте
+              расширить область поиска.
             </p>
           </div>
         ) : (
@@ -354,9 +381,9 @@ const LocationBasedBarbers: React.FC = () => {
                   <div className="p-4">
                     <h3 className="font-medium text-lg">{barber.name}</h3>
                     <p className="text-gray-600">{barber.location}</p>
-                    {barber.distance !== null && (
+                    {barber.location !== null && (
                       <div className="mt-2 text-sm text-[#9A0F34]">
-                        {barber.distance} км от вас
+                        {barber.location} км от вас
                       </div>
                     )}
                   </div>

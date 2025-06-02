@@ -1,30 +1,37 @@
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, User, Plus, Heart } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, User, Plus, Heart } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import React from "react";
 
-const MobileNavigation = ({ openLoginModal }) => {
+type MobileNavigationProps = {
+  openLoginModal: () => void;
+};
+
+const MobileNavigation: React.FC<MobileNavigationProps> = ({
+  openLoginModal,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const isBarber = user?.profile?.user_type === 'barber';
-  const isActive = (path) => location.pathname === path;
+  const isBarber = user?.profile?.user_type === "barber";
 
-  const handleFavoritesClick = (e) => {
+  const isActive = (path: string) => location.pathname === path;
+
+  const handleFavoritesClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       openLoginModal();
     } else {
-      navigate('/profile?tab=favorites');
+      navigate("/profile?tab=favorites");
     }
   };
 
-  const handleProfileClick = (e) => {
+  const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       openLoginModal();
     } else {
-      navigate('/profile');
+      navigate("/profile");
     }
   };
 
@@ -35,25 +42,25 @@ const MobileNavigation = ({ openLoginModal }) => {
         <Link
           to="/"
           className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${
-            isActive('/') ? 'text-[#9A0F34]' : 'text-gray-500'
+            isActive("/") ? "text-[#9A0F34]" : "text-gray-500"
           }`}
         >
           <Home className="h-5 w-5" />
           <span className="text-[10px] mt-1">Главная</span>
         </Link>
 
-        {/* Барберы и Барбершопы */}
+        {/* Найти */}
         <Link
           to="/discover"
           className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${
-            isActive('/discover') ? 'text-[#9A0F34]' : 'text-gray-500'
+            isActive("/discover") ? "text-[#9A0F34]" : "text-gray-500"
           }`}
         >
           <Users className="h-5 w-5" />
           <span className="text-[10px] mt-1">Найти</span>
         </Link>
 
-        {/* Центральная кнопка */}
+        {/* Добавить услугу (если барбер) */}
         {isBarber ? (
           <Link
             to="/add-service"
@@ -71,9 +78,10 @@ const MobileNavigation = ({ openLoginModal }) => {
         <button
           onClick={handleFavoritesClick}
           className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${
-            location.pathname === '/profile' && location.search.includes('favorites')
-              ? 'text-[#9A0F34]'
-              : 'text-gray-500'
+            location.pathname === "/profile" &&
+            location.search.includes("favorites")
+              ? "text-[#9A0F34]"
+              : "text-gray-500"
           }`}
         >
           <Heart className="h-5 w-5" />
@@ -84,9 +92,9 @@ const MobileNavigation = ({ openLoginModal }) => {
         <button
           onClick={handleProfileClick}
           className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${
-            isActive('/profile') && !location.search.includes('favorites')
-              ? 'text-[#9A0F34]'
-              : 'text-gray-500'
+            isActive("/profile") && !location.search.includes("favorites")
+              ? "text-[#9A0F34]"
+              : "text-gray-500"
           }`}
         >
           <User className="h-5 w-5" />

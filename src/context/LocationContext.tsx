@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useState, useContext, ReactNode } from "react";
 
 type Region = {
   id: string;
@@ -8,20 +8,15 @@ type Region = {
 
 // Регионы Кыргызстана
 const KG_REGIONS: Region[] = [
-  { id: '1', name: 'Бишкек', code: 'bishkek' },
-  { id: '2', name: 'Ош', code: 'osh' },
-  { id: '3', name: 'Баткенская область', code: 'batken' },
-  { id: '4', name: 'Джалал-Абадская область', code: 'jalal-abad' },
-  { id: '5', name: 'Иссык-Кульская область', code: 'issyk-kul' },
-  { id: '6', name: 'Нарынская область', code: 'naryn' },
-  { id: '7', name: 'Таласская область', code: 'talas' },
-  { id: '8', name: 'Чуйская область', code: 'chuy' },
+  { id: "1", name: "Бишкек", code: "bishkek" },
+  { id: "2", name: "Ош", code: "osh" },
+  { id: "3", name: "Баткенская область", code: "batken" },
+  { id: "4", name: "Джалал-Абадская область", code: "jalal-abad" },
+  { id: "5", name: "Иссык-Кульская область", code: "issyk-kul" },
+  { id: "6", name: "Нарынская область", code: "naryn" },
+  { id: "7", name: "Таласская область", code: "talas" },
+  { id: "8", name: "Чуйская область", code: "chuy" },
 ];
-
-type Coordinates = {
-  latitude: number;
-  longitude: number;
-};
 
 type LocationContextType = {
   currentRegion: Region;
@@ -31,7 +26,9 @@ type LocationContextType = {
   error: string | null;
 };
 
-const LocationContext = createContext<LocationContextType | undefined>(undefined);
+const LocationContext = createContext<LocationContextType | undefined>(
+  undefined
+);
 
 // Начальное значение - Бишкек по умолчанию
 const DEFAULT_REGION = KG_REGIONS[0];
@@ -39,7 +36,7 @@ const DEFAULT_REGION = KG_REGIONS[0];
 export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [currentRegion, setCurrentRegion] = useState<Region>(() => {
     // Попытка восстановить регион из localStorage
-    const savedRegion = localStorage.getItem('userRegion');
+    const savedRegion = localStorage.getItem("userRegion");
     if (savedRegion) {
       try {
         return JSON.parse(savedRegion);
@@ -55,7 +52,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   // Обновляем localStorage при изменении региона
   const handleSetCurrentRegion = (region: Region) => {
     setCurrentRegion(region);
-    localStorage.setItem('userRegion', JSON.stringify(region));
+    localStorage.setItem("userRegion", JSON.stringify(region));
   };
 
   return (
@@ -65,7 +62,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         regions: KG_REGIONS,
         setCurrentRegion: handleSetCurrentRegion,
         loading,
-        error
+        error,
       }}
     >
       {children}
@@ -76,7 +73,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
 export const useLocation = (): LocationContextType => {
   const context = useContext(LocationContext);
   if (context === undefined) {
-    throw new Error('useLocation must be used within a LocationProvider');
+    throw new Error("useLocation must be used within a LocationProvider");
   }
   return context;
 };

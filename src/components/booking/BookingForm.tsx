@@ -1,12 +1,12 @@
 // src/components/booking/BookingForm.tsx
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MessageSquare } from 'lucide-react';
-import Button from '../ui/Button';
-import { bookingsAPI } from '../../api/services';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Service } from '../../types';
-import { useNotification } from '../../context/NotificationContext';
+import React, { useState, useEffect } from "react";
+import { Calendar, Clock, MessageSquare } from "lucide-react";
+import Button from "../ui/Button";
+import { bookingsAPI } from "../../api/services";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Service } from "../../types";
+import { useNotification } from "../../context/NotificationContext";
 
 interface BookingFormProps {
   service: Service;
@@ -17,15 +17,15 @@ interface TimeSlot {
   available: boolean;
 }
 
-type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+type LoadingState = "idle" | "loading" | "success" | "error";
 
 const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [loadingState, setLoadingState] = useState<LoadingState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
   const getTomorrowDate = (): string => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    return tomorrow.toISOString().split("T")[0];
   };
 
   useEffect(() => {
@@ -52,8 +52,10 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
         slots.push({
-          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-          available: true
+          time: `${hour.toString().padStart(2, "0")}:${minute
+            .toString()
+            .padStart(2, "0")}`,
+          available: true,
         });
       }
     }
@@ -63,13 +65,13 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
 
   const loadAvailableSlots = async (date: string) => {
     try {
-      setLoadingState('loading');
-      setErrorMessage('');
+      setLoadingState("loading");
+      setErrorMessage("");
 
       // Проверим ID сервиса
       const serviceId = service.id;
       if (!serviceId) {
-        throw new Error('ID сервиса не определен');
+        throw new Error("ID сервиса не определен");
       }
 
       // Попытаемся загрузить слоты с сервера
@@ -80,21 +82,28 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         if (response && response.data && Array.isArray(response.data)) {
           availableSlots = response.data;
         } else {
-          console.warn('Invalid response format from getAvailableSlots, using generated slots');
+          console.warn(
+            "Invalid response format from getAvailableSlots, using generated slots"
+          );
           availableSlots = generateTimeSlots(date);
         }
       } catch (err) {
-        console.error('Failed to load available slots from API, using generated slots:', err);
+        console.error(
+          "Failed to load available slots from API, using generated slots:",
+          err
+        );
         availableSlots = generateTimeSlots(date);
       }
 
       setTimeSlots(availableSlots);
-      setSelectedTime('');
-      setLoadingState('idle');
+      setSelectedTime("");
+      setLoadingState("idle");
     } catch (error) {
-      console.error('Ошибка при загрузке доступных слотов:', error);
-      setLoadingState('error');
-      setErrorMessage('Не удалось загрузить доступные слоты. Пожалуйста, попробуйте позже.');
+      console.error("Ошибка при загрузке доступных слотов:", error);
+      setLoadingState("error");
+      setErrorMessage(
+        "Не удалось загрузить доступные слоты. Пожалуйста, попробуйте позже."
+      );
     }
   };
 
@@ -107,28 +116,34 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (loadingState === 'loading') {
+    if (loadingState === "loading") {
       return; // Предотвращаем двойную отправку
     }
 
     if (!isAuthenticated) {
-      notification.warning('Требуется вход', 'Для бронирования необходимо войти в систему.');
+      notification.warning(
+        "Требуется вход",
+        "Для бронирования необходимо войти в систему."
+      );
       return;
     }
 
     if (!selectedTime) {
-      notification.warning('Выберите время', 'Пожалуйста, выберите время для бронирования.');
+      notification.warning(
+        "Выберите время",
+        "Пожалуйста, выберите время для бронирования."
+      );
       return;
     }
 
     try {
-      setLoadingState('loading');
-      setErrorMessage('');
+      setLoadingState("loading");
+      setErrorMessage("");
 
       // Проверим ID сервиса
       const serviceId = service.id;
       if (!serviceId) {
-        throw new Error('ID сервиса не определен');
+        throw new Error("ID сервиса не определен");
       }
 
       const bookingData = {
@@ -137,44 +152,49 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         time: selectedTime,
         notes: notes,
         client_name: user
-          ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
-          : 'Гость',
-        client_phone: user?.profile?.phone || ''
+          ? `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+            user.username
+          : "Гость",
+        client_phone: user?.profile?.phone || "",
       };
 
       // Искусственная задержка для предотвращения двойных нажатий
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const response = await bookingsAPI.create(bookingData);
-      console.log('Booking created:', response);
+      console.log("Booking created:", response);
 
-      setLoadingState('success');
+      setLoadingState("success");
       notification.success(
-        'Бронирование создано',
-        'Вы получите уведомление о подтверждении бронирования.'
+        "Бронирование создано",
+        "Вы получите уведомление о подтверждении бронирования."
       );
 
       // Перенаправляем на страницу профиля с выбранной вкладкой
-      navigate('/profile', { state: { activeTab: 'bookings' } });
+      navigate("/profile", { state: { activeTab: "bookings" } });
     } catch (error: any) {
-      console.error('Ошибка при создании бронирования:', error);
-      setLoadingState('error');
+      console.error("Ошибка при создании бронирования:", error);
+      setLoadingState("error");
       setErrorMessage(
-        error.response?.data?.detail || 'Не удалось создать бронирование. Пожалуйста, попробуйте позже.'
+        error.response?.data?.detail ||
+          "Не удалось создать бронирование. Пожалуйста, попробуйте позже."
       );
-      notification.error('Ошибка бронирования', errorMessage);
+      notification.error("Ошибка бронирования", errorMessage);
     }
   };
 
-  const minDate = new Date().toISOString().split('T')[0];
+  const minDate = new Date().toISOString().split("T")[0];
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 30);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
+  const maxDateStr = maxDate.toISOString().split("T")[0];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="date"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Выберите дату
         </label>
         <div className="relative">
@@ -194,8 +214,10 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Выберите время</label>
-        {loadingState === 'loading' ? (
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Выберите время
+        </label>
+        {loadingState === "loading" ? (
           <div className="animate-pulse">
             <div className="grid grid-cols-4 gap-2">
               {[...Array(8)].map((_, i) => (
@@ -213,11 +235,13 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
                 disabled={!slot.available}
                 className={`
                   py-2 px-3 text-sm font-medium rounded-md text-center
-                  ${selectedTime === slot.time
-                    ? 'bg-[#9A0F34] text-white'
-                    : slot.available
-                    ? 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-700'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+                  ${
+                    selectedTime === slot.time
+                      ? "bg-[#9A0F34] text-white"
+                      : slot.available
+                      ? "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }
                 `}
               >
                 <Clock className="h-4 w-4 inline-block mr-1" />
@@ -227,7 +251,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
           </div>
         ) : (
           <div className="text-center p-4 border border-gray-200 rounded-md bg-gray-50">
-            <p className="text-gray-500">Нет доступных слотов на выбранную дату</p>
+            <p className="text-gray-500">
+              Нет доступных слотов на выбранную дату
+            </p>
           </div>
         )}
       </div>
@@ -250,7 +276,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
         </div>
       </div>
 
-      {loadingState === 'error' && (
+      {loadingState === "error" && (
         <div className="bg-red-50 p-3 rounded-md">
           <p className="text-red-700 text-sm">{errorMessage}</p>
         </div>
@@ -259,10 +285,10 @@ const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
       <Button
         type="submit"
         variant="primary"
-        disabled={loadingState === 'loading'}
+        disabled={loadingState === "loading"}
         fullWidth
       >
-        {loadingState === 'loading' ? 'Обработка...' : 'Забронировать'}
+        {loadingState === "loading" ? "Обработка..." : "Забронировать"}
       </Button>
     </form>
   );

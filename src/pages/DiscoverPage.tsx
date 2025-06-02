@@ -1,12 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Phone, Star, Users, Search, Filter, Store, User, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import ImageWithFallback from '../components/ui/ImageWithFallback';
-import { profileAPI } from '../api/services';
-import { barbershopsAPI } from '../api/barbershops';
+import React, { useState, useEffect } from "react";
+import {
+  MapPin,
+  Clock,
+  Phone,
+  Star,
+  Users,
+  Search,
+  Filter,
+  Store,
+  User,
+  ChevronRight,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Layout from "../components/layout/Layout";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import ImageWithFallback from "../components/ui/ImageWithFallback";
+import { profileAPI } from "../api/services";
+import { barbershopsAPI } from "../api/barbershops";
 
 interface DiscoverPageProps {
   openLoginModal: () => void;
@@ -14,13 +25,14 @@ interface DiscoverPageProps {
 
 const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'barbers' | 'barbershops'>('barbers');
+  const [activeTab, setActiveTab] = useState<"barbers" | "barbershops">(
+    "barbers"
+  );
   const [barbers, setBarbers] = useState([]);
   const [barbershops, setBarbershops] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("all");
 
   useEffect(() => {
     fetchData();
@@ -32,42 +44,53 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
       // Загружаем барберов
       const barbersResponse = await profileAPI.getAllBarbers();
       if (barbersResponse?.data) {
-        setBarbers(Array.isArray(barbersResponse.data)
-          ? barbersResponse.data
-          : barbersResponse.data.results || []);
+        setBarbers(
+          Array.isArray(barbersResponse.data)
+            ? barbersResponse.data
+            : barbersResponse.data.results || []
+        );
       }
 
       // Загружаем барбершопы
       const barbershopsResponse = await barbershopsAPI.getAll();
       if (barbershopsResponse?.data) {
-        setBarbershops(Array.isArray(barbershopsResponse.data)
-          ? barbershopsResponse.data
-          : barbershopsResponse.data.results || []);
+        setBarbershops(
+          Array.isArray(barbershopsResponse.data)
+            ? barbershopsResponse.data
+            : barbershopsResponse.data.results || []
+        );
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredBarbers = barbers.filter(barber => {
-    const fullName = `${barber.first_name || ''} ${barber.last_name || ''}`.toLowerCase();
-    const address = (barber.profile?.address || '').toLowerCase();
+  const filteredBarbers = barbers.filter((barber) => {
+    const fullName = `${barber.first_name || ""} ${
+      barber.last_name || ""
+    }`.toLowerCase();
+    const address = (barber.profile?.address || "").toLowerCase();
     const query = searchQuery.toLowerCase();
 
     const matchesSearch = fullName.includes(query) || address.includes(query);
-    const matchesRegion = selectedRegion === 'all' ||
-      (barber.profile?.address || '').toLowerCase().includes(selectedRegion.toLowerCase());
+    const matchesRegion =
+      selectedRegion === "all" ||
+      (barber.profile?.address || "")
+        .toLowerCase()
+        .includes(selectedRegion.toLowerCase());
 
     return matchesSearch && matchesRegion;
   });
 
-  const filteredBarbershops = barbershops.filter(shop => {
+  const filteredBarbershops = barbershops.filter((shop) => {
     const query = searchQuery.toLowerCase();
-    const matchesSearch = shop.name.toLowerCase().includes(query) ||
+    const matchesSearch =
+      shop.name.toLowerCase().includes(query) ||
       shop.address.toLowerCase().includes(query);
-    const matchesRegion = selectedRegion === 'all' ||
+    const matchesRegion =
+      selectedRegion === "all" ||
       shop.address.toLowerCase().includes(selectedRegion.toLowerCase());
 
     return matchesSearch && matchesRegion;
@@ -82,18 +105,20 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   };
 
   const resetFilters = () => {
-    setSearchQuery('');
-    setSelectedRegion('all');
+    setSearchQuery("");
+    setSelectedRegion("all");
   };
 
   // Безопасная функция для получения рабочих часов
   const getWorkingHours = (shop: any) => {
     if (shop.working_hours) {
-      return `${shop.working_hours.from || '09:00'} - ${shop.working_hours.to || '21:00'}`;
+      return `${shop.working_hours.from || "09:00"} - ${
+        shop.working_hours.to || "21:00"
+      }`;
     } else if (shop.working_hours_from && shop.working_hours_to) {
       return `${shop.working_hours_from} - ${shop.working_hours_to}`;
     }
-    return '09:00 - 21:00'; // Значение по умолчанию
+    return "09:00 - 21:00"; // Значение по умолчанию
   };
 
   // Безопасная функция для получения рабочих дней
@@ -103,7 +128,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
     } else if (shop.working_days && Array.isArray(shop.working_days)) {
       return shop.working_days;
     }
-    return ['Пн', 'Вт', 'Ср', 'Чт', 'Пт']; // Значение по умолчанию
+    return ["Пн", "Вт", "Ср", "Чт", "Пт"]; // Значение по умолчанию
   };
 
   return (
@@ -112,7 +137,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
         {/* Заголовок */}
         <div className="bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white py-12">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl font-bold mb-2">Найти барбера или барбершоп</h1>
+            <h1 className="text-3xl font-bold mb-2">
+              Найти барбера или барбершоп
+            </h1>
             <p className="text-lg opacity-90">
               Лучшие мастера и заведения вашего города
             </p>
@@ -127,7 +154,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
               <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder={`Поиск ${activeTab === 'barbers' ? 'барберов' : 'барбершопов'}...`}
+                placeholder={`Поиск ${
+                  activeTab === "barbers" ? "барберов" : "барбершопов"
+                }...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
@@ -148,7 +177,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                 <option value="Каракол">Каракол</option>
               </select>
 
-              {(searchQuery || selectedRegion !== 'all') && (
+              {(searchQuery || selectedRegion !== "all") && (
                 <Button onClick={resetFilters} variant="outline" size="sm">
                   Сбросить фильтры
                 </Button>
@@ -158,22 +187,22 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
             {/* Табы */}
             <div className="flex border-b">
               <button
-                onClick={() => setActiveTab('barbers')}
+                onClick={() => setActiveTab("barbers")}
                 className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                  activeTab === 'barbers'
-                    ? 'text-[#9A0F34] border-b-2 border-[#9A0F34]'
-                    : 'text-gray-600 hover:text-gray-800'
+                  activeTab === "barbers"
+                    ? "text-[#9A0F34] border-b-2 border-[#9A0F34]"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 <User className="h-5 w-5 inline-block mr-2" />
                 Барберы ({filteredBarbers.length})
               </button>
               <button
-                onClick={() => setActiveTab('barbershops')}
+                onClick={() => setActiveTab("barbershops")}
                 className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                  activeTab === 'barbershops'
-                    ? 'text-[#9A0F34] border-b-2 border-[#9A0F34]'
-                    : 'text-gray-600 hover:text-gray-800'
+                  activeTab === "barbershops"
+                    ? "text-[#9A0F34] border-b-2 border-[#9A0F34]"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 <Store className="h-5 w-5 inline-block mr-2" />
@@ -201,7 +230,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
           ) : (
             <>
               {/* Барберы */}
-              {activeTab === 'barbers' && (
+              {activeTab === "barbers" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredBarbers.length === 0 ? (
                     <div className="col-span-full text-center py-12">
@@ -221,7 +250,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                       >
                         <div className="relative h-48">
                           <ImageWithFallback
-                            src={barber.profile?.photo || '/default-avatar.png'}
+                            src={barber.profile?.photo || "/default-avatar.png"}
                             alt={`${barber.first_name} ${barber.last_name}`}
                             className="w-full h-full object-cover"
                           />
@@ -239,7 +268,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
 
                           <div className="flex items-center mb-2">
                             <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                            <span className="text-sm font-medium">{barber.avg_rating || 0}</span>
+                            <span className="text-sm font-medium">
+                              {barber.avg_rating || 0}
+                            </span>
                             <span className="text-sm text-gray-500 ml-1">
                               ({barber.review_count || 0})
                             </span>
@@ -247,14 +278,17 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
 
                           <div className="flex items-center text-sm text-gray-600 mb-3">
                             <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-                            <span>{barber.profile?.address || 'Локация не указана'}</span>
+                            <span>
+                              {barber.profile?.address || "Локация не указана"}
+                            </span>
                           </div>
 
                           {barber.profile?.working_hours_from && (
                             <div className="flex items-center text-sm text-gray-500 mb-3">
                               <Clock className="h-4 w-4 mr-1" />
                               <span>
-                                {barber.profile.working_hours_from} - {barber.profile.working_hours_to}
+                                {barber.profile.working_hours_from} -{" "}
+                                {barber.profile.working_hours_to}
                               </span>
                             </div>
                           )}
@@ -274,7 +308,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
               )}
 
               {/* Барбершопы */}
-              {activeTab === 'barbershops' && (
+              {activeTab === "barbershops" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredBarbershops.length === 0 ? (
                     <div className="col-span-full text-center py-12">
@@ -283,10 +317,12 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                         Барбершопы не найдены
                       </h3>
                       <p className="text-gray-600 mb-4">
-                        В данный момент в системе нет зарегистрированных барбершопов
+                        В данный момент в системе нет зарегистрированных
+                        барбершопов
                       </p>
                       <p className="text-sm text-gray-500">
-                        Вы можете просмотреть индивидуальных барберов во вкладке "Барберы"
+                        Вы можете просмотреть индивидуальных барберов во вкладке
+                        "Барберы"
                       </p>
                     </div>
                   ) : (
@@ -297,7 +333,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                       >
                         <div className="relative h-48">
                           <img
-                            src={shop.logo || '/default-barbershop.jpg'}
+                            src={shop.logo || "/default-barbershop.jpg"}
                             alt={shop.name}
                             className="w-full h-full object-cover"
                           />
@@ -309,11 +345,15 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                         </div>
 
                         <div className="p-4">
-                          <h3 className="text-xl font-bold mb-2">{shop.name}</h3>
+                          <h3 className="text-xl font-bold mb-2">
+                            {shop.name}
+                          </h3>
 
                           <div className="flex items-center mb-3">
                             <Star className="h-5 w-5 text-yellow-400 mr-1" />
-                            <span className="font-medium">{shop.rating || 0}</span>
+                            <span className="font-medium">
+                              {shop.rating || 0}
+                            </span>
                             <span className="text-gray-500 ml-1">
                               ({shop.review_count || 0} отзывов)
                             </span>

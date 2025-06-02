@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { X, Check, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { X, Check, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -12,7 +12,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   imageSrc,
   onCropComplete,
   onCancel,
-  aspectRatio = 1
+  aspectRatio = 1,
 }) => {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -35,83 +35,91 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
         const containerSize = 300; // размер области обрезки
 
         // Вычисляем минимальный масштаб, чтобы изображение покрывало всю область обрезки
-        const minScale = Math.max(
-          containerSize / width,
-          containerSize / height
-        ) * 1.2; // добавляем 20% запаса
+        const minScale =
+          Math.max(containerSize / width, containerSize / height) * 1.2; // добавляем 20% запаса
 
         setScale(minScale);
 
         // Центрируем изображение
         setPosition({
           x: 0,
-          y: 0
+          y: 0,
         });
       }
     };
     img.src = imageSrc;
   }, [imageSrc]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    });
-  }, [position]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+    },
+    [position]
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDragging) return;
 
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
 
-    // Ограничиваем перемещение, чтобы изображение не выходило за пределы области обрезки
-    const containerSize = 300;
-    const scaledWidth = imageSize.width * scale;
-    const scaledHeight = imageSize.height * scale;
+      // Ограничиваем перемещение, чтобы изображение не выходило за пределы области обрезки
+      const containerSize = 300;
+      const scaledWidth = imageSize.width * scale;
+      const scaledHeight = imageSize.height * scale;
 
-    const maxX = Math.min(0, (containerSize - scaledWidth) / 2);
-    const minX = Math.max((containerSize - scaledWidth) / 2, 0);
-    const maxY = Math.min(0, (containerSize - scaledHeight) / 2);
-    const minY = Math.max((containerSize - scaledHeight) / 2, 0);
+      const maxX = Math.min(0, (containerSize - scaledWidth) / 2);
+      const minX = Math.max((containerSize - scaledWidth) / 2, 0);
+      const maxY = Math.min(0, (containerSize - scaledHeight) / 2);
+      const minY = Math.max((containerSize - scaledHeight) / 2, 0);
 
-    setPosition({
-      x: Math.max(minX, Math.min(maxX, newX)),
-      y: Math.max(minY, Math.min(maxY, newY)),
-    });
-  }, [isDragging, dragStart, imageSize, scale]);
+      setPosition({
+        x: Math.max(minX, Math.min(maxX, newX)),
+        y: Math.max(minY, Math.min(maxY, newY)),
+      });
+    },
+    [isDragging, dragStart, imageSize, scale]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.5, Math.min(5, scale * delta));
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newScale = Math.max(0.5, Math.min(5, scale * delta));
 
-    // Масштабируем относительно центра
-    const containerSize = 300;
-    const scaleDiff = newScale - scale;
-    const newX = position.x - (imageSize.width * scaleDiff) / 2;
-    const newY = position.y - (imageSize.height * scaleDiff) / 2;
+      // Масштабируем относительно центра
+      const containerSize = 300;
+      const scaleDiff = newScale - scale;
+      const newX = position.x - (imageSize.width * scaleDiff) / 2;
+      const newY = position.y - (imageSize.height * scaleDiff) / 2;
 
-    setScale(newScale);
-    setPosition({ x: newX, y: newY });
-  }, [scale, position, imageSize]);
+      setScale(newScale);
+      setPosition({ x: newX, y: newY });
+    },
+    [scale, position, imageSize]
+  );
 
   const handleRotate = () => {
     setRotation((prev) => (prev + 90) % 360);
   };
 
   const handleCrop = async () => {
-    if (!imageRef.current || !canvasRef.current || !containerRef.current) return;
+    if (!imageRef.current || !canvasRef.current || !containerRef.current)
+      return;
 
     const image = imageRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const outputSize = 400; // увеличиваем выходной размер для лучшего качества
@@ -154,12 +162,18 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     ctx.restore();
 
     // Конвертируем в blob с высоким качеством
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
-        onCropComplete(file);
-      }
-    }, 'image/jpeg', 0.95);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], "profile-photo.jpg", {
+            type: "image/jpeg",
+          });
+          onCropComplete(file);
+        }
+      },
+      "image/jpeg",
+      0.95
+    );
   };
 
   return (
@@ -192,8 +206,8 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
               className="absolute top-1/2 left-1/2"
               style={{
                 transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-                transformOrigin: 'center',
-                maxWidth: 'none',
+                transformOrigin: "center",
+                maxWidth: "none",
               }}
               draggable={false}
             />
@@ -204,7 +218,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
               <div
                 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-white rounded-full"
                 style={{
-                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                  boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)",
                 }}
               ></div>
             </div>
@@ -214,14 +228,15 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
 
           {/* Инструкции */}
           <p className="text-sm text-gray-600 mt-4 text-center">
-            Перетаскивайте изображение и используйте колесо мыши для масштабирования
+            Перетаскивайте изображение и используйте колесо мыши для
+            масштабирования
           </p>
 
           {/* Контролы */}
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}
+                onClick={() => setScale((prev) => Math.max(0.5, prev - 0.1))}
                 className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <ZoomOut className="h-5 w-5" />
@@ -236,7 +251,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
                 className="flex-1"
               />
               <button
-                onClick={() => setScale(prev => Math.min(5, prev + 0.1))}
+                onClick={() => setScale((prev) => Math.min(5, prev + 0.1))}
                 className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <ZoomIn className="h-5 w-5" />

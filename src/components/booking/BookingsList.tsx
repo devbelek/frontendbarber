@@ -1,38 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, MapPin, Scissors, Filter } from 'lucide-react';
-import Card, { CardContent } from '../ui/Card';
-import Button from '../ui/Button';
-import { bookingsAPI } from '../../api/services';
-import { Booking } from '../../types';
+import React, { useState, useEffect } from "react";
+import { Clock, Calendar, MapPin, Scissors, Filter } from "lucide-react";
+import Card, { CardContent } from "../ui/Card";
+import Button from "../ui/Button";
+import { bookingsAPI } from "../../api/services";
+import { Booking } from "../../types";
 
 const BookingStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  let colorClass = '';
-  let label = '';
+  let colorClass = "";
+  let label = "";
 
   switch (status) {
-    case 'pending':
-      colorClass = 'bg-yellow-100 text-yellow-800';
-      label = 'Ожидает подтверждения';
+    case "pending":
+      colorClass = "bg-yellow-100 text-yellow-800";
+      label = "Ожидает подтверждения";
       break;
-    case 'confirmed':
-      colorClass = 'bg-blue-100 text-blue-800';
-      label = 'Подтверждено';
+    case "confirmed":
+      colorClass = "bg-blue-100 text-blue-800";
+      label = "Подтверждено";
       break;
-    case 'completed':
-      colorClass = 'bg-green-100 text-green-800';
-      label = 'Завершено';
+    case "completed":
+      colorClass = "bg-green-100 text-green-800";
+      label = "Завершено";
       break;
-    case 'cancelled':
-      colorClass = 'bg-red-100 text-red-800';
-      label = 'Отменено';
+    case "cancelled":
+      colorClass = "bg-red-100 text-red-800";
+      label = "Отменено";
       break;
     default:
-      colorClass = 'bg-gray-100 text-gray-800';
+      colorClass = "bg-gray-100 text-gray-800";
       label = status;
   }
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+    >
       {label}
     </span>
   );
@@ -44,10 +46,10 @@ const BookingsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const refreshBookings = () => {
-    setRefreshCounter(prev => prev + 1);
+    setRefreshCounter((prev) => prev + 1);
   };
 
   // Эффект для обновления списка при монтировании компонента
@@ -74,7 +76,7 @@ const BookingsList: React.FC = () => {
         if (response.data) {
           const bookingsData = Array.isArray(response.data)
             ? response.data
-            : (response.data.results || []);
+            : response.data.results || [];
 
           setBookings(bookingsData);
           filterBookings(bookingsData, statusFilter);
@@ -83,8 +85,10 @@ const BookingsList: React.FC = () => {
           setFilteredBookings([]);
         }
       } catch (err: any) {
-        console.error('Error fetching bookings:', err);
-        setError('Не удалось загрузить бронирования. Пожалуйста, попробуйте позже.');
+        console.error("Error fetching bookings:", err);
+        setError(
+          "Не удалось загрузить бронирования. Пожалуйста, попробуйте позже."
+        );
       } finally {
         setLoading(false);
       }
@@ -95,10 +99,12 @@ const BookingsList: React.FC = () => {
 
   // Функция фильтрации бронирований
   const filterBookings = (bookingsData: Booking[], filter: string) => {
-    if (filter === 'all') {
+    if (filter === "all") {
       setFilteredBookings(bookingsData);
     } else {
-      setFilteredBookings(bookingsData.filter(booking => booking.status === filter));
+      setFilteredBookings(
+        bookingsData.filter((booking) => booking.status === filter)
+      );
     }
   };
 
@@ -109,7 +115,7 @@ const BookingsList: React.FC = () => {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) {
+    if (!window.confirm("Вы уверены, что хотите отменить бронирование?")) {
       return;
     }
 
@@ -117,8 +123,8 @@ const BookingsList: React.FC = () => {
       await bookingsAPI.cancel(bookingId);
       refreshBookings();
     } catch (err: any) {
-      console.error('Error cancelling booking:', err);
-      alert('Не удалось отменить бронирование. Пожалуйста, попробуйте позже.');
+      console.error("Error cancelling booking:", err);
+      alert("Не удалось отменить бронирование. Пожалуйста, попробуйте позже.");
     }
   };
 
@@ -151,9 +157,7 @@ const BookingsList: React.FC = () => {
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => refreshBookings()}>
-            Повторить загрузку
-          </Button>
+          <Button onClick={() => refreshBookings()}>Повторить загрузку</Button>
         </CardContent>
       </Card>
     );
@@ -162,10 +166,10 @@ const BookingsList: React.FC = () => {
   // Функция форматирования даты
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+    return new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     }).format(date);
   };
 
@@ -195,11 +199,7 @@ const BookingsList: React.FC = () => {
               </select>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refreshBookings}
-          >
+          <Button variant="outline" size="sm" onClick={refreshBookings}>
             Обновить
           </Button>
         </div>
@@ -209,9 +209,7 @@ const BookingsList: React.FC = () => {
         <Card>
           <CardContent className="text-center py-12">
             <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
-              У вас пока нет бронирований
-            </p>
+            <p className="text-gray-500">У вас пока нет бронирований</p>
           </CardContent>
         </Card>
       ) : filteredBookings.length === 0 ? (
@@ -233,7 +231,7 @@ const BookingsList: React.FC = () => {
                     <div className="flex items-center mb-2">
                       <Scissors className="h-5 w-5 text-[#9A0F34] mr-2" />
                       <h3 className="font-semibold text-lg">
-                        {booking.service_details?.title || 'Услуга'}
+                        {booking.service_details?.title || "Услуга"}
                       </h3>
                     </div>
 
@@ -264,7 +262,8 @@ const BookingsList: React.FC = () => {
                       {booking.service_details?.price} сом
                     </div>
 
-                    {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                    {(booking.status === "pending" ||
+                      booking.status === "confirmed") && (
                       <Button
                         variant="outline"
                         className="mt-2 text-red-600 border-red-600 hover:bg-red-50"
@@ -278,7 +277,9 @@ const BookingsList: React.FC = () => {
 
                 {booking.notes && (
                   <div className="mt-4 border-t pt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-1">Примечания:</h4>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">
+                      Примечания:
+                    </h4>
                     <p className="text-sm text-gray-600">{booking.notes}</p>
                   </div>
                 )}

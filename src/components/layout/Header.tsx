@@ -1,29 +1,24 @@
-// src/components/layout/Header.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// src/components/layout/Header.tsx
 
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Globe, MapPin, LogOut, Search, X, Scissors, Store } from 'lucide-react';
-import Button from '../ui/Button';
-import { useAuth } from '../../context/AuthContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { useLocation as useLocationContext } from '../../context/LocationContext';
-import UnifiedLoginModal from '../ui/UnifiedLoginModal';
+import { FC, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Globe, MapPin, LogOut, Scissors, Store } from "lucide-react";
+import Button from "../ui/Button";
+import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
+import { useLocation as useLocationContext } from "../../context/LocationContext";
+import UnifiedLoginModal from "../ui/UnifiedLoginModal";
 
-interface HeaderProps {
-  openLoginModal: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
+const Header: FC = () => {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { currentRegion, regions, setCurrentRegion } = useLocationContext();
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
   const toggleLanguage = () => {
-    setLanguage(language === 'ru' ? 'kg' : 'ru');
+    setLanguage(language === "ru" ? "kg" : "ru");
   };
 
   const handleLoginClick = () => {
@@ -54,14 +49,14 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             <span className="ml-2 text-xl font-bold text-gray-900">TARAK</span>
           </Link>
 
-          {/* ДОБАВЛЕННАЯ НАВИГАЦИЯ ДЛЯ ДЕСКТОПА */}
+          {/* Навигация */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link
               to="/barbers"
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                location.pathname === '/barbers'
-                  ? 'bg-[#9A0F34] text-white shadow-lg'
-                  : 'text-gray-700 hover:bg-gray-100'
+                location.pathname === "/barbers"
+                  ? "bg-[#9A0F34] text-white shadow-lg"
+                  : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               <Scissors className="h-5 w-5 mr-2" />
@@ -71,9 +66,9 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             <Link
               to="/barbershops"
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                location.pathname === '/barbershops'
-                  ? 'bg-[#9A0F34] text-white shadow-lg'
-                  : 'text-gray-700 hover:bg-gray-100'
+                location.pathname === "/barbershops"
+                  ? "bg-[#9A0F34] text-white shadow-lg"
+                  : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               <Store className="h-5 w-5 mr-2" />
@@ -81,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
             </Link>
           </nav>
 
-          {/* Десктопные кнопки: регион, язык, авторизация */}
+          {/* Кнопки региона, языка, авторизации */}
           <div className="hidden md:flex items-center space-x-3">
             {/* Селектор региона */}
             <div className="relative">
@@ -92,7 +87,9 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                 <MapPin className="h-4 w-4" />
                 <span className="text-sm">{currentRegion.name}</span>
                 <svg
-                  className={`h-4 w-4 transition-transform ${isRegionDropdownOpen ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 transition-transform ${
+                    isRegionDropdownOpen ? "rotate-180" : ""
+                  }`}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -113,8 +110,8 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
                       }}
                       className={`w-full text-left px-4 py-2 text-sm ${
                         currentRegion.id === region.id
-                          ? 'bg-gray-100 text-[#9A0F34]'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? "bg-gray-100 text-[#9A0F34]"
+                          : "text-gray-700 hover:bg-gray-50"
                       }`}
                     >
                       {region.name}
@@ -138,26 +135,22 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
               <>
                 <Link to="/profile">
                   <Button variant="ghost" size="sm">
-                    {t('profile')}
+                    {t("profile")}
                   </Button>
                 </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={logout}
-                >
+                <Button variant="outline" size="sm" onClick={logout}>
                   <LogOut className="h-4 w-4 mr-1.5" />
-                  {t('logout')}
+                  {t("logout")}
                 </Button>
               </>
             ) : (
               <Button variant="primary" onClick={handleLoginClick}>
-                {t('signIn')}
+                {t("signIn")}
               </Button>
             )}
           </div>
 
-          {/* Мобильная кнопка (пока одна) */}
+          {/* Мобильная кнопка */}
           <div className="md:hidden">
             <Link
               to="/barbers"
@@ -169,7 +162,7 @@ const Header: React.FC<HeaderProps> = ({ openLoginModal }) => {
         </div>
       </div>
 
-      {/* Модальное окно входа */}
+      {/* Рендерим модалку через портал */}
       {loginModalOpen && (
         <UnifiedLoginModal
           isOpen={loginModalOpen}

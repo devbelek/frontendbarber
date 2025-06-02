@@ -1,12 +1,10 @@
-import React from 'react';
-import { X, MessageSquare } from 'lucide-react';
-import Button from '../ui/Button';
-import { useLanguage } from '../../context/LanguageContext';
-import { useAuth } from '../../context/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
-import * as jwtDecode from 'jwt-decode';
-import { authAPI } from '../../api/services';
-import { useNotification } from '../../context/NotificationContext';
+import React from "react";
+import { X, MessageSquare } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
+import * as jwtDecode from "jwt-decode";
+import { authAPI } from "../../api/services";
+import { useNotification } from "../../context/NotificationContext";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,7 +12,6 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
-  const { t } = useLanguage();
   const { loginWithGoogle } = useAuth();
   const notification = useNotification();
 
@@ -43,7 +40,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const handleGoogleLoginSuccess = async (credentialResponse: any) => {
     try {
       const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
-      console.log('Google login success:', decoded);
+      console.log("Google login success:", decoded);
 
       // Extract relevant user info
       const userInfo = {
@@ -51,24 +48,32 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         name: decoded.name,
         picture: decoded.picture,
         given_name: decoded.given_name,
-        family_name: decoded.family_name
+        family_name: decoded.family_name,
       };
 
       // Отправляем токен на бэкенд с явным указанием типа 'client'
-      const response = await authAPI.googleAuth(credentialResponse.credential, 'client');
+      const response = await authAPI.googleAuth(
+        credentialResponse.credential,
+        "client"
+      );
 
       if (response.data.access) {
-        localStorage.setItem('token', response.data.access);
+        localStorage.setItem("token", response.data.access);
         if (response.data.refresh) {
-          localStorage.setItem('refreshToken', response.data.refresh);
+          localStorage.setItem("refreshToken", response.data.refresh);
         }
         if (response.data.user) {
-          localStorage.setItem('googleUser', JSON.stringify(response.data.user));
+          localStorage.setItem(
+            "googleUser",
+            JSON.stringify(response.data.user)
+          );
         }
       } else {
-        const tempToken = `google-auth-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-        localStorage.setItem('token', tempToken);
-        localStorage.setItem('googleUser', JSON.stringify(userInfo));
+        const tempToken = `google-auth-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 15)}`;
+        localStorage.setItem("token", tempToken);
+        localStorage.setItem("googleUser", JSON.stringify(userInfo));
       }
 
       // Login with Google
@@ -79,17 +84,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
       // Show success message
       setTimeout(() => {
-        notification.success('Вход выполнен', 'Вы успешно вошли в систему!');
+        notification.success("Вход выполнен", "Вы успешно вошли в систему!");
       }, 500);
     } catch (error) {
-      console.error('Error processing Google login:', error);
-      notification.error('Ошибка входа', 'Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз.');
+      console.error("Error processing Google login:", error);
+      notification.error(
+        "Ошибка входа",
+        "Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз."
+      );
     }
   };
 
   const handleGoogleLoginError = () => {
-    console.error('Google login failed');
-    notification.error('Ошибка Google', 'Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз.');
+    console.error("Google login failed");
+    notification.error(
+      "Ошибка Google",
+      "Не удалось выполнить вход через Google. Пожалуйста, попробуйте ещё раз."
+    );
   };
 
   return (
@@ -113,7 +124,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
           <div className="mb-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
-              Войдите в систему, чтобы получить доступ к персонализированным функциям
+              Войдите в систему, чтобы получить доступ к персонализированным
+              функциям
             </p>
           </div>
 
@@ -135,7 +147,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className="flex items-start">
               <MessageSquare className="h-5 w-5 text-[#9A0F34] mt-1 mr-3 flex-shrink-0" />
               <p className="text-sm text-gray-700">
-                <strong>Для клиентов регистрация не требуется.</strong> Просто просматривайте работы и связывайтесь с барберами напрямую через WhatsApp или Telegram.
+                <strong>Для клиентов регистрация не требуется.</strong> Просто
+                просматривайте работы и связывайтесь с барберами напрямую через
+                WhatsApp или Telegram.
               </p>
             </div>
           </div>

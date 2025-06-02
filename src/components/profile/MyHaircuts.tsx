@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Pencil, Trash, Eye, Plus, MoreVertical } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { servicesAPI } from '../../api/services';
-import Card, { CardContent } from '../ui/Card';
-import Button from '../ui/Button';
-import ConfirmDialog from '../ui/ConfirmDialog';
-import { useNotification } from '../../context/NotificationContext';
-import ImageWithFallback from '../ui/ImageWithFallback';
-import { useAuth } from '../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { Pencil, Trash, Eye, Plus, MoreVertical, Scissors } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { servicesAPI } from "../../api/services";
+import Button from "../ui/Button";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import { useNotification } from "../../context/NotificationContext";
+import ImageWithFallback from "../ui/ImageWithFallback";
+import { useAuth } from "../../context/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Haircut } from "../../types";
 
 const MyHaircuts = () => {
-  const [haircuts, setHaircuts] = useState([]);
+  const [haircuts, setHaircuts] = useState<Haircut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const notification = useNotification();
@@ -30,7 +30,7 @@ const MyHaircuts = () => {
       setLoading(true);
       const barberId = user?.id;
       if (!barberId) {
-        throw new Error('Не удалось определить ID барбера');
+        throw new Error("Не удалось определить ID барбера");
       }
 
       const response = await servicesAPI.getAll({ barber: barberId });
@@ -44,18 +44,17 @@ const MyHaircuts = () => {
         setHaircuts([]);
       }
     } catch (err) {
-      console.error('Failed to load haircuts:', err);
-      setError('Не удалось загрузить стрижки. Пожалуйста, попробуйте позже.');
+      console.error("Failed to load haircuts:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (id) => {
+  const handleEdit = (id: any) => {
     navigate(`/edit-service/${id}`);
   };
 
-  const handleDeleteClick = (id) => {
+  const handleDeleteClick = (id: any) => {
     setServiceToDelete(id);
     setDeleteConfirmOpen(true);
     setActiveMenu(null);
@@ -66,13 +65,13 @@ const MyHaircuts = () => {
 
     try {
       await servicesAPI.delete(serviceToDelete);
-      notification.success('Успешно', 'Стрижка удалена из вашего портфолио');
+      notification.success("Успешно", "Стрижка удалена из вашего портфолио");
       setDeleteConfirmOpen(false);
       setServiceToDelete(null);
       fetchMyHaircuts();
     } catch (err) {
-      console.error('Failed to delete haircut:', err);
-      notification.error('Ошибка', 'Не удалось удалить стрижку');
+      console.error("Failed to delete haircut:", err);
+      notification.error("Ошибка", "Не удалось удалить стрижку");
     }
   };
 
@@ -84,7 +83,7 @@ const MyHaircuts = () => {
   if (loading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="animate-pulse">
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex items-center space-x-4">
@@ -128,7 +127,7 @@ const MyHaircuts = () => {
         </div>
         <Button
           variant="primary"
-          onClick={() => navigate('/add-service')}
+          onClick={() => navigate("/add-service")}
           className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -145,13 +144,16 @@ const MyHaircuts = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-full flex items-center justify-center mx-auto mb-6">
             <Scissors className="h-10 w-10 text-white" />
           </div>
-          <h4 className="text-xl font-semibold mb-2">Начните создавать портфолио</h4>
+          <h4 className="text-xl font-semibold mb-2">
+            Начните создавать портфолио
+          </h4>
           <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-            Добавьте свою первую стрижку, чтобы клиенты могли увидеть ваши работы
+            Добавьте свою первую стрижку, чтобы клиенты могли увидеть ваши
+            работы
           </p>
           <Button
             variant="primary"
-            onClick={() => navigate('/add-service')}
+            onClick={() => navigate("/add-service")}
             className="shadow-lg"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -173,33 +175,39 @@ const MyHaircuts = () => {
                 <div className="p-6">
                   <div className="flex items-center">
                     <div className="relative w-28 h-28 rounded-xl overflow-hidden mr-6 group-hover:scale-105 transition-transform duration-300">
-                      <ImageWithFallback
-                        src={haircut.primary_image || haircut.image}
-                        alt={haircut.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {haircut.images.map((item, index) => (
+                        <ImageWithFallback
+                          key={index}
+                          src={item.image}
+                          alt="image"
+                          className="w-full h-full object-cover"
+                        />
+                      ))}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
 
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{haircut.title}</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {haircut.title}
+                      </h3>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span className="text-2xl font-bold text-[#9A0F34]">{haircut.price} сом</span>
+                        <span className="text-2xl font-bold text-[#9A0F34]">
+                          {haircut.price} сом
+                        </span>
                         <span className="flex items-center">
                           <Eye className="h-4 w-4 mr-1" />
                           {haircut.views || 0} просмотров
                         </span>
                       </div>
                       {haircut.description && (
-                        <p className="text-gray-600 mt-2 line-clamp-2">{haircut.description}</p>
+                        <p className="text-gray-600 mt-2 line-clamp-2">
+                          {haircut.description}
+                        </p>
                       )}
                     </div>
 
                     <div className="relative ml-4">
-                      <button
-                        onClick={() => setActiveMenu(activeMenu === haircut.id ? null : haircut.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                         <MoreVertical className="h-5 w-5 text-gray-400" />
                       </button>
 

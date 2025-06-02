@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Search, Filter, ChevronDown, X } from 'lucide-react';
-import { useLanguage } from '../../context/LanguageContext';
-import Button from '../ui/Button';
+import React, { useState } from "react";
+import { Search, Filter, ChevronDown, X } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import Button from "../ui/Button";
 
 interface FilterBarProps {
   onFilterChange: (filters: any) => void;
@@ -11,27 +11,43 @@ interface FilterBarProps {
 const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   const { t } = useLanguage();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState({
     types: [] as string[],
     locations: [] as string[],
   });
 
   const filterOptions = {
-    types: ['Классическая', 'Фейд', 'Андеркат', 'Кроп', 'Помпадур', 'Текстурная'],
-    locations: ['Бишкек, Центр', 'Бишкек, Восток', 'Бишкек, Запад', 'Бишкек, Север', 'Бишкек, Юг'],
+    types: [
+      "Классическая",
+      "Фейд",
+      "Андеркат",
+      "Кроп",
+      "Помпадур",
+      "Текстурная",
+    ],
+    locations: [
+      "Бишкек, Центр",
+      "Бишкек, Восток",
+      "Бишкек, Запад",
+      "Бишкек, Север",
+      "Бишкек, Юг",
+    ],
   };
 
-  const toggleFilter = (category: keyof typeof selectedFilters, value: string) => {
-    setSelectedFilters(prev => {
+  const toggleFilter = (
+    category: keyof typeof selectedFilters,
+    value: string
+  ) => {
+    setSelectedFilters((prev) => {
       const updatedFilters = { ...prev };
-
       if (updatedFilters[category].includes(value)) {
-        updatedFilters[category] = updatedFilters[category].filter(item => item !== value);
+        updatedFilters[category] = updatedFilters[category].filter(
+          (item) => item !== value
+        );
       } else {
         updatedFilters[category] = [...updatedFilters[category], value];
       }
-
       return updatedFilters;
     });
   };
@@ -41,7 +57,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -52,16 +68,17 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
   };
 
   const clearFilters = () => {
-    setSelectedFilters({
-      types: [],
-      locations: [],
-    });
-    setSearchQuery('');
-    onSearch('');
+    setSelectedFilters({ types: [], locations: [] });
+    setSearchQuery("");
+    onSearch("");
     onFilterChange({});
   };
 
-  const hasActiveFilters = Object.values(selectedFilters).some(arr => arr.length > 0) || searchQuery;
+  const hasActiveFilters =
+    Object.values(selectedFilters).some((arr) => arr.length > 0) || searchQuery;
+
+  const selectedTypesText =
+    selectedFilters.types.length > 0 ? selectedFilters.types.join(", ") : null;
 
   return (
     <div className="bg-white shadow-sm rounded-lg mb-6">
@@ -74,7 +91,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
           <input
             type="text"
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-[#9A0F34] focus:border-[#9A0F34] sm:text-sm"
-            placeholder={t('searchPlaceholder')}
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
@@ -83,26 +100,37 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
             <button
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
               onClick={() => {
-                setSearchQuery('');
-                onSearch('');
+                setSearchQuery("");
+                onSearch("");
               }}
             >
               <X className="h-4 w-4 text-gray-400" />
             </button>
           )}
         </div>
-        <Button
-          onClick={handleSearch}
-          className="ml-3"
-        >
-          {t('search')}
+
+        <Button onClick={handleSearch} className="ml-3">
+          {t("search")}
         </Button>
+
         <button
           onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-          className="ml-3 p-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+          className="ml-3 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center max-w-[200px] truncate"
         >
-          <Filter className="h-5 w-5 text-gray-500" />
-          <ChevronDown className={`h-4 w-4 text-gray-400 ml-1 transition-transform duration-200 ${isFiltersOpen ? 'rotate-180' : ''}`} />
+          {selectedTypesText ? (
+            <span className="text-gray-700 text-sm truncate">
+              {selectedTypesText}
+            </span>
+          ) : (
+            <>
+              <Filter className="h-5 w-5 text-gray-500" />
+              <ChevronDown
+                className={`h-4 w-4 text-gray-400 ml-1 transition-transform duration-200 ${
+                  isFiltersOpen ? "rotate-180" : ""
+                }`}
+              />
+            </>
+          )}
         </button>
       </div>
 
@@ -112,7 +140,9 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Type Filter */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">{t('filterByType')}</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                {t("filterByType")}
+              </h3>
               <div className="space-y-2">
                 {filterOptions.types.map((type) => (
                   <label key={type} className="flex items-center">
@@ -120,7 +150,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
                       type="checkbox"
                       className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
                       checked={selectedFilters.types.includes(type)}
-                      onChange={() => toggleFilter('types', type)}
+                      onChange={() => toggleFilter("types", type)}
                     />
                     <span className="ml-2 text-sm text-gray-700">{type}</span>
                   </label>
@@ -130,7 +160,9 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
 
             {/* Location Filter */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">{t('filterByLocation')}</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                {t("filterByLocation")}
+              </h3>
               <div className="space-y-2">
                 {filterOptions.locations.map((location) => (
                   <label key={location} className="flex items-center">
@@ -138,9 +170,11 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
                       type="checkbox"
                       className="h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34] border-gray-300 rounded"
                       checked={selectedFilters.locations.includes(location)}
-                      onChange={() => toggleFilter('locations', location)}
+                      onChange={() => toggleFilter("locations", location)}
                     />
-                    <span className="ml-2 text-sm text-gray-700">{location}</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      {location}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -149,11 +183,8 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
 
           <div className="mt-6 flex justify-between">
             {hasActiveFilters && (
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-              >
-                {t('clearFilters')}
+              <Button variant="outline" onClick={clearFilters}>
+                {t("clearFilters")}
               </Button>
             )}
             <Button
@@ -161,7 +192,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, onSearch }) => {
               onClick={applyFilters}
               className="ml-auto"
             >
-              {t('applyFilters')}
+              {t("applyFilters")}
             </Button>
           </div>
         </div>

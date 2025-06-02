@@ -39,11 +39,10 @@ export interface Haircut {
   primaryImage: string;
   title: string;
   price: number;
-  description: string;
   barber: string;
   barberId: string;
   type: string;
-  length: 'short' | 'medium' | 'long';
+  length: "short" | "medium" | "long";
   style: string;
   location: string;
   duration?: number;
@@ -96,7 +95,7 @@ export interface User {
 }
 
 export interface UserProfile {
-  user_type: 'client' | 'barber';
+  user_type: "client" | "barber";
   phone: string;
   photo?: string;
   whatsapp?: string;
@@ -119,7 +118,7 @@ export interface Booking {
   service_details?: Haircut;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: "pending" | "confirmed" | "completed" | "cancelled";
   notes?: string;
   created_at: string;
 }
@@ -141,7 +140,7 @@ export interface Favorite {
   created_at: string;
 }
 
-export type Language = 'ru' | 'kg';
+export type Language = "ru" | "kg";
 
 // Типы для API ответов
 export interface ApiResponse<T> {
@@ -211,7 +210,7 @@ export interface UserResponse {
   first_name: string;
   last_name: string;
   profile: {
-    user_type: 'client' | 'barber';
+    user_type: "client" | "barber";
     phone?: string;
     photo?: string;
     whatsapp?: string;
@@ -265,7 +264,7 @@ export interface BookingResponse {
   service_details?: ServiceResponse;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: "pending" | "confirmed" | "completed" | "cancelled";
   notes?: string;
   created_at: string;
   updated_at: string;

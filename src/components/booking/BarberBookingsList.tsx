@@ -1,37 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, MapPin, User, Check, X, Eye, Edit, Trash, Phone } from 'lucide-react';
-import Card, { CardContent } from '../ui/Card';
-import Button from '../ui/Button';
-import { bookingsAPI } from '../../api/services';
-import { useAuth } from '../../context/AuthContext';
-import { useNotification } from '../../context/NotificationContext';
-import ConfirmDialog from '../ui/ConfirmDialog';
+import React, { useState, useEffect } from "react";
+import { Clock, Calendar, User, Check, X, Trash, Phone } from "lucide-react";
+import Card, { CardContent } from "../ui/Card";
+import Button from "../ui/Button";
+import { bookingsAPI } from "../../api/services";
+import { useNotification } from "../../context/NotificationContext";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import { Booking } from "../../types";
 
 const BarberBookingsList: React.FC = () => {
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
 
-  const { user } = useAuth();
   const notification = useNotification();
 
-  const refreshBookings = () => {
-    setRefreshCounter(prev => prev + 1);
-  };
+  const refreshBookings = () => setRefreshCounter((prev) => prev + 1);
 
-  // Эффект для обновления списка при монтировании компонента
   useEffect(() => {
-    // Немедленно обновляем при монтировании
     refreshBookings();
-
-    // Устанавливаем интервал для периодического обновления данных (каждые 30 секунд)
-    const intervalId = setInterval(() => {
-      refreshBookings();
-    }, 30000);
-
+    const intervalId = setInterval(refreshBookings, 30000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -40,145 +30,99 @@ const BarberBookingsList: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-
-        const response = await bookingsAPI.getAll();
-
-        if (response.data) {
-          setBookings(Array.isArray(response.data) ? response.data : (response.data.results || []));
-        } else {
-          setBookings([]);
-        }
-      } catch (err: any) {
-        console.error('Error fetching bookings:', err);
-        setError('Не удалось загрузить бронирования. Пожалуйста, попробуйте позже.');
+        const res = await bookingsAPI.getAll();
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data?.results || [];
+        setBookings(list);
+      } catch (err) {
+        console.error(err);
+        setError("Не удалось загрузить бронирования. Попробуйте позже.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchBookings();
   }, [refreshCounter]);
 
-  const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+  const handleUpdateStatus = async (id: string, status: Booking["status"]) => {
     try {
-      await bookingsAPI.updateStatus(bookingId, newStatus);
-      notification.success(
-        'Статус обновлен',
-        `Статус бронирования изменен на "${newStatus === 'confirmed' ? 'Подтверждено' :
-          newStatus === 'completed' ? 'Завершено' :
-          newStatus === 'cancelled' ? 'Отменено' : 'Ожидает подтверждения'}"`
-      );
+      await bookingsAPI.updateStatus(id, status);
+      notification.success("Статус обновлен", `Статус изменён на "${status}"`);
       refreshBookings();
     } catch (err) {
-      console.error('Error updating booking status:', err);
-      notification.error('Ошибка', 'Не удалось обновить статус бронирования');
+      console.error(err);
+      notification.error("Ошибка", "Не удалось обновить статус");
     }
   };
 
-const handleDeleteClick = (bookingId: string) => {
-  setBookingToDelete(bookingId);
-  setDeleteConfirmOpen(true);
-};
-
-const handleDeleteConfirm = async () => {
-  try {
+  const handleDeleteConfirm = async () => {
     if (!bookingToDelete) return;
-
-    await bookingsAPI.delete(bookingToDelete);
-    setDeleteConfirmOpen(false);
-    setBookingToDelete(null);
-    notification.success('Удалено', 'Бронирование успешно удалено');
-    // Обновляем список
-    refreshBookings();
-  } catch (err) {
-    console.error('Error deleting booking:', err);
-    notification.error('Ошибка', 'Не удалось удалить бронирование');
-  }
-};
-
-const handleDeleteCancel = () => {
-  setDeleteConfirmOpen(false);
-  setBookingToDelete(null);
-};
-
-  const BookingStatusBadge = ({ status }) => {
-    let colorClass = '';
-    let label = '';
-
-    switch (status) {
-      case 'pending':
-        colorClass = 'bg-yellow-100 text-yellow-800';
-        label = 'Ожидает подтверждения';
-        break;
-      case 'confirmed':
-        colorClass = 'bg-blue-100 text-blue-800';
-        label = 'Подтверждено';
-        break;
-      case 'completed':
-        colorClass = 'bg-green-100 text-green-800';
-        label = 'Завершено';
-        break;
-      case 'cancelled':
-        colorClass = 'bg-red-100 text-red-800';
-        label = 'Отменено';
-        break;
-      default:
-        colorClass = 'bg-gray-100 text-gray-800';
-        label = status;
+    try {
+      await bookingsAPI.delete(bookingToDelete);
+      notification.success("Удалено", "Бронирование удалено");
+      setDeleteConfirmOpen(false);
+      setBookingToDelete(null);
+      refreshBookings();
+    } catch (err) {
+      console.error(err);
+      notification.error("Ошибка", "Не удалось удалить");
     }
+  };
+
+  const formatDate = (str: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(str));
+
+  const formatTime = (str: string) => str.slice(0, 5);
+
+  const getClientName = (booking: Booking): string => {
+    if (booking.client_name_contact) return booking.client_name_contact;
+    const { client } = booking;
+    if (client?.first_name || client?.last_name)
+      return `${client?.first_name ?? ""} ${client?.last_name ?? ""}`.trim();
+    return client?.username || "Клиент";
+  };
+
+  const BookingStatusBadge: React.FC<{ status: Booking["status"] }> = ({
+    status,
+  }) => {
+    const statusMap: Record<Booking["status"], [string, string]> = {
+      pending: ["bg-yellow-100 text-yellow-800", "Ожидает подтверждения"],
+      confirmed: ["bg-blue-100 text-blue-800", "Подтверждено"],
+      completed: ["bg-green-100 text-green-800", "Завершено"],
+      cancelled: ["bg-red-100 text-red-800", "Отменено"],
+    };
+
+    const [color, label] = statusMap[status] || [
+      "bg-gray-100 text-gray-800",
+      status,
+    ];
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}
+      >
         {label}
       </span>
     );
   };
 
-  // Функция форматирования даты
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(date);
-  };
-
-  // Функция форматирования времени
-  const formatTime = (timeStr: string) => {
-    return timeStr.substring(0, 5); // Берем только часы и минуты
-  };
-
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
-        {[...Array(2)].map((_, index) => (
-          <Card key={index}>
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
             <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                <div className="mb-4 md:mb-0">
-                  <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <div className="h-5 bg-gray-200 rounded w-20 mb-2"></div>
-                  <div className="h-5 bg-gray-200 rounded w-16"></div>
-                </div>
-              </div>
+              <div className="h-5 w-3/4 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-1/2 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-1/4 bg-gray-200 rounded" />
             </CardContent>
           </Card>
         ))}
-            <ConfirmDialog
-      isOpen={deleteConfirmOpen}
-      title="Удаление бронирования"
-      message="Вы уверены, что хотите удалить это бронирование? Это действие невозможно отменить."
-      confirmText="Удалить"
-      cancelText="Отмена"
-      onConfirm={handleDeleteConfirm}
-      onCancel={handleDeleteCancel}
-      confirmVariant="danger"
-    />
       </div>
     );
   }
@@ -188,9 +132,7 @@ const handleDeleteCancel = () => {
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => refreshBookings()}>
-            Повторить загрузку
-          </Button>
+          <Button onClick={refreshBookings}>Повторить загрузку</Button>
         </CardContent>
       </Card>
     );
@@ -199,11 +141,9 @@ const handleDeleteCancel = () => {
   if (bookings.length === 0) {
     return (
       <Card>
-        <CardContent className="text-center py-12">
+        <CardContent className="py-12 text-center">
           <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">
-            У вас пока нет бронирований
-          </p>
+          <p className="text-gray-500">У вас пока нет бронирований</p>
         </CardContent>
       </Card>
     );
@@ -213,11 +153,7 @@ const handleDeleteCancel = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-medium">Бронирования на мои услуги</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refreshBookings}
-        >
+        <Button variant="outline" size="sm" onClick={refreshBookings}>
           Обновить
         </Button>
       </div>
@@ -225,40 +161,33 @@ const handleDeleteCancel = () => {
       {bookings.map((booking) => (
         <Card key={booking.id}>
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div className="mb-4 md:mb-0">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+              <div>
                 <div className="flex items-center mb-2">
                   <User className="h-5 w-5 text-[#9A0F34] mr-2" />
-                    <h3 className="font-semibold text-lg">
-                      {/* Исправленная версия для отображения имени клиента */}
-                      {booking.client_name_contact ||
-                       (booking.client && booking.client.first_name && booking.client.last_name ?
-                         `${booking.client.first_name} ${booking.client.last_name}`.trim() :
-                         (booking.client && booking.client.username ? booking.client.username : "Клиент"))}
-                    </h3>
+                  <h3 className="font-semibold text-lg">
+                    {getClientName(booking)}
+                  </h3>
                 </div>
-
-                {/* Отображение телефона клиента, если он есть */}
                 {booking.client_phone_contact && (
                   <div className="flex items-center text-sm text-gray-600 mb-2">
                     <Phone className="h-4 w-4 mr-2" />
-                    <a href={`tel:${booking.client_phone_contact}`}>{booking.client_phone_contact}</a>
+                    <a href={`tel:${booking.service_details}`}>
+                      {booking.client}
+                    </a>
                   </div>
                 )}
-
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm text-gray-600">
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>{formatDate(booking.date)}</span>
+                    {formatDate(booking.date)}
                   </div>
-
-                  <div className="flex items-center text-sm text-gray-600">
+                  <div className="flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
-                    <span>{formatTime(booking.time)}</span>
+                    {formatTime(booking.time)}
                   </div>
-
                   {booking.service_details?.title && (
-                    <div className="flex items-center text-sm font-medium">
+                    <div className="font-medium">
                       Услуга: {booking.service_details.title}
                     </div>
                   )}
@@ -267,20 +196,19 @@ const handleDeleteCancel = () => {
 
               <div className="flex flex-col items-end">
                 <BookingStatusBadge status={booking.status} />
-
-                <div className="mt-3 text-xl font-bold">
+                <div className="mt-2 text-xl font-bold">
                   {booking.service_details?.price} сом
                 </div>
-
-                {/* Управление статусом бронирования */}
                 <div className="mt-2 flex space-x-2">
-                  {booking.status === 'pending' && (
+                  {booking.status === "pending" && (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
                         className="text-green-600 border-green-600 hover:bg-green-50"
-                        onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
+                        onClick={() =>
+                          handleUpdateStatus(booking.id, "confirmed")
+                        }
                       >
                         <Check className="h-4 w-4 mr-1" />
                         Подтвердить
@@ -289,21 +217,24 @@ const handleDeleteCancel = () => {
                         variant="outline"
                         size="sm"
                         className="text-red-600 border-red-600 hover:bg-red-50"
-                        onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                        onClick={() =>
+                          handleUpdateStatus(booking.id, "cancelled")
+                        }
                       >
                         <X className="h-4 w-4 mr-1" />
                         Отменить
                       </Button>
                     </>
                   )}
-
-                   {booking.status === 'confirmed' && (
+                  {booking.status === "confirmed" && (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
                         className="text-green-600 border-green-600 hover:bg-green-50"
-                        onClick={() => handleUpdateStatus(booking.id, 'completed')}
+                        onClick={() =>
+                          handleUpdateStatus(booking.id, "completed")
+                        }
                       >
                         <Check className="h-4 w-4 mr-1" />
                         Завершено
@@ -312,20 +243,23 @@ const handleDeleteCancel = () => {
                         variant="outline"
                         size="sm"
                         className="text-red-600 border-red-600 hover:bg-red-50"
-                        onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                        onClick={() =>
+                          handleUpdateStatus(booking.id, "cancelled")
+                        }
                       >
                         <X className="h-4 w-4 mr-1" />
                         Отменить
                       </Button>
                     </>
                   )}
-
-                  {/* Кнопка удаления - показываем для всех статусов */}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:bg-red-50"
-                    onClick={() => handleDeleteClick(booking.id)}
+                    onClick={() => {
+                      setBookingToDelete(booking.id);
+                      setDeleteConfirmOpen(true);
+                    }}
                     title="Удалить бронирование"
                   >
                     <Trash className="h-4 w-4" />
@@ -335,14 +269,28 @@ const handleDeleteCancel = () => {
             </div>
 
             {booking.notes && (
-              <div className="mt-4 border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-1">Примечания:</h4>
-                <p className="text-sm text-gray-600">{booking.notes}</p>
+              <div className="mt-4 border-t pt-4 text-sm text-gray-600">
+                <h4 className="font-medium text-gray-700 mb-1">Примечания:</h4>
+                <p>{booking.notes}</p>
               </div>
             )}
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Удаление бронирования"
+        message="Вы уверены, что хотите удалить это бронирование? Это действие невозможно отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false);
+          setBookingToDelete(null);
+        }}
+        confirmVariant="danger"
+      />
     </div>
   );
 };

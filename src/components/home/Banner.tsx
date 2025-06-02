@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import axios from '@/api/client';
+import { useEffect, useState } from "react";
+import axios from "../../api/client";
 
 interface Banner {
   id: number;
@@ -14,12 +14,12 @@ const Banner = () => {
   useEffect(() => {
     const fetchBanner = async () => {
       try {
-        const response = await axios.get('/services/banners/');
+        const response = await axios.get("/services/banners/");
         if (response.data.length > 0) {
           setBanner(response.data[0]);
         }
       } catch (error) {
-        console.error('Ошибка при загрузке баннера', error);
+        console.error("Ошибка при загрузке баннера", error);
       }
     };
 
@@ -29,8 +29,8 @@ const Banner = () => {
       setIsMobile(window.innerWidth < 768);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   if (!banner) return null;
@@ -43,7 +43,7 @@ const Banner = () => {
         src={imageUrl}
         alt="Баннер"
         className="w-full h-auto object-cover rounded-2xl shadow-lg"
-        style={{ maxHeight: '50vh', minHeight: '200px' }}
+        style={{ maxHeight: "50vh", minHeight: "200px" }}
       />
     </div>
   );

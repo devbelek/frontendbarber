@@ -11,3 +11,7 @@
     margin-bottom: env(safe-area-inset-bottom);
   }
 }
+
+body {
+  background-color: #fff;
+}

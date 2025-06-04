@@ -31,9 +31,7 @@ const LoginPage: React.FC = () => {
       navigate("/profile");
 
       // Show success message
-      setTimeout(() => {
-        alert("Вы успешно вошли как барбер через Google!");
-      }, 500);
+      alert("Вы успешно вошли как барбер через Google!");
     } catch (error) {
       console.error("Error processing Google login:", error);
       alert(

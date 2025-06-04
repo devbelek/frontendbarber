@@ -1,18 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Clock, Phone, Instagram, MessageCircle, Star, Users, ChevronRight } from 'lucide-react';
-import Layout from '../components/layout/Layout';
-import Button from '../components/ui/Button';
-import HaircutGrid from '../components/haircuts/HaircutGrid';
-import { barbershopsAPI } from '../api/barbershops';
-import { servicesAPI } from '../api/services';
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  MapPin,
+  Clock,
+  Phone,
+  Instagram,
+  MessageCircle,
+  Star,
+  Users,
+  ChevronRight,
+} from "lucide-react";
+import Layout from "../components/layout/Layout";
+import Button from "../components/ui/Button";
+import HaircutGrid from "../components/haircuts/HaircutGrid";
+import { barbershopsAPI } from "../api/barbershops";
+import { servicesAPI } from "../api/services";
 const BarbershopDetailPage = ({ openLoginModal }) => {
   const { id } = useParams();
   const [barbershop, setBarbershop] = useState(null);
   const [barbers, setBarbers] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState("services");
 
   useEffect(() => {
     fetchBarbershopData();
@@ -34,7 +43,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
       const servicesResponse = await barbershopsAPI.getServices(id);
       setServices(servicesResponse.data || []);
     } catch (error) {
-      console.error('Error fetching barbershop data:', error);
+      console.error("Error fetching barbershop data:", error);
     } finally {
       setLoading(false);
     }
@@ -73,7 +82,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
         {/* Шапка барбершопа */}
         <div className="relative h-64 md:h-80">
           <img
-            src={barbershop.photos?.[0] || '/default-barbershop-bg.jpg'}
+            src={barbershop.photos?.[0] || "/default-barbershop-bg.jpg"}
             alt={barbershop.name}
             className="w-full h-full object-cover"
           />
@@ -83,7 +92,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
             <div className="container mx-auto">
               <div className="flex items-end gap-6">
                 <img
-                  src={barbershop.logo || '/default-barbershop.jpg'}
+                  src={barbershop.logo || "/default-barbershop.jpg"}
                   alt={barbershop.name}
                   className="w-24 h-24 rounded-lg border-4 border-white shadow-lg"
                 />
@@ -92,8 +101,12 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center">
                       <Star className="h-5 w-5 text-yellow-400 mr-1" />
-                      <span className="font-medium">{barbershop.rating || 0}</span>
-                      <span className="opacity-75 ml-1">({barbershop.reviewCount || 0})</span>
+                      <span className="font-medium">
+                        {barbershop.rating || 0}
+                      </span>
+                      <span className="opacity-75 ml-1">
+                        ({barbershop.reviewCount || 0})
+                      </span>
                     </div>
                     {barbershop.isVerified && (
                       <div className="bg-green-500 px-3 py-1 rounded-full text-sm">
@@ -128,10 +141,11 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                     <div>
                       <p className="text-sm text-gray-600">Часы работы</p>
                       <p className="font-medium">
-                        {barbershop.workingHours.from} - {barbershop.workingHours.to}
+                        {barbershop.workingHours.from} -{" "}
+                        {barbershop.workingHours.to}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {barbershop.workingHours.days.join(', ')}
+                        {barbershop.workingHours.days.join(", ")}
                       </p>
                     </div>
                   </div>
@@ -140,7 +154,10 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                     <Phone className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-sm text-gray-600">Телефон</p>
-                      <a href={`tel:${barbershop.phone}`} className="font-medium text-[#9A0F34]">
+                      <a
+                        href={`tel:${barbershop.phone}`}
+                        className="font-medium text-[#9A0F34]"
+                      >
                         {barbershop.phone}
                       </a>
                     </div>
@@ -151,8 +168,8 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                   <p className="text-sm text-gray-600 mb-3">Социальные сети</p>
                   <div className="flex gap-2">
                     {barbershop.whatsapp && (
-
-                       <a href={`https://wa.me/${barbershop.whatsapp}`}
+                      <a
+                        href={`https://wa.me/${barbershop.whatsapp}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors"
@@ -161,8 +178,8 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                       </a>
                     )}
                     {barbershop.instagram && (
-
-                       <a  href={`https://instagram.com/${barbershop.instagram}`}
+                      <a
+                        href={`https://instagram.com/${barbershop.instagram}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-500 text-white rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
@@ -189,7 +206,7 @@ const BarbershopDetailPage = ({ openLoginModal }) => {
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <img
-                        src={barber.profile?.photo || '/default-avatar.png'}
+                        src={barber.profile?.photo || "/default-avatar.png"}
                         alt={barber.first_name}
                         className="w-12 h-12 rounded-full object-cover"
                       />

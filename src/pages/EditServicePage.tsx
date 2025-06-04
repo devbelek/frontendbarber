@@ -7,13 +7,11 @@ import Card, { CardContent } from "../components/ui/Card";
 import { useAuth } from "../context/AuthContext";
 import { servicesAPI } from "../api/services";
 import { useNotification } from "../context/NotificationContext";
-import ImageWithFallback from "../components/ui/ImageWithFallback";
 
 const EditServicePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, refreshUserData } = useAuth();
-  const notification = useNotification();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

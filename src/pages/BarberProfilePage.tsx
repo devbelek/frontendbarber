@@ -12,7 +12,7 @@ import Button from "../components/ui/Button";
 import Card, { CardContent } from "../components/ui/Card";
 import HaircutGrid from "../components/haircuts/HaircutGrid";
 import BookingModal from "../components/booking/BookingModal";
-import ReviewsList from "../components/reviews/ReviewsList"; // Импортируем ReviewsList
+import ReviewsList from "../components/reviews/ReviewsList";
 import { servicesAPI, profileAPI } from "../api/services";
 import { Barber, Haircut } from "../types";
 import { useLanguage } from "../context/LanguageContext";
@@ -35,7 +35,7 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
   const [activeTab, setActiveTab] = useState<"portfolio" | "info" | "reviews">(
     "portfolio"
-  ); // Добавляем 'reviews'
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +52,6 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
           barberResponse = await profileAPI.getBarberProfile(id);
         } catch (e: any) {
           console.error("Error fetching barber profile:", e);
-
           if (e.response?.status === 500) {
             notification.error(
               "Ошибка сервера",
@@ -62,13 +61,10 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
             setLoading(false);
             return;
           }
-
           throw e;
         }
 
         const barberData = barberResponse.data;
-        console.log("Barber data response:", barberData);
-
         if (!barberData) {
           throw new Error("Барбер не найден");
         }
@@ -106,8 +102,6 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
 
         try {
           const haircutsResponse = await servicesAPI.getAll({ barber: id });
-          console.log("Barber haircuts response:", haircutsResponse);
-
           if (haircutsResponse.data) {
             let haircuts: Haircut[] = [];
             let haircutsData = haircutsResponse.data;
@@ -173,37 +167,10 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
     } else if (type === "telegram") {
       url = `https://t.me/${contact.replace("@", "")}`;
     }
-
     if (url) {
       window.open(url, "_blank");
     }
   };
-
-  if (loading) {
-    return (
-      <Layout openLoginModal={openLoginModal}>
-        <div className="container mx-auto px-4 py-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34] mx-auto mb-4"></div>
-          <p>{t("loading")}</p>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error || !barber) {
-    return (
-      <Layout openLoginModal={openLoginModal}>
-        <div className="container mx-auto px-4 py-12 text-center">
-          <div className="bg-red-50 p-4 rounded-md mb-4">
-            <p className="text-red-700">{error || "Барбер не найден"}</p>
-          </div>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Попробовать снова
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
 
   const CombIcon = ({ className = "" }) => (
     <svg
@@ -226,103 +193,152 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
     </svg>
   );
 
+  if (loading) {
+    return (
+      <Layout openLoginModal={openLoginModal}>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9A0F34] mx-auto mb-4"></div>
+          <p className="text-gray-600">{t("loading")}</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !barber) {
+    return (
+      <Layout openLoginModal={openLoginModal}>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <div className="bg-red-50 p-6 rounded-xl shadow-sm mb-6">
+            <p className="text-red-700 text-lg font-medium">
+              {error || "Барбер не найден"}
+            </p>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white transition-colors"
+          >
+            Попробовать снова
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout openLoginModal={openLoginModal}>
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-          <div className="md:flex">
-            <div className="md:w-1/3">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Profile Card */}
+        <div className="bg-white rounded-2xl overflow-hidden p-6 sm:p-8 md:p-10">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Left: Avatar and Name */}
+            <div className="flex flex-col items-center md:items-start w-full md:w-1/3">
               <ImageWithFallback
                 src={barber.avatar}
                 alt={barber.name}
-                className="h-full w-full object-cover"
+                className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border-4 border-gray-200 shadow-md mb-4"
               />
+              <div className="text-center md:text-left">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  {barber.name}
+                </h1>
+                <p className="text-gray-600 mt-3 text-sm sm:text-base leading-relaxed max-w-md">
+                  {barber.description}
+                </p>
+                <div className="mt-3 flex items-center justify-center md:justify-start">
+                  <span className="text-yellow-500">★★★★★</span>
+                  <span className="ml-2 text-gray-600 text-sm">
+                    {barber.rating.toFixed(1)} ({barber.reviewCount}{" "}
+                    {t("reviews")})
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="p-6 md:w-2/3">
-              <h1 className="text-2xl font-bold mb-4">{barber.name}</h1>
 
-              <p className="text-gray-700 mb-4">{barber.description}</p>
-
-              <div className="flex flex-wrap mb-4">
-                <div className="w-full md:w-1/2 flex items-start mb-3">
-                  <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+            {/* Right: Information */}
+            <div className="flex-1 w-full md:w-2/3 space-y-6">
+              {/* Location and Schedule */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-gray-500 mt-1" />
                   <div>
-                    <p className="text-sm text-gray-500">{t("location")}</p>
-                    <p className="font-medium">
+                    <p className="text-sm text-gray-500 font-medium">
+                      {t("location")}
+                    </p>
+                    <p className="font-semibold text-gray-800">
                       {barber.location || "Не указано"}
                     </p>
                     {barber.offerHomeService && (
-                      <p className="text-sm text-[#9A0F34] mt-1">
-                        Выезд на дом
+                      <p className="text-sm text-rose-600 font-semibold mt-2">
+                        {t("Выезд на дом")}
                       </p>
                     )}
                   </div>
                 </div>
-
-                <div className="w-full md:w-1/2 flex items-start mb-3">
-                  <Clock className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-gray-500 mt-1" />
                   <div>
-                    <p className="text-sm text-gray-500">{t("workingHours")}</p>
-                    <p className="font-medium">
-                      {barber.workingHours.from} - {barber.workingHours.to}
+                    <p className="text-sm text-gray-500 font-medium">
+                      {t("workingHours")}
                     </p>
-                    <p className="text-sm">
+                    <p className="font-semibold text-gray-800">
+                      {barber.workingHours.from} – {barber.workingHours.to}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
                       {barber.workingHours.days.join(", ")}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-6">
-                {barber.specialization && barber.specialization.length > 0 ? (
-                  barber.specialization.map((spec, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-gray-100 rounded-full text-sm"
-                    >
-                      {spec}
-                    </span>
-                  ))
-                ) : (
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
-                    Мужские стрижки
+              {/* Specializations */}
+              <div className="flex flex-wrap gap-2">
+                {(barber.specialization?.length
+                  ? barber.specialization
+                  : ["Мужские стрижки"]
+                ).map((spec, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm font-medium shadow-sm"
+                  >
+                    {spec}
                   </span>
-                )}
+                ))}
               </div>
 
+              {/* Contact Buttons */}
               <div className="flex flex-wrap gap-3">
                 {barber.whatsapp && (
                   <Button
                     variant="outline"
                     onClick={() =>
-                      handleContactClick("whatsapp", barber.whatsapp || "")
+                      handleContactClick("whatsapp", barber.whatsapp)
                     }
-                    className="flex items-center"
+                    className="flex items-center border-green-500 text-green-600"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="h-5 w-5 mr-2 text-green-500"
+                      className="h-5 w-5 mr-2 fill-current"
                     >
                       <path
                         fill="currentColor"
-                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"
                       />
                     </svg>
                     WhatsApp
                   </Button>
                 )}
-
                 {barber.telegram && (
                   <Button
                     variant="outline"
                     onClick={() =>
-                      handleContactClick("telegram", barber.telegram || "")
+                      handleContactClick("telegram", barber.telegram)
                     }
-                    className="flex items-center"
+                    className="flex items-center border-blue-500 text-blue-600"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="h-5 w-5 mr-2 text-blue-500"
+                      className="h-5 w-5 mr-2 fill-current"
                     >
                       <path
                         fill="currentColor"
@@ -332,9 +348,8 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                     Telegram
                   </Button>
                 )}
-
                 {!barber.whatsapp && !barber.telegram && (
-                  <p className="text-gray-500 italic">
+                  <p className="text-gray-500 italic text-sm">
                     Контактные данные не указаны
                   </p>
                 )}
@@ -343,46 +358,40 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
           </div>
         </div>
 
-        <div className="border-b mb-6">
-          <div className="flex">
-            <button
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "portfolio"
-                  ? "border-[#9A0F34] text-[#9A0F34]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("portfolio")}
-            >
-              {t("portfolio")}
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "info"
-                  ? "border-[#9A0F34] text-[#9A0F34]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("info")}
-            >
-              {t("information")}
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === "reviews"
-                  ? "border-[#9A0F34] text-[#9A0F34]"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("reviews")}
-            >
-              Отзывы ({barber.reviewCount || 0})
-            </button>
+        {/* Tabs */}
+        <div className="mt-8 border-b border-gray-200">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
+            {["portfolio", "info", "reviews"].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 sm:px-6 py-3 font-medium text-sm sm:text-base transition-all duration-200 ${
+                  activeTab === tab
+                    ? "border-b-2 border-[#9A0F34] text-[#9A0F34]"
+                    : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                } focus:outline-none focus:ring-2 focus:ring-[#9A0F34] focus:ring-opacity-50`}
+                onClick={() =>
+                  setActiveTab(tab as "portfolio" | "info" | "reviews")
+                }
+              >
+                {tab === "portfolio" && t("portfolio")}
+                {tab === "info" && t("information")}
+                {tab === "reviews" && (
+                  <>
+                    {t("reviews")} ({barber.reviewCount || 0})
+                  </>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="mb-8">
+        {/* Tab Content */}
+        <div className="mt-8">
           {activeTab === "portfolio" && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">{t("portfolio")}</h2>
-
+            <div className="mt-6 sm:mt-8">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-4 sm:mb-6 tracking-tight">
+                {t("portfolio")}
+              </h2>
               {barberHaircuts.length > 0 ? (
                 <HaircutGrid
                   haircuts={barberHaircuts}
@@ -392,10 +401,10 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                   }}
                 />
               ) : (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <CombIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">
+                <Card className="rounded-2xl shadow-sm bg-white border border-gray-100">
+                  <CardContent className="text-center py-8 sm:py-12 px-4 sm:px-6">
+                    <CombIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                    <p className="text-gray-500 text-sm sm:text-base lg:text-lg max-w-md mx-auto">
                       Этот барбер еще не добавил стрижки в свое портфолио.
                     </p>
                   </CardContent>
@@ -405,22 +414,25 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
           )}
 
           {activeTab === "info" && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">{t("information")}</h2>
-
-              <Card className="mb-6">
-                <CardContent>
-                  <h3 className="font-medium mb-3">{t("location")}</h3>
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+            <div className="space-y-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
+                {t("information")}
+              </h2>
+              <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-3">
+                    {t("location")}
+                  </h3>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-gray-500 mt-1" />
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-gray-800">
                         {barber.location || "Не указано"}
                       </p>
                       {barber.offerHomeService && (
-                        <div className="mt-2 text-[#9A0F34] bg-[#9A0F34]/5 p-2 rounded-md inline-flex items-center">
+                        <div className="mt-3 text-rose-600 bg-rose-50 p-2 rounded-md inline-flex items-center text-sm">
                           <ExternalLink className="h-4 w-4 mr-1" />
-                          <span>Возможен выезд на дом</span>
+                          <span>{t("homeServiceAvailable")}</span>
                         </div>
                       )}
                     </div>
@@ -428,16 +440,18 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                 </CardContent>
               </Card>
 
-              <Card className="mb-6">
-                <CardContent>
-                  <h3 className="font-medium mb-3">{t("workingHours")}</h3>
-                  <div className="flex items-start">
-                    <Calendar className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+              <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-3">
+                    {t("workingHours")}
+                  </h3>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-gray-500 mt-1" />
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-gray-800">
                         {barber.workingHours.days.join(", ")}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-600 mt-1">
                         {barber.workingHours.from} - {barber.workingHours.to}
                       </p>
                     </div>
@@ -445,13 +459,15 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent>
-                  <h3 className="font-medium mb-3">Контакты</h3>
+              <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-3">
+                    {t("contacts")}
+                  </h3>
                   <div className="space-y-3">
                     {barber.whatsapp && (
                       <div
-                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
                         onClick={() =>
                           handleContactClick("whatsapp", barber.whatsapp || "")
                         }
@@ -465,13 +481,14 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                             d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"
                           />
                         </svg>
-                        <span>WhatsApp: {barber.whatsapp}</span>
+                        <span className="text-gray-800">
+                          WhatsApp: {barber.whatsapp}
+                        </span>
                       </div>
                     )}
-
                     {barber.telegram && (
                       <div
-                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+                        className="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
                         onClick={() =>
                           handleContactClick("telegram", barber.telegram || "")
                         }
@@ -485,14 +502,15 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                             d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
                           />
                         </svg>
-                        <span>Telegram: {barber.telegram}</span>
+                        <span className="text-gray-800">
+                          Telegram: {barber.telegram}
+                        </span>
                       </div>
                     )}
-
                     {!barber.whatsapp && !barber.telegram && (
                       <div className="flex items-center">
                         <MessageSquare className="h-5 w-5 text-gray-400 mr-2" />
-                        <p className="text-gray-500 italic">
+                        <p className="text-gray-500 italic text-sm">
                           Контактные данные не указаны
                         </p>
                       </div>
@@ -505,22 +523,21 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
 
           {activeTab === "reviews" && (
             <div>
-              <h2 className="text-xl font-bold mb-4">Отзывы</h2>
-              <ReviewsList
-                barberId={id || ""}
-                canAddReview={true} // Всегда true, внутри компонента будет проверка
-              />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
+                {t("reviews")}
+              </h2>
+              <ReviewsList barberId={id || ""} canAddReview={true} />
             </div>
           )}
         </div>
-      </div>
 
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        haircut={selectedHaircut}
-        onConfirm={() => {}}
-      />
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          haircut={selectedHaircut}
+          onConfirm={() => {}}
+        />
+      </div>
     </Layout>
   );
 };

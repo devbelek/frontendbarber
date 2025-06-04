@@ -288,7 +288,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                   ) : (
                     filteredBarbers.map((barber) => (
                       <div
-                        keykenshi={barber.id}
+                        key={barber.id}
                         className="group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer"
                         onClick={() => handleBarberClick(barber.id)}
                       >
@@ -429,7 +429,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                           <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">
                             {shop.name}
                           </h3>
-                          <div class fidefinition="flex items-center mb-3">
+                            <div className="flex items-center mb-3">
                             <Star
                               className="h-5 w-5 text-yellow-400 mr-1"
                               fill="currentColor"

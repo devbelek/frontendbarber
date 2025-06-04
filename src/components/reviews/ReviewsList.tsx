@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Star, User, MessageSquare } from "lucide-react";
-import { reviewsAPI } from "../../api/services";
+import { Star, MessageSquare, User } from "lucide-react";
+import Card, { CardContent } from "../ui/Card";
 import Button from "../ui/Button";
+import { reviewsAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
+import { Review } from "../../types";
 
 interface ReviewsListProps {
   barberId: string;
@@ -14,11 +16,11 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
   barberId,
   canAddReview = false,
 }) => {
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddReview, setShowAddReview] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const notification = useNotification();
 
@@ -31,112 +33,84 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
       setLoading(true);
       const response = await reviewsAPI.getForBarber(barberId);
 
-      let reviewsData = [];
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          reviewsData = response.data;
-        } else if (
-          response.data.results &&
-          Array.isArray(response.data.results)
-        ) {
-          reviewsData = response.data.results;
-        }
+      if (response.data) {
+        const reviewsData = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || [];
+        setReviews(reviewsData);
       }
-
-      setReviews(reviewsData);
-
-      // Проверяем, оставлял ли текущий пользователь отзыв
-      if (user && reviewsData.length > 0) {
-        const userReview = reviewsData.find(
-          (review: any) =>
-            review.author === user.id || review.author_details?.id === user.id
-        );
-        setHasUserReviewed(!!userReview);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching reviews:", error);
-      setReviews([]);
+
+      // Если ошибка 401, показываем пустой список вместо ошибки
+      if (error.response?.status === 401) {
+        setReviews([]);
+      } else {
+        notification.error("Ошибка", "Не удалось загрузить отзывы");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmitReview = async () => {
-    if (!newReview.comment.trim()) {
-      notification.error("Ошибка", "Пожалуйста, напишите комментарий");
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      notification.info("Требуется вход", "Чтобы оставить отзыв, необходимо войти в систему");
       return;
     }
 
+    setSubmitting(true);
     try {
       await reviewsAPI.create({
         barber: barberId,
         rating: newReview.rating,
-        comment: newReview.comment,
+        comment: newReview.comment.trim()
       });
-      notification.success("Успешно", "Отзыв добавлен");
-      setShowAddReview(false);
+
+      notification.success("Успешно", "Ваш отзыв добавлен");
+      setShowReviewForm(false);
       setNewReview({ rating: 5, comment: "" });
       fetchReviews();
     } catch (error: any) {
-      if (
-        error.response?.status === 400 &&
-        error.response?.data?.non_field_errors
-      ) {
-        notification.error(
-          "Ошибка",
-          "Вы уже оставляли отзыв для этого барбера"
-        );
+      if (error.response?.data?.non_field_errors?.[0]?.includes("unique")) {
+        notification.error("Ошибка", "Вы уже оставляли отзыв этому барберу");
       } else {
         notification.error("Ошибка", "Не удалось добавить отзыв");
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const StarRating = ({ rating, onChange = null, size = "md" }: any) => {
-    const sizes: any = {
-      sm: "h-4 w-4",
-      md: "h-5 w-5",
-      lg: "h-6 w-6",
-    };
-
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onClick={() => onChange && onChange(star)}
-            disabled={!onChange}
-            className={onChange ? "cursor-pointer" : "cursor-default"}
-            type="button"
-          >
-            <Star
-              className={`${sizes[size]} ${
-                star <= rating
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-300"
-              }`}
-            />
-          </button>
-        ))}
-      </div>
-    );
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
   };
-
-  // Проверяем, может ли пользователь добавить отзыв
-  const canUserAddReview =
-    isAuthenticated &&
-    user?.profile?.user_type === "client" &&
-    canAddReview &&
-    !hasUserReviewed;
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-gray-100 rounded-lg p-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-          </div>
+      <div className="space-y-4">
+        {[1, 2].map(i => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="animate-pulse">
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
@@ -144,117 +118,138 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Отзывы ({reviews.length})</h3>
-        {canUserAddReview && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddReview(!showAddReview)}
-          >
-            Добавить отзыв
-          </Button>
-        )}
-        {hasUserReviewed && (
-          <p className="text-sm text-gray-500">Вы уже оставили отзыв</p>
-        )}
-      </div>
-
-      {!isAuthenticated && (
-        <div className="bg-blue-50 p-4 rounded-lg mb-4">
-          <p className="text-sm text-blue-700 flex items-center">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Войдите в систему как клиент, чтобы оставить отзыв
-          </p>
-        </div>
+      {canAddReview && isAuthenticated && !showReviewForm && (
+        <Button
+          variant="primary"
+          onClick={() => setShowReviewForm(true)}
+          className="mb-4"
+        >
+          Оставить отзыв
+        </Button>
       )}
 
-      {user?.profile?.user_type === "barber" && (
-        <div className="bg-yellow-50 p-4 rounded-lg mb-4">
-          <p className="text-sm text-yellow-700">
-            Барберы не могут оставлять отзывы. Переключитесь на аккаунт клиента
-            в профиле.
-          </p>
-        </div>
-      )}
+      {showReviewForm && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Ваш отзыв</h3>
+            <form onSubmit={handleSubmitReview}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Оценка
+                </label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                      className="focus:outline-none"
+                    >
+                      <Star
+                        className={`h-8 w-8 ${
+                          star <= newReview.rating
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-      {showAddReview && canUserAddReview && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ваша оценка
-            </label>
-            <StarRating
-              rating={newReview.rating}
-              onChange={(rating: number) =>
-                setNewReview({ ...newReview, rating })
-              }
-              size="lg"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Комментарий
-            </label>
-            <textarea
-              value={newReview.comment}
-              onChange={(e) =>
-                setNewReview({ ...newReview, comment: e.target.value })
-              }
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
-              placeholder="Поделитесь своим опытом..."
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="primary" onClick={handleSubmitReview}>
-              Отправить
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddReview(false);
-                setNewReview({ rating: 5, comment: "" });
-              }}
-            >
-              Отмена
-            </Button>
-          </div>
-        </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Комментарий
+                </label>
+                <textarea
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9A0F34]"
+                  placeholder="Поделитесь своим опытом..."
+                  required
+                />
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={submitting || !newReview.comment.trim()}
+                >
+                  {submitting ? "Отправка..." : "Отправить"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowReviewForm(false);
+                    setNewReview({ rating: 5, comment: "" });
+                  }}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {reviews.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          Пока нет отзывов. Будьте первым!
-        </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">
+              {isAuthenticated ? "Пока нет отзывов. Будьте первым!" : "Пока нет отзывов"}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <div key={review.id} className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
+            <Card key={review.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-4">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-gray-500" />
+                    {review.author_details?.profile?.photo ? (
+                      <img
+                        src={review.author_details.profile.photo}
+                        alt=""
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-6 w-6 text-gray-400" />
+                    )}
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {review.author_details?.first_name || "Аноним"}{" "}
-                      {review.author_details?.last_name || ""}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <StarRating rating={review.rating} size="sm" />
-                      <span>•</span>
-                      <span>
-                        {new Date(review.created_at).toLocaleDateString(
-                          "ru-RU"
-                        )}
+
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-semibold">
+                        {review.author_details?.first_name || review.author_details?.username || "Пользователь"}
+                      </h4>
+                      <span className="text-sm text-gray-500">
+                        {formatDate(review.created_at)}
                       </span>
                     </div>
+
+                    <div className="flex items-center mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < review.rating
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    <p className="text-gray-700">{review.comment}</p>
                   </div>
                 </div>
-              </div>
-              <p className="text-gray-700 mt-2">{review.comment}</p>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

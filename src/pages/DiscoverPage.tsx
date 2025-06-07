@@ -92,7 +92,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   };
 
   const handleBarbershopClick = (barbershopId: string) => {
-    navigate(`/barbershop/${barbershopId}`);
+    if (barbershopId) {
+      navigate(`/barbershops/${barbershopId}`);
+    } else {
+      console.error("Invalid barbershop ID:", barbershopId);
+    }
   };
 
   const resetFilters = () => {
@@ -290,7 +294,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                       <div
                         key={barber.id}
                         className="group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer"
-                        onClick={() => handleBarberClick(barber.id)}
                       >
                         {/* Фото барбера */}
                         <div className="relative h-64 overflow-hidden">
@@ -299,9 +302,8 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             alt={`${barber.first_name} ${barber.last_name}`}
                             className="w-full h-full object-cover transition-transform duration-500"
                           />
-                          {/* Градиентный оверлей */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                          {/* Метка "Выезд на дом" */}
+
                           {barber.profile?.offers_home_service && (
                             <div className="absolute bg-[#5dbd60] top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                               <svg
@@ -397,18 +399,18 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     filteredBarbershops.map((shop) => (
                       <div
                         key={shop.id}
-                        className="group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                        className="bg-white rounded-lg overflow-hidden"
                       >
-                        <div className="relative h-56">
+                        <div className="relative h-36 sm:h-48">
                           <ImageWithFallback
-                            src={shop.logo || "/default-barbershop.jpg"}
-                            alt={shop.name}
-                            className="w-full h-full object-cover transition-transform duration-300 "
+                            src={shop.logo || "/images/barbershop-logo.webp"}
+                            alt={shop.name || "Барбершоп"}
+                            className="w-full h-full object-cover"
                           />
                           {shop.isVerified && (
-                            <div className="absolute top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                               <svg
-                                className="w-4 h-4"
+                                className="h-3.5 w-3.5"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -423,53 +425,59 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               Проверено
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                         </div>
-                        <div className="p-5">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">
-                            {shop.name}
+                        <div className="p-4">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 truncate">
+                            {shop.name || "Без названия"}
                           </h3>
-                            <div className="flex items-center mb-3">
+                          <div className="flex items-center mb-2">
                             <Star
-                              className="h-5 w-5 text-yellow-400 mr-1"
+                              className="h-4 w-4 text-yellow-400 mr-1"
                               fill="currentColor"
                             />
-                            <span className="font-semibold text-gray-900">
-                              {shop.rating?.toFixed(1) || "0.0"}
+                            <span className="font-semibold text-xs sm:text-sm">
+                              {(shop.rating || 0).toFixed(1)}
                             </span>
-                            <span className="text-gray-500 text-sm ml-2">
+                            <span className="text-gray-500 text-xs ml-1">
                               ({shop.reviewCount || 0} отзывов)
                             </span>
                           </div>
-                          <div className="space-y-2 text-sm text-gray-600 mb-4">
+                          <div className="space-y-2 text-xs sm:text-sm text-gray-600 mb-4">
                             <div className="flex items-start">
-                              <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
-                              <span className="line-clamp-2">
-                                {shop.address}
+                              <MapPin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-[#9A0F34]" />
+                              <span className="truncate">
+                                {shop.address || "Не указано"}
                               </span>
                             </div>
                             <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2 flex-shrink-0 text-gray-400" />
+                              <Clock className="h-3.5 w-3.5 mr-2 flex-shrink-0 text-[#9A0F34]" />
                               <span>{getWorkingHours(shop)}</span>
                             </div>
                             <div className="flex items-center">
-                              <Phone className="h-4 w-4 mr-2 flex-shrink-0 text-gray-400" />
-                              <span>{shop.phone || "Не указан"}</span>
+                              <Phone className="h-3.5 w-3.5 mr-2 flex-shrink-0 text-[#9A0F34]" />
+                              <span>{shop.phone || "Не указано"}</span>
                             </div>
                           </div>
                           <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Users className="h-4 w-4 mr-1 text-gray-400" />
+                            <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                              <Users className="h-3.5 w-3.5 mr-1 text-[#9A0F34]" />
                               <span>{shop.barbers?.length || 0} барберов</span>
                             </div>
                           </div>
-                          <Button
-                            variant="primary"
-                            className="w-full bg-[#9A0F34] hover:bg-[#7b0c29] text-white font-medium py-2 rounded-lg transition-colors"
-                            onClick={() => handleBarbershopClick(shop.id)}
-                          >
-                            Подробнее
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              className="flex-1 border-[#9A0F34] text-[#9A0F34] px-3 py-2 rounded-md text-xs sm:text-sm"
+                              onClick={() => {
+                                handleBarbershopClick(shop.id);
+                              }}
+                              aria-label={`View details of ${
+                                shop.name || "barbershop"
+                              }`}
+                            >
+                              Подробнее
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))

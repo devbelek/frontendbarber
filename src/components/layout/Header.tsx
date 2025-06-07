@@ -52,7 +52,7 @@ const Header: FC = () => {
           {/* Навигация */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link
-              to="/barbers"
+              to="/discover"
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                 location.pathname === "/barbers"
                   ? "bg-[#9A0F34] text-white shadow-lg"
@@ -61,18 +61,6 @@ const Header: FC = () => {
             >
               <Scissors className="h-5 w-5 mr-2" />
               Барберы
-            </Link>
-
-            <Link
-              to="/barbershops"
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                location.pathname === "/barbershops"
-                  ? "bg-[#9A0F34] text-white shadow-lg"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Store className="h-5 w-5 mr-2" />
-              Барбершопы
             </Link>
           </nav>
 

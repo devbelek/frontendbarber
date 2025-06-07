@@ -1,15 +1,15 @@
 // src/components/booking/BookingForm.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, FC } from "react";
 import { Calendar, Clock, MessageSquare } from "lucide-react";
 import Button from "../ui/Button";
 import { bookingsAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Service } from "../../types";
 import { useNotification } from "../../context/NotificationContext";
+import { ServiceResponse } from "../../types";
 
 interface BookingFormProps {
-  service: Service;
+  service: ServiceResponse;
 }
 
 interface TimeSlot {
@@ -19,7 +19,7 @@ interface TimeSlot {
 
 type LoadingState = "idle" | "loading" | "success" | "error";
 
-const BookingForm: React.FC<BookingFormProps> = ({ service }) => {
+const BookingForm: FC<BookingFormProps> = ({ service }) => {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [notes, setNotes] = useState<string>("");

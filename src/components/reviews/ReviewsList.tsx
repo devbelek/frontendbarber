@@ -21,7 +21,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [submitting, setSubmitting] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const notification = useNotification();
 
   useEffect(() => {

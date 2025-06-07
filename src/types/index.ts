@@ -1,6 +1,6 @@
 // src/types/index.ts - добавьте новые типы
 export interface Barbershop {
-  id: string;
+  id: string; // API возвращает integer, нормализуется в string
   name: string;
   logo?: string;
   description: string;

@@ -53,18 +53,17 @@ const Header: FC = () => {
           <nav className="hidden md:flex items-center space-x-6">
             <Link
               to="/discover"
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                location.pathname === "/barbers"
-                  ? "bg-[#9A0F34] text-white shadow-lg"
-                  : "text-gray-700 hover:bg-gray-100"
+              className={`flex items-center border-b-2 transition-all duration-200 pb-1 ${
+                location.pathname === "/discover"
+                  ? "border-[#9A0F34] text-[#9A0F34] font-semibold"
+                  : "border-transparent text-gray-700 hover:text-[#9A0F34] hover:border-[#9A0F34]"
               }`}
             >
-              <Scissors className="h-5 w-5 mr-2" />
-              Барберы
+              <Store className="h-5 w-5 mr-2" />
+              Мастера и салоны
             </Link>
           </nav>
 
-          {/* Кнопки региона, языка, авторизации */}
           <div className="hidden md:flex items-center space-x-3">
             {/* Селектор региона */}
             <div className="relative">
@@ -87,7 +86,7 @@ const Header: FC = () => {
                 </svg>
               </button>
 
-              {isRegionDropdownOpen && (
+              {/* {isRegionDropdownOpen && (
                 <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg py-1 z-50 min-w-[180px]">
                   {regions.map((region) => (
                     <button
@@ -106,7 +105,7 @@ const Header: FC = () => {
                     </button>
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Переключатель языка */}

@@ -31,9 +31,17 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     fetchData();
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const fetchData = async () => {
@@ -93,7 +101,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
 
   const handleBarbershopClick = (barbershopId: string) => {
     if (barbershopId) {
-      navigate(`/barbershops/${barbershopId}`);
+      navigate(`/barbershop/${barbershopId}`); // Updated to singular "barbershop"
     } else {
       console.error("Invalid barbershop ID:", barbershopId);
     }
@@ -114,24 +122,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
     }
     return "09:00 - 21:00";
   };
-
-  // !
-  // !
-  // !
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 50); // Уменьшение начинается после прокрутки на 50px
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-  // !
-  // !
-  // !
 
   return (
     <Layout openLoginModal={openLoginModal}>
@@ -295,7 +285,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                         key={barber.id}
                         className="group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer"
                       >
-                        {/* Фото барбера */}
                         <div className="relative h-64 overflow-hidden">
                           <ImageWithFallback
                             src={barber.profile?.photo || "/default-avatar.png"}
@@ -303,7 +292,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             className="w-full h-full object-cover transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-
                           {barber.profile?.offers_home_service && (
                             <div className="absolute bg-[#5dbd60] top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                               <svg
@@ -322,7 +310,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               Выезд на дом
                             </div>
                           )}
-                          {/* Имя и рейтинг внизу фото */}
                           <div className="absolute bottom-0 left-0 right-0 p-4">
                             <h3 className="text-lg font-bold text-white truncate">
                               {barber.first_name} {barber.last_name}
@@ -341,8 +328,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             </div>
                           </div>
                         </div>
-
-                        {/* Информация о барбере */}
                         <div className="p-4 bg-gradient-to-b from-gray-50 to-white">
                           <div className="space-y-2 text-sm text-gray-600">
                             <div className="flex items-start">
@@ -359,7 +344,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               </div>
                             )}
                           </div>
-                          {/* Кнопка */}
                           <Button
                             variant="primary"
                             className="w-full mt-4 bg-[#9A0F34] hover:bg-[#7b0c29] text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
@@ -439,7 +423,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               {(shop.rating || 0).toFixed(1)}
                             </span>
                             <span className="text-gray-500 text-xs ml-1">
-                              ({shop.reviewCount || 0} отзывов)
+                              ({shop.review_count || 0} отзывов)
                             </span>
                           </div>
                           <div className="space-y-2 text-xs sm:text-sm text-gray-600 mb-4">
@@ -468,9 +452,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             <Button
                               variant="outline"
                               className="flex-1 border-[#9A0F34] text-[#9A0F34] px-3 py-2 rounded-md text-xs sm:text-sm"
-                              onClick={() => {
-                                handleBarbershopClick(shop.id);
-                              }}
+                              onClick={() => handleBarbershopClick(shop.id)}
                               aria-label={`View details of ${
                                 shop.name || "barbershop"
                               }`}

@@ -1,30 +1,33 @@
-// src/types/index.ts - добавьте новые типы
 export interface Barbershop {
-  id: string; // API возвращает integer, нормализуется в string
+  id: number;
   name: string;
-  logo?: string;
+  logo: any;
   description: string;
   address: string;
   latitude: number;
   longitude: number;
   phone: string;
-  whatsapp?: string;
-  telegram?: string;
-  instagram?: string;
-  workingHours: {
-    from: string;
-    to: string;
-    days: string[];
-  };
-  barbers: string[]; // ID барберов
-  services: string[]; // ID услуг
-  photos: string[];
+  whatsapp: string;
+  telegram: string;
+  instagram: string;
+  working_hours_from: string;
+  working_hours_to: string;
+  working_days: any[];
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+  photos: any[];
+  staff: any[];
+  barbers: any[];
   rating: number;
-  reviewCount: number;
-  isVerified: boolean;
-  owner: string; // ID владельца
-  createdAt: string;
-  updatedAt: string;
+  review_count: number;
+  working_hours: WorkingHours;
+}
+
+export interface WorkingHours {
+  from: string;
+  to: string;
+  days: string[];
 }
 
 export interface BarberProfile extends UserProfile {

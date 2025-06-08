@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { LanguageProvider } from './context/LanguageContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { LocationProvider } from './context/LocationContext';
-import { NotificationProvider } from './context/NotificationContext';
-import HomePage from './pages/HomePage';
-import BarberProfilePage from './pages/BarberProfilePage';
-import ProfilePage from './pages/ProfilePage';
-import NotFoundPage from './pages/NotFoundPage';
-import LoginModal from './components/auth/LoginModal';
-import LoginPage from './pages/LoginPage';
-import AddServicePage from './pages/AddServicePage';
-import EditServicePage from './pages/EditServicePage';
-import DiscoverPage from './pages/DiscoverPage';
+import React, { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { LanguageProvider } from "./context/LanguageContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LocationProvider } from "./context/LocationContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import HomePage from "./pages/HomePage";
+import BarberProfilePage from "./pages/BarberProfilePage";
+import ProfilePage from "./pages/ProfilePage";
+import NotFoundPage from "./pages/NotFoundPage";
+import LoginModal from "./components/auth/LoginModal";
+import LoginPage from "./pages/LoginPage";
+import AddServicePage from "./pages/AddServicePage";
+import EditServicePage from "./pages/EditServicePage";
+import DiscoverPage from "./pages/DiscoverPage";
+import BarbershopDetailPage from "./pages/BarbershopDetailPage"; // Import the BarbershopDetailPage
 
 interface RouteProps {
   children: React.ReactNode;
@@ -52,10 +58,22 @@ const AppRoutes = () => {
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
         {/* Главная страница */}
-        <Route path="/" element={<HomePage openLoginModal={openLoginModal} />} />
+        <Route
+          path="/"
+          element={<HomePage openLoginModal={openLoginModal} />}
+        />
 
         {/* Профиль барбера */}
-        <Route path="/barber/:id" element={<BarberProfilePage openLoginModal={openLoginModal} />} />
+        <Route
+          path="/barber/:id"
+          element={<BarberProfilePage openLoginModal={openLoginModal} />}
+        />
+
+        {/* Профиль барбершопа */}
+        <Route
+          path="/barbershop/:id"
+          element={<BarbershopDetailPage openLoginModal={openLoginModal} />}
+        />
 
         {/* Защищенный профиль пользователя */}
         <Route
@@ -71,11 +89,17 @@ const AppRoutes = () => {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Страница поиска барберов */}
-        <Route path="/discover" element={<DiscoverPage openLoginModal={openLoginModal} />} />
+        <Route
+          path="/discover"
+          element={<DiscoverPage openLoginModal={openLoginModal} />}
+        />
 
         {/* Старые маршруты для обратной совместимости */}
         <Route path="/barbers" element={<Navigate to="/discover" replace />} />
-        <Route path="/barbershops" element={<Navigate to="/discover" replace />} />
+        <Route
+          path="/barbershops"
+          element={<Navigate to="/discover" replace />}
+        />
 
         {/* Защищенные маршруты для барберов */}
         <Route

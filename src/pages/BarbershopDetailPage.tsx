@@ -83,10 +83,12 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
               ? String(shopResponse.data.barbers).split(",")
               : [],
             logo: shopResponse.data.logo
-              ? `http://127.0.0.1:8000${shopResponse.data.logo}`
+              ? shopResponse.data.logo.startsWith("http")
+                ? shopResponse.data.logo
+                : `http://127.0.0.1:8000${shopResponse.data.logo}`
               : DEFAULT_LOGO,
-            photos: shopResponse.data.photos?.map(
-              (photo: string) => `http://127.0.0.1:8000${photo}`
+            photos: shopResponse.data.photos?.map((photo: string) =>
+              photo.startsWith("http") ? photo : `http://127.0.0.1:8000${photo}`
             ) || [DEFAULT_BG_IMAGE],
             description:
               shopResponse.data.description || "Описание отсутствует",
@@ -107,7 +109,9 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
       const normalizedBarbers = Array.isArray(barbersResponse.data)
         ? barbersResponse.data.map((barber: any) => {
             const avatar = barber.user_details?.profile?.photo
-              ? `http://127.0.0.1:8000${barber.user_details.profile.photo}`
+              ? barber.user_details.profile.photo.startsWith("http")
+                ? barber.user_details.profile.photo
+                : `http://127.0.0.1:8000${barber.user_details.profile.photo}`
               : DEFAULT_AVATAR;
             console.log(`Barber ${barber.id} avatar URL:`, avatar); // Debug log
             return {
@@ -131,7 +135,9 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
             ...service,
             id: String(service.id || ""),
             image: service.image
-              ? `http://127.0.0.1:8000${service.image}`
+              ? service.image.startsWith("http")
+                ? service.image
+                : `http://127.0.0.1:8000${service.image}`
               : DEFAULT_BG_IMAGE,
           }))
         : [];
@@ -385,7 +391,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.07-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.02-.09.01-.19-.04-.27-.06-.08-.17-.12-.26-.08-.12.06-1.72 1.08-4.86 3.17-.56.37-1.08.55-1.54.54-.51-.01-1.49-.3-2.21-.54-.86-.29-1.54-.44-1.48-.94.02-.17.22-.33.58-.56 2.22-1.47 3.71-2.47 4.45-2.96 2.54-1.67 3.07-1.98 3.42-1.98.08 0 .16.02.24.06.07.04.13.09.14.16z" />
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.07-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.02-.09.01-.19-.04-.27-.06-.08-.17-.12-.26-.08-.12.06-1.72 1.08-4.86 3.17-.56.37-1.08.55-1.54.54-.51-.01-1.49-.30-2.21-.54-.86-.29-1.54-.44-1.48-.94.02-.17.22-.33.58-.56 2.22-1.47 3.71-2.47 4.45-2.96 2.54-1.67 3.07-1.98 3.42-1.98.08 0 .16.02.24.06.07.04.13.09.14.16z" />
                           </svg>
                         </a>
                       )}

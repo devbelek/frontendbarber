@@ -57,51 +57,6 @@ const demoHaircuts = [
   },
 ];
 
-const demoBarbers = [
-  {
-    id: "1",
-    username: "alexander_p",
-    first_name: "Александр",
-    last_name: "Петров",
-    profile: {
-      photo:
-        "https://images.pexels.com/photos/1081188/pexels-photo-1081188.jpeg",
-      user_type: "barber",
-      address: "Бишкек, Центр",
-    },
-    avg_rating: 4.8,
-    review_count: 124,
-  },
-  {
-    id: "2",
-    username: "maxim_k",
-    first_name: "Максим",
-    last_name: "Кузнецов",
-    profile: {
-      photo:
-        "https://images.pexels.com/photos/2182971/pexels-photo-2182971.jpeg",
-      user_type: "barber",
-      address: "Бишкек, Восток",
-    },
-    avg_rating: 4.9,
-    review_count: 98,
-  },
-  {
-    id: "3",
-    username: "ruslan_d",
-    first_name: "Руслан",
-    last_name: "Доскеев",
-    profile: {
-      photo:
-        "https://images.pexels.com/photos/1853958/pexels-photo-1853958.jpeg",
-      user_type: "barber",
-      address: "Бишкек, Запад",
-    },
-    avg_rating: 4.7,
-    review_count: 75,
-  },
-];
-
 // Функция для стандартной обработки API-ответов
 // !
 

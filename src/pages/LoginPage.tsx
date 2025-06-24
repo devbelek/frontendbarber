@@ -13,7 +13,6 @@ const LoginPage: React.FC = () => {
   const handleGoogleLoginSuccess = (credentialResponse: any) => {
     try {
       const decoded: any = jwtDecode.jwtDecode(credentialResponse.credential);
-      console.log("Google login success:", decoded);
 
       // Extract relevant user info
       const userInfo = {
@@ -27,10 +26,8 @@ const LoginPage: React.FC = () => {
       // Login with Google
       loginWithGoogle(userInfo);
 
-      // Redirect to profile page
       navigate("/profile");
 
-      // Show success message
       alert("Вы успешно вошли как барбер через Google!");
     } catch (error) {
       console.error("Error processing Google login:", error);

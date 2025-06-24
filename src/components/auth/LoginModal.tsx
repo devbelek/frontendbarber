@@ -82,12 +82,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       // Close modal
       onClose();
 
-      // Show success message
       setTimeout(() => {
         notification.success("Вход выполнен", "Вы успешно вошли в систему!");
       }, 500);
     } catch (error) {
-      console.error("Error processing Google login:", error);
       notification.error(
         "Ошибка входа",
         "Произошла ошибка при входе через Google. Пожалуйста, попробуйте ещё раз."

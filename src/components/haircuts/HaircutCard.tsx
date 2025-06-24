@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Heart,
-  MessageCircle,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -15,7 +15,6 @@ import { servicesAPI } from "../../api/services";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Расширяем Haircut для новых полей контактов барбера
 interface HaircutExtended extends Haircut {
   barberWhatsapp?: string;
   barberTelegram?: string;
@@ -30,20 +29,16 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const { isAuthenticated, toggleFavorite, user } = useAuth();
   const notification = useNotification();
   const navigate = useNavigate();
-
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showConsultModal, setShowConsultModal] = useState(false);
 
   const haircutId = haircut?.id || "";
-
-  // Проверяем избранное по user.favorites и haircut.isFavorite
   const isFavorite =
     user?.favorites?.includes(haircutId) || haircut?.isFavorite || false;
 
   const imagesArray: ServiceImage[] = Array.isArray(haircut.images)
     ? haircut.images
     : [];
-
   const hasMultipleImages = imagesArray.length > 1;
 
   const handlePrevImage = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -71,7 +66,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   ) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!isAuthenticated) {
       notification.info(
         "Требуется вход",
@@ -79,12 +73,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
       );
       return;
     }
-
     if (!toggleFavorite) {
       notification.error("Ошибка", "Функция избранного недоступна");
       return;
     }
-
     try {
       await toggleFavorite(haircutId);
       notification.success(
@@ -103,7 +95,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
     e.preventDefault();
-
     try {
       if (haircutId) {
         await servicesAPI.incrementViews(haircutId);
@@ -111,7 +102,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     } catch (error) {
       console.error("Failed to increment views:", error);
     }
-
     onBookClick(haircut);
   };
 
@@ -124,7 +114,6 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
   const handleBarberClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (haircut.barberId) {
       navigate(`/barber/${haircut.barberId}`);
     } else {
@@ -132,15 +121,10 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
     }
   };
 
-  // Безопасное получение текущего изображения
-  let currentImage = "";
-  if (imagesArray.length > 0) {
-    currentImage = imagesArray[currentImageIndex].image;
-  }
-
-  if (!currentImage) {
-    currentImage = haircut.primaryImage || "";
-  }
+  let currentImage =
+    imagesArray.length > 0
+      ? imagesArray[currentImageIndex].image
+      : haircut.primaryImage || "";
 
   const hasValidWhatsApp =
     typeof haircut.barberWhatsapp === "string" &&
@@ -152,52 +136,72 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
 
   return (
     <>
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm transform transition-all duration-200 h-full border border-gray-100">
-        <div className="relative aspect-square overflow-hidden">
-          <ImageWithFallback
-            src={currentImage}
-            alt={haircut.title || "Изображение стрижки"}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-          />
+      <motion.div
+        className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-100 flex flex-col h-full"
+        whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full h-full"
+            >
+              <ImageWithFallback
+                src={currentImage}
+                alt={haircut.title || "Изображение стрижки"}
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </AnimatePresence>
 
           {hasMultipleImages && (
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 p-1 sm:p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
+                aria-label="Предыдущее изображение"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-1 sm:p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-all"
+                aria-label="Следующее изображение"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
-
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 flex gap-0.5 sm:gap-1">
                 {imagesArray.map((img, index) => (
-                  <div
+                  <motion.div
                     key={img.id}
-                    className={`h-1.5 rounded-full transition-all ${
+                    className={`h-1 sm:h-1.5 rounded-full ${
                       index === currentImageIndex
-                        ? "w-4 bg-white"
-                        : "w-1.5 bg-white/50"
+                        ? "w-3 sm:w-4 bg-rose-500"
+                        : "w-1 sm:w-1.5 bg-white/70"
                     }`}
+                    animate={{ scale: index === currentImageIndex ? 1.1 : 1 }}
+                    transition={{ duration: 0.2 }}
                   />
                 ))}
               </div>
             </>
           )}
 
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center">
-            <Eye className="h-3 w-3 mr-1" />
+          <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 text-white px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs flex items-center">
+            <Eye className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5" />
             {haircut.views || 0}
           </div>
 
-          <div className="absolute top-2 right-2 flex gap-1">
+          <div className="absolute top-1 sm:top-2 right-1 sm:right-2 flex gap-0.5 sm:gap-1">
             <button
-              className={`p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors ${
+              className={`p-1 sm:p-1.5 rounded-full bg-black/40 backdrop-blur-sm hover:bg-rose-500/80 transition-all ${
                 isFavorite ? "text-red-400" : "text-white"
               }`}
               onClick={handleFavoriteClick}
@@ -205,108 +209,105 @@ const HaircutCard: React.FC<HaircutCardProps> = ({ haircut, onBookClick }) => {
                 isFavorite ? "Удалить из избранного" : "Добавить в избранное"
               }
             >
-              <Heart size={18} className={isFavorite ? "fill-red-400" : ""} />
+              <Heart
+                size={14}
+                sm:size={16}
+                className={isFavorite ? "fill-red-400" : ""}
+              />
             </button>
-
             {hasValidContacts && (
               <button
-                className="p-2 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors text-white"
+                className="p-1 sm:p-1.5 rounded-full bg-black/40 backdrop-blur-sm hover:bg-rose-500/80 transition-all text-white"
                 onClick={handleContactClick}
                 aria-label="Связаться с барбером"
               >
-                <MessageCircle size={18} />
+                <MessageSquare size={14} sm:size={16} />
               </button>
             )}
           </div>
         </div>
 
-        <div className="p-3">
-          <h3 className="text-sm font-semibold mb-1 line-clamp-1">
+        <div className="p-2 sm:p-3 flex flex-col flex-1">
+          <h3 className="text-xs sm:text-sm md:text-base font-semibold text-gray-900 line-clamp-1">
             {haircut.title || "Без названия"}
           </h3>
-
           {haircut.description && (
-            <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+            <p className="text-[11px] sm:text-xs md:text-sm text-gray-600 line-clamp-2 mt-0.5 sm:mt-1">
               {haircut.description}
             </p>
           )}
-
-          <div className="flex justify-between items-center text-xs text-gray-500">
+          <div className="flex justify-between items-center text-[11px] sm:text-xs md:text-sm text-gray-500 mt-1 sm:mt-2">
             <button
               onClick={handleBarberClick}
-              className="hover:text-blue-600 font-medium"
+              className="hover:text-rose-600 font-medium transition-colors"
             >
-              Барбер: {haircut.barber || "не указан"}
+              {haircut.barber || "не указан"}
             </button>
-            <span>
+            <span className="text-rose-600 font-medium">
               {haircut.price ? `${haircut.price} ₽` : "Цена не указана"}
             </span>
           </div>
-
           <Button
             onClick={handleBookButtonClick}
-            className="mt-3 w-full"
+            className="mt-2 sm:mt-3 w-full bg-gradient-to-r from-[#9a0f34] to-[#6b0824] text-white hover:from-[#7a0c2a] hover:to-[#5a071f] rounded-lg text-[11px] sm:text-xs md:text-sm py-1.5 sm:py-2 shadow-sm hover:shadow-md transition-all"
             size="sm"
             variant="primary"
           >
             Записаться
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Модальное окно консультации */}
       <AnimatePresence>
         {showConsultModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowConsultModal(false)}
           >
             <motion.div
-              className="bg-white rounded-lg p-6 max-w-sm w-full"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
+              className="bg-white rounded-xl p-4 sm:p-5 max-w-[90vw] sm:max-w-xs w-full shadow-lg"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">
                 Связаться с барбером
               </h2>
-              <p className="mb-2">
-                {hasValidWhatsApp && (
-                  <>
-                    <strong>WhatsApp:</strong>{" "}
-                    <a
-                      href={`https://wa.me/${haircut.barberWhatsapp}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      {haircut.barberWhatsapp}
-                    </a>
-                  </>
-                )}
-              </p>
-              <p className="mb-4">
-                {hasValidTelegram && (
-                  <>
-                    <strong>Telegram:</strong>{" "}
-                    <a
-                      href={`https://t.me/${haircut.barberTelegram}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      @{haircut.barberTelegram}
-                    </a>
-                  </>
-                )}
-              </p>
+              {hasValidWhatsApp && (
+                <p className="text-xs sm:text-sm text-gray-700 mb-2 flex items-center gap-1">
+                  <span className="font-medium">WhatsApp:</span>
+                  <a
+                    href={`https://wa.me/${haircut.barberWhatsapp}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-rose-600 hover:text-rose-700 underline"
+                  >
+                    {haircut.barberWhatsapp}
+                  </a>
+                </p>
+              )}
+              {hasValidTelegram && (
+                <p className="text-xs sm:text-sm text-gray-700 mb-3 sm:mb-4 flex items-center gap-1">
+                  <span className="font-medium">Telegram:</span>
+                  <a
+                    href={`https://t.me/${haircut.barberTelegram}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-rose-600 hover:text-rose-700 underline"
+                  >
+                    @{haircut.barberTelegram}
+                  </a>
+                </p>
+              )}
               <Button
                 onClick={() => setShowConsultModal(false)}
-                variant="secondary"
+                variant="outline"
+                className="w-full border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-rose-600 text-xs sm:text-sm rounded-lg"
               >
                 Закрыть
               </Button>

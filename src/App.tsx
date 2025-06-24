@@ -18,7 +18,8 @@ import LoginPage from "./pages/LoginPage";
 import AddServicePage from "./pages/AddServicePage";
 import EditServicePage from "./pages/EditServicePage";
 import DiscoverPage from "./pages/DiscoverPage";
-import BarbershopDetailPage from "./pages/BarbershopDetailPage"; // Import the BarbershopDetailPage
+import BarbershopDetailPage from "./pages/BarbershopDetailPage";
+import ScrollToTop from "./avtoscroll/AvroScroll";
 
 interface RouteProps {
   children: React.ReactNode;
@@ -55,27 +56,21 @@ const AppRoutes = () => {
 
   return (
     <Router>
+      <ScrollToTop />
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <Routes>
-        {/* Главная страница */}
         <Route
           path="/"
           element={<HomePage openLoginModal={openLoginModal} />}
         />
-
-        {/* Профиль барбера */}
         <Route
           path="/barber/:id"
           element={<BarberProfilePage openLoginModal={openLoginModal} />}
         />
-
-        {/* Профиль барбершопа */}
         <Route
           path="/barbershop/:id"
           element={<BarbershopDetailPage openLoginModal={openLoginModal} />}
         />
-
-        {/* Защищенный профиль пользователя */}
         <Route
           path="/profile"
           element={
@@ -84,24 +79,16 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
-        {/* Страница логина */}
         <Route path="/login" element={<LoginPage />} />
-
-        {/* Страница поиска барберов */}
         <Route
           path="/discover"
           element={<DiscoverPage openLoginModal={openLoginModal} />}
         />
-
-        {/* Старые маршруты для обратной совместимости */}
         <Route path="/barbers" element={<Navigate to="/discover" replace />} />
         <Route
           path="/barbershops"
           element={<Navigate to="/discover" replace />}
         />
-
-        {/* Защищенные маршруты для барберов */}
         <Route
           path="/add-service"
           element={
@@ -110,7 +97,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/edit-service/:id"
           element={
@@ -119,8 +105,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
-        {/* 404 страница */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>

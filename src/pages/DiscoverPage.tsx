@@ -48,13 +48,67 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
     setLoading(true);
     try {
       const barbersResponse = await profileAPI.getAllBarbers();
-      setBarbers(
-        Array.isArray(barbersResponse?.data)
-          ? barbersResponse.data
-          : barbersResponse?.data?.results || []
-      );
+      const barbersData = Array.isArray(barbersResponse?.data)
+        ? barbersResponse.data
+        : barbersResponse?.data?.results || [];
+
+      const mappedBarbers: Barber[] = barbersData.map((barber: any) => {
+        const barberData = {
+          id: barber.id.toString(),
+          name:
+            `${barber.first_name || ""} ${barber.last_name || ""}`.trim() ||
+            barber.username ||
+            "Без имени",
+          avatar: barber.profile?.photo || "/default-avatar.png",
+          rating: barber.rating || barber.rating || 0,
+          reviewCount: barber.review_count || barber.reviews_count || 0, // Учитываем возможное reviews_count
+          specialization: barber.profile?.specialization || ["Мужские стрижки"],
+          location: barber.profile?.address || "Бишкек",
+          workingHours: {
+            from: barber.profile?.working_hours_from || "09:00",
+            to: barber.profile?.working_hours_to || "18:00",
+            days: barber.profile?.working_days || [
+              "Пн",
+              "Вт",
+              "Ср",
+              "Чт",
+              "Пт",
+            ],
+          },
+          portfolio: barber.portfolio || [],
+          description: barber.profile?.bio || "Информация о барбере",
+          profile: {
+            user_type: barber.profile?.user_type || "barber",
+            phone: barber.profile?.phone || "",
+            photo: barber.profile?.photo || "/default-avatar.png",
+            whatsapp: barber.profile?.whatsapp || "",
+            telegram: barber.profile?.telegram || "",
+            address: barber.profile?.address || "Бишкек",
+            offers_home_service: barber.profile?.offers_home_service || false,
+            latitude: barber.profile?.latitude || null,
+            longitude: barber.profile?.longitude || null,
+            bio: barber.profile?.bio || "",
+            working_hours_from: barber.profile?.working_hours_from || "09:00",
+            working_hours_to: barber.profile?.working_hours_to || "18:00",
+            working_days: barber.profile?.working_days || [
+              "Пн",
+              "Вт",
+              "Ср",
+              "Чт",
+              "Пт",
+            ],
+          },
+          whatsapp: barber.profile?.whatsapp || "",
+          telegram: barber.profile?.telegram || "",
+          offerHomeService: barber.profile?.offers_home_service || false,
+        };
+        return barberData;
+      });
+
+      setBarbers(mappedBarbers);
 
       const barbershopsResponse = await barbershopsAPI.getAll();
+      console.log("Raw barbershops response:", barbershopsResponse.data); // Логируем ответ для барбершопов
       setBarbershops(
         Array.isArray(barbershopsResponse?.data)
           ? barbershopsResponse.data
@@ -68,15 +122,13 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   };
 
   const filteredBarbers = barbers.filter((barber) => {
-    const fullName = `${barber.first_name || ""} ${
-      barber.last_name || ""
-    }`.toLowerCase();
-    const address = (barber.profile?.address || "").toLowerCase();
+    const name = barber.name.toLowerCase();
+    const address = (barber.location || "").toLowerCase();
     const query = searchQuery.toLowerCase();
-    const matchesSearch = fullName.includes(query) || address.includes(query);
+    const matchesSearch = name.includes(query) || address.includes(query);
     const matchesRegion =
       selectedRegion === "all" ||
-      (barber.profile?.address || "")
+      (barber.location || "")
         .toLowerCase()
         .includes(selectedRegion.toLowerCase());
 
@@ -101,7 +153,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
 
   const handleBarbershopClick = (barbershopId: string) => {
     if (barbershopId) {
-      navigate(`/barbershop/${barbershopId}`); // Updated to singular "barbershop"
+      navigate(`/barbershop/${barbershopId}`);
     } else {
       console.error("Invalid barbershop ID:", barbershopId);
     }
@@ -283,17 +335,18 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     filteredBarbers.map((barber) => (
                       <div
                         key={barber.id}
-                        className="group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer"
+                        className="group rounded-2xl shadow-xl border border-gray-200 overflow-hidden bg-white transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
                       >
                         <div className="relative h-64 overflow-hidden">
                           <ImageWithFallback
-                            src={barber.profile?.photo || "/default-avatar.png"}
-                            alt={`${barber.first_name} ${barber.last_name}`}
-                            className="w-full h-full object-cover transition-transform duration-500"
+                            src={barber.avatar || "/default-avatar.png"}
+                            alt={barber.name}
+                            className="w-full h-full object-cover transition-transform duration-400 group-hover:scale-100"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                          {barber.profile?.offers_home_service && (
-                            <div className="absolute bg-[#5dbd60] top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+
+                          {barber.offerHomeService && (
+                            <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
                               <svg
                                 className="w-4 h-4"
                                 fill="none"
@@ -310,43 +363,45 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               Выезд на дом
                             </div>
                           )}
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-lg font-bold text-white truncate">
-                              {barber.first_name} {barber.last_name}
+
+                          <div className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
+                            <h3 className="text-white font-bold text-lg truncate">
+                              {barber.name}
                             </h3>
-                            <div className="flex items-center mt-1">
-                              <Star
-                                className="h-5 w-5 text-yellow-400 mr-1"
-                                fill="currentColor"
-                              />
-                              <span className="text-sm font-semibold text-white">
-                                {barber.rating?.toFixed(1) || "0.0"}
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-yellow-400">★★★★★</span>
+                              <span className="text-sm text-white font-semibold">
+                                {(barber.rating || 0).toFixed(1)}
                               </span>
-                              <span className="text-xs text-white/80 ml-2">
-                                ({barber.reviewCount || 0})
+                              <span className="text-xs text-white/80">
+                                ({barber.reviewCount || 0} отзывов)
                               </span>
                             </div>
                           </div>
                         </div>
-                        <div className="p-4 bg-gradient-to-b from-gray-50 to-white">
+
+                        <div className="p-4 bg-gradient-to-b from-white to-gray-50">
                           <div className="space-y-2 text-sm text-gray-600">
                             <div className="flex items-start">
-                              <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-[#9A0F34]" />
+                              <MapPin className="h-4 w-4 mr-2 mt-0.5 text-[#9A0F34]" />
                               <span className="line-clamp-1">
-                                {barber.profile?.address ||
-                                  "Локация не указана"}
+                                {barber.location || "Локация не указана"}
                               </span>
                             </div>
-                            {barber.profile?.working_hours_from && (
+                            {barber.workingHours?.from && (
                               <div className="flex items-center">
-                                <Clock className="h-4 w-4 mr-2 flex-shrink-0 text-[#9A0F34]" />
-                                <span>{getWorkingHours(barber.profile)}</span>
+                                <Clock className="h-4 w-4 mr-2 text-[#9A0F34]" />
+                                <span>
+                                  {barber.workingHours.from} -{" "}
+                                  {barber.workingHours.to}
+                                </span>
                               </div>
                             )}
                           </div>
+
                           <Button
                             variant="primary"
-                            className="w-full mt-4 bg-[#9A0F34] hover:bg-[#7b0c29] text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
+                            className="w-full mt-5 bg-[#9A0F34] hover:bg-[#7b0c29] text-white font-semibold py-2.5 rounded-xl transition-all duration-200"
                             onClick={() => handleBarberClick(barber.id)}
                           >
                             Записаться
@@ -391,7 +446,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             alt={shop.name || "Барбершоп"}
                             className="w-full h-full object-cover"
                           />
-                          {shop.isVerified && (
+                          {shop.is_verified && (
                             <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                               <svg
                                 className="h-3.5 w-3.5"
@@ -415,11 +470,8 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             {shop.name || "Без названия"}
                           </h3>
                           <div className="flex items-center mb-2">
-                            <Star
-                              className="h-4 w-4 text-yellow-400 mr-1"
-                              fill="currentColor"
-                            />
-                            <span className="font-semibold text-xs sm:text-sm">
+                            <span className="text-yellow-400">★★★★★</span>
+                            <span className="font-semibold text-xs sm:text-sm ml-1">
                               {(shop.rating || 0).toFixed(1)}
                             </span>
                             <span className="text-gray-500 text-xs ml-1">
@@ -452,7 +504,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             <Button
                               variant="outline"
                               className="flex-1 border-[#9A0F34] text-[#9A0F34] px-3 py-2 rounded-md text-xs sm:text-sm"
-                              onClick={() => handleBarbershopClick(shop.id)}
+                              onClick={() =>
+                                handleBarbershopClick(shop.id.toString())
+                              }
                               aria-label={`View details of ${
                                 shop.name || "barbershop"
                               }`}

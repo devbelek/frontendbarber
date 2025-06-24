@@ -1,30 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Upload, Scissors, MapPin, Clock, Tag, Info, X } from 'lucide-react';
-import Layout from '../components/layout/Layout';
-import Button from '../components/ui/Button';
-import Card, { CardContent } from '../components/ui/Card';
-import { useAuth } from '../context/AuthContext';
-import { servicesAPI } from '../api/services';
-import { useNotification } from '../context/NotificationContext';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Upload, MapPin, X } from "lucide-react";
+import Layout from "../components/layout/Layout";
+import Button from "../components/ui/Button";
+import Card, { CardContent } from "../components/ui/Card";
+import { useAuth } from "../context/AuthContext";
+import { servicesAPI } from "../api/services";
 
 const AddServicePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, refreshUserData } = useAuth();
-  const notification = useNotification();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    title: '',
-    price: '',
-    duration: '30',
-    type: 'classic',
-    length: 'short',
-    style: 'business',
-    location: '',
-    description: '',
+    title: "",
+    price: "",
+    duration: "30",
+    type: "classic",
+    length: "short",
+    style: "business",
+    location: "",
+    description: "",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -33,26 +31,30 @@ const AddServicePage: React.FC = () => {
   // Редирект, если пользователь не барбер
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
-    if (user?.profile?.user_type !== 'barber') {
-      navigate('/profile');
+    if (user?.profile?.user_type !== "barber") {
+      navigate("/profile");
     }
 
     // Предзаполняем адрес из профиля пользователя
     if (user?.profile?.address) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        location: user.profile?.address || ''
+        location: user.profile?.address || "",
       }));
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,36 +62,47 @@ const AddServicePage: React.FC = () => {
       const files = Array.from(e.target.files);
 
       // Проверка типа файлов
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-      const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "image/gif",
+      ];
+      const invalidFiles = files.filter(
+        (file) => !allowedTypes.includes(file.type)
+      );
 
       if (invalidFiles.length > 0) {
-        setError('Некоторые файлы имеют неверный формат. Поддерживаются только JPEG, PNG и GIF');
+        setError(
+          "Некоторые файлы имеют неверный формат. Поддерживаются только JPEG, PNG и GIF"
+        );
         return;
       }
 
       // Проверка размера файлов
-      const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+      const oversizedFiles = files.filter(
+        (file) => file.size > 5 * 1024 * 1024
+      );
 
       if (oversizedFiles.length > 0) {
-        setError('Некоторые файлы превышают максимальный размер 5MB');
+        setError("Некоторые файлы превышают максимальный размер 5MB");
         return;
       }
 
       // Ограничение на количество файлов
       if (images.length + files.length > 5) {
-        setError('Максимум 5 изображений');
+        setError("Максимум 5 изображений");
         return;
       }
 
       setError(null);
-      setImages(prev => [...prev, ...files]);
+      setImages((prev) => [...prev, ...files]);
 
       // Создаем preview URLs
-      files.forEach(file => {
+      files.forEach((file) => {
         const reader = new FileReader();
         reader.onload = () => {
-          setPreviewUrls(prev => [...prev, reader.result as string]);
+          setPreviewUrls((prev) => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
       });
@@ -97,8 +110,8 @@ const AddServicePage: React.FC = () => {
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const moveImage = (fromIndex: number, toIndex: number) => {
@@ -125,99 +138,101 @@ const AddServicePage: React.FC = () => {
     try {
       // Валидация
       if (!formData.title.trim()) {
-        setError('Пожалуйста, введите название услуги');
+        setError("Пожалуйста, введите название услуги");
         setLoading(false);
         return;
       }
 
       if (!formData.price.trim() || isNaN(Number(formData.price))) {
-        setError('Пожалуйста, введите корректную цену');
+        setError("Пожалуйста, введите корректную цену");
         setLoading(false);
         return;
       }
 
       if (images.length === 0) {
-        setError('Пожалуйста, загрузите хотя бы одно фото работы');
+        setError("Пожалуйста, загрузите хотя бы одно фото работы");
         setLoading(false);
         return;
       }
 
       // Создаем FormData для отправки файлов
       const serviceData = new FormData();
-      serviceData.append('title', formData.title.trim());
-      serviceData.append('price', formData.price.trim());
-      serviceData.append('duration', formData.duration);
-      serviceData.append('type', formData.type);
-      serviceData.append('length', formData.length);
-      serviceData.append('style', formData.style);
-      serviceData.append('location', formData.location.trim());
-      serviceData.append('description', formData.description.trim());
+      serviceData.append("title", formData.title.trim());
+      serviceData.append("price", formData.price.trim());
+      serviceData.append("duration", formData.duration);
+      serviceData.append("type", formData.type);
+      serviceData.append("length", formData.length);
+      serviceData.append("style", formData.style);
+      serviceData.append("location", formData.location.trim());
+      serviceData.append("description", formData.description.trim());
 
       // Явно добавляем ID барбера если он доступен
       if (user && user.id) {
-        serviceData.append('barber', user.id.toString());
+        serviceData.append("barber", user.id.toString());
       }
 
       // Важно! API ожидает "uploaded_images", а не "images"
       images.forEach((image) => {
-        serviceData.append('uploaded_images', image);
+        serviceData.append("uploaded_images", image);
       });
 
-      console.log('Sending data to server:', Array.from(serviceData.entries()));
+      console.log("Sending data to server:", Array.from(serviceData.entries()));
 
       // Отправляем на сервер
       const response = await servicesAPI.create(serviceData);
-      console.log('Успешный ответ:', response);
+      console.log("Успешный ответ:", response);
 
       // Обновляем данные пользователя
       if (refreshUserData) {
         await refreshUserData();
       }
 
-      setSuccess('Услуга успешно добавлена!');
+      setSuccess("Услуга успешно добавлена!");
 
       // Сбрасываем форму
       setFormData({
-        title: '',
-        price: '',
-        duration: '30',
-        type: 'classic',
-        length: 'short',
-        style: 'business',
-        location: user?.profile?.address || '',
-        description: '',
+        title: "",
+        price: "",
+        duration: "30",
+        type: "classic",
+        length: "short",
+        style: "business",
+        location: user?.profile?.address || "",
+        description: "",
       });
       setImages([]);
       setPreviewUrls([]);
 
       // Редирект на профиль после небольшой задержки
       setTimeout(() => {
-        navigate('/profile');
+        navigate("/profile");
       }, 2000);
-
     } catch (err: any) {
-      console.error('Error creating service:', err);
+      console.error("Error creating service:", err);
 
       // Более детальная обработка ошибок
-      let errorMessage = 'Не удалось создать услугу. Пожалуйста, попробуйте позже.';
+      let errorMessage =
+        "Не удалось создать услугу. Пожалуйста, попробуйте позже.";
 
       if (err.response?.data) {
         // Проверяем, есть ли подробности об ошибке
-        if (typeof err.response.data === 'object') {
+        if (typeof err.response.data === "object") {
           // Преобразуем все возможные поля ошибок в строку
           const errorFields = Object.keys(err.response.data);
-          const errorDetails = errorFields.map(field => {
-            const errorValue = err.response.data[field];
-            if (Array.isArray(errorValue)) {
-              return `${field}: ${errorValue.join(', ')}`;
-            }
-            return `${field}: ${errorValue}`;
-          }).join('\n');
+          const errorDetails = errorFields
+            .map((field) => {
+              const errorValue = err.response.data[field];
+              if (Array.isArray(errorValue)) {
+                return `${field}: ${errorValue.join(", ")}`;
+              }
+              return `${field}: ${errorValue}`;
+            })
+            .join("\n");
 
           if (errorDetails) {
             errorMessage = errorDetails;
           }
-        } else if (typeof err.response.data === 'string') {
+        } else if (typeof err.response.data === "string") {
           errorMessage = err.response.data;
         }
       }
@@ -233,7 +248,7 @@ const AddServicePage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Добавить новую услугу</h1>
-          <Button variant="outline" onClick={() => navigate('/profile')}>
+          <Button variant="outline" onClick={() => navigate("/profile")}>
             Вернуться в профиль
           </Button>
         </div>
@@ -483,7 +498,7 @@ const AddServicePage: React.FC = () => {
                   disabled={loading}
                   className="w-full"
                 >
-                  {loading ? 'Сохранение...' : 'Добавить услугу'}
+                  {loading ? "Сохранение..." : "Добавить услугу"}
                 </Button>
               </div>
             </form>

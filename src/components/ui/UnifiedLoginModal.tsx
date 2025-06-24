@@ -17,7 +17,6 @@ const UnifiedLoginModal: React.FC<UnifiedLoginModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { loginWithGoogle } = useAuth();
   const notification = useNotification();
   // const navigate = useNavigate();
   const [formMode, setFormMode] = useState<"google" | "email">("google");

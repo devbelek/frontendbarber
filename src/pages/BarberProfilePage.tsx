@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   MapPin,
   Calendar,
   Clock,
   MessageSquare,
   ExternalLink,
+  ArrowLeft,
 } from "lucide-react";
 import Layout from "../components/layout/Layout";
 import Button from "../components/ui/Button";
@@ -18,6 +19,7 @@ import { Barber, Haircut } from "../types";
 import { useLanguage } from "../context/LanguageContext";
 import ImageWithFallback from "../components/ui/ImageWithFallback";
 import { useNotification } from "../context/NotificationContext";
+import HaircutSelectionModal from "../components/haircuts/HaircutSelectionModal";
 
 interface BarberProfilePageProps {
   openLoginModal: () => void;
@@ -29,9 +31,12 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
   const { t } = useLanguage();
   const notification = useNotification();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [barber, setBarber] = useState<Barber | null>(null);
   const [barberHaircuts, setBarberHaircuts] = useState<Haircut[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isHaircutSelectionModalOpen, setIsHaircutSelectionModalOpen] =
+    useState(false);
   const [selectedHaircut, setSelectedHaircut] = useState<Haircut | null>(null);
   const [activeTab, setActiveTab] = useState<"portfolio" | "info" | "reviews">(
     "portfolio"
@@ -172,6 +177,12 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
     }
   };
 
+  const handleSelectHaircut = (haircut: Haircut) => {
+    setSelectedHaircut(haircut);
+    setIsHaircutSelectionModalOpen(false);
+    setIsBookingModalOpen(true);
+  };
+
   const CombIcon = ({ className = "" }) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -227,7 +238,16 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
 
   return (
     <Layout openLoginModal={openLoginModal}>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
+        {/* Back Arrow Button */}
+        <Button
+          onClick={() => navigate("/")}
+          variant="ghost"
+          className="absolute top-4 left-4 p-2 text-gray-600 hover:text-[#9A0F34] hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+
         {/* Profile Card */}
         <div className="bg-white rounded-2xl overflow-hidden p-6 sm:p-8 md:p-10">
           <div className="flex flex-col md:flex-row gap-8">
@@ -291,68 +311,27 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                 </div>
               </div>
 
-              {/* Specializations */}
-              <div className="flex flex-wrap gap-2">
-                {(barber.specialization?.length
-                  ? barber.specialization
-                  : ["Мужские стрижки"]
-                ).map((spec, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm font-medium shadow-sm"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
-
-              {/* Contact Buttons */}
-              <div className="flex flex-wrap gap-3">
-                {barber.whatsapp && (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      handleContactClick("whatsapp", barber.whatsapp)
-                    }
-                    className="flex items-center border-green-500 text-green-600"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5 mr-2 fill-current"
+              {/* Specializations and Book Now Button */}
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {(barber.specialization?.length
+                    ? barber.specialization
+                    : ["Мужские стрижки"]
+                  ).map((spec, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm font-medium shadow-sm"
                     >
-                      <path
-                        fill="currentColor"
-                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"
-                      />
-                    </svg>
-                    WhatsApp
-                  </Button>
-                )}
-                {barber.telegram && (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      handleContactClick("telegram", barber.telegram)
-                    }
-                    className="flex items-center border-blue-500 text-blue-600"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5 mr-2 fill-current"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"
-                      />
-                    </svg>
-                    Telegram
-                  </Button>
-                )}
-                {!barber.whatsapp && !barber.telegram && (
-                  <p className="text-gray-500 italic text-sm">
-                    Контактные данные не указаны
-                  </p>
-                )}
+                      {spec}
+                    </span>
+                  ))}
+                </div>
+                <Button
+                  onClick={() => setIsHaircutSelectionModalOpen(true)}
+                  className="bg-[#9A0F34] text-white hover:bg-[#7A0C2A] rounded-full px-3 py-1 text-sm sm:text-base shadow-md"
+                >
+                  {t("bookNow")}
+                </Button>
               </div>
             </div>
           </div>
@@ -451,7 +430,7 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                       <p className="font-medium text-gray-800">
                         {barber.workingHours.days.join(", ")}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray-500 mt-1">
                         {barber.workingHours.from} - {barber.workingHours.to}
                       </p>
                     </div>
@@ -459,7 +438,7 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <Card className="rounded-2xl shadow-sm">
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-lg text-gray-900 mb-3">
                     {t("contacts")}
@@ -531,6 +510,15 @@ const BarberProfilePage: React.FC<BarberProfilePageProps> = ({
           )}
         </div>
 
+        {/* Haircut Selection Modal */}
+        <HaircutSelectionModal
+          isOpen={isHaircutSelectionModalOpen}
+          onClose={() => setIsHaircutSelectionModalOpen(false)}
+          haircuts={barberHaircuts}
+          onSelectHaircut={handleSelectHaircut}
+        />
+
+        {/* Booking Modal */}
         <BookingModal
           isOpen={isBookingModalOpen}
           onClose={() => setIsBookingModalOpen(false)}

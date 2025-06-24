@@ -19,7 +19,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
   const [allBarbers, setAllBarbers] = useState([]);
   const [filteredBarbers, setFilteredBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [regionFilter, setRegionFilter] = useState("all");
@@ -35,7 +35,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
   const fetchBarbers = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       console.log("Запрос списка барберов...");
       const response = await profileAPI.getAllBarbers();

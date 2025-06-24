@@ -82,7 +82,7 @@ const Layout: FC<LayoutProps> = ({ children, openLoginModal }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <Header openLoginModal={openLoginModal} />
       <main className={`flex-grow ${isMobile ? "pb-16" : ""}`}>{children}</main>
       <Footer />
 

@@ -1,35 +1,36 @@
-// src/components/layout/Header.tsx
-
 import { FC, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Globe, MapPin, LogOut, Scissors, Store } from "lucide-react";
+import { Globe, MapPin, LogOut, Store, Home } from "lucide-react";
 import Button from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useLocation as useLocationContext } from "../../context/LocationContext";
-import UnifiedLoginModal from "../ui/UnifiedLoginModal";
 
-const Header: FC = () => {
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
+interface HeaderProps {
+  openLoginModal: () => void; // Добавляем проп для открытия модального окна
+}
+
+const Header: FC<HeaderProps> = ({ openLoginModal }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
-  const { currentRegion, regions, setCurrentRegion } = useLocationContext();
+  const { currentRegion } = useLocationContext();
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
   const toggleLanguage = () => {
     setLanguage(language === "ru" ? "kg" : "ru");
   };
 
-  const handleLoginClick = () => {
-    setLoginModalOpen(true);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
     <header className="sticky top-0 bg-white text-gray-900 shadow-sm z-50 py-2 backdrop-blur-md bg-white/95">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 relative">
         <div className="flex justify-between items-center h-14">
-          {/* Логотип */}
+          {/* Logo */}
           <Link to="/" className="flex items-center">
             <svg
               viewBox="0 0 24 24"
@@ -49,8 +50,19 @@ const Header: FC = () => {
             <span className="ml-2 text-xl font-bold text-gray-900">TARAK</span>
           </Link>
 
-          {/* Навигация */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
+            <Link
+              to="/"
+              className={`flex items-center border-b-2 transition-all duration-200 pb-1 ${
+                location.pathname === "/"
+                  ? "border-[#9A0F34] text-[#9A0F34] font-semibold"
+                  : "border-transparent text-gray-700 hover:text-[#9A0F34] hover:border-[#9A0F34]"
+              }`}
+            >
+              <Home className="h-5 w-5 mr-2" />
+              Главная
+            </Link>
             <Link
               to="/discover"
               className={`flex items-center border-b-2 transition-all duration-200 pb-1 ${
@@ -64,8 +76,9 @@ const Header: FC = () => {
             </Link>
           </nav>
 
+          {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-3">
-            {/* Селектор региона */}
+            {/* Region Selector */}
             <div className="relative">
               <button
                 onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
@@ -85,30 +98,9 @@ const Header: FC = () => {
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
-
-              {/* {isRegionDropdownOpen && (
-                <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg py-1 z-50 min-w-[180px]">
-                  {regions.map((region) => (
-                    <button
-                      key={region.id}
-                      onClick={() => {
-                        setCurrentRegion(region);
-                        setIsRegionDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm ${
-                        currentRegion.id === region.id
-                          ? "bg-gray-100 text-[#9A0F34]"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {region.name}
-                    </button>
-                  ))}
-                </div>
-              )} */}
             </div>
 
-            {/* Переключатель языка */}
+            {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
               className="p-2 rounded-full text-gray-700 hover:bg-gray-100"
@@ -117,7 +109,7 @@ const Header: FC = () => {
               <Globe className="h-5 w-5" />
             </button>
 
-            {/* Кнопки авторизации */}
+            {/* Authentication Buttons */}
             {isAuthenticated ? (
               <>
                 <Link to="/profile">
@@ -131,31 +123,113 @@ const Header: FC = () => {
                 </Button>
               </>
             ) : (
-              <Button variant="primary" onClick={handleLoginClick}>
+              <Button variant="primary" onClick={openLoginModal}>
                 {t("signIn")}
               </Button>
             )}
           </div>
 
-          {/* Мобильная кнопка */}
-          <div className="md:hidden">
-            <Link
-              to="/barbers"
+          {/* Mobile Actions */}
+          <div className="md:hidden flex items-center space-x-2">
+            <button
+              onClick={toggleLanguage}
               className="flex items-center px-3 py-1.5 rounded-lg bg-[#9A0F34] text-white text-sm font-medium shadow"
+              aria-label="Сменить язык"
             >
-              <Scissors className="h-4 w-4" />
-            </Link>
+              <Globe className="h-4 w-4" />
+            </button>
+            <button
+              onClick={toggleMobileMenu}
+              className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+              aria-label="Toggle mobile menu"
+            ></button>
           </div>
         </div>
-      </div>
 
-      {/* Рендерим модалку через портал */}
-      {loginModalOpen && (
-        <UnifiedLoginModal
-          isOpen={loginModalOpen}
-          onClose={() => setLoginModalOpen(false)}
-        />
-      )}
+        {/* Mobile Menu */}
+        {/* {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-14 right-0 w-64 bg-white border border-gray-200 shadow-lg z-50">
+            <nav className="flex flex-col space-y-4 p-4">
+              <Link
+                to="/"
+                onClick={toggleMobileMenu}
+                className={`flex items-center text-gray-700 hover:text-[#9A0F34] ${
+                  location.pathname === "/"
+                    ? "text-[#9A0F34] font-semibold"
+                    : ""
+                }`}
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Главная
+              </Link>
+              <Link
+                to="/discover"
+                onClick={toggleMobileMenu}
+                className={`flex items-center text-gray-700 hover:text-[#9A0F34] ${
+                  location.pathname === "/discover"
+                    ? "text-[#9A0F34] font-semibold"
+                    : ""
+                }`}
+              >
+                <Store className="h-5 w-5 mr-2" />
+                Мастера и салоны
+              </Link>
+              <div className="flex flex-col space-y-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setIsRegionDropdownOpen(!isRegionDropdownOpen);
+                  }}
+                  className="flex items-center text-gray-700 hover:text-[#9A0F34]"
+                >
+                  <MapPin className="h-5 w-5 mr-2" />
+                  {currentRegion.name}
+                </button>
+
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      to="/profile"
+                      onClick={toggleMobileMenu}
+                      className="flex items-center text-gray-700 hover:text-[#9A0F34]"
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-left"
+                      >
+                        {t("profile")}
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        logout();
+                        toggleMobileMenu();
+                      }}
+                      className="w-full text-left"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {t("logout")}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      openLoginModal();
+                      toggleMobileMenu();
+                    }}
+                    className="w-full text-left"
+                  >
+                    {t("signIn")}
+                  </Button>
+                )}
+              </div>
+            </nav>
+          </div>
+        )} */}
+      </div>
     </header>
   );
 };

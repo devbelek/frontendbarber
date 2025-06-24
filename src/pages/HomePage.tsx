@@ -15,6 +15,7 @@ import {
   X,
   Calendar,
   Filter,
+  Sparkles,
 } from "lucide-react";
 import Layout from "../components/layout/Layout";
 import { servicesAPI, profileAPI, bookingsAPI } from "../api/services";
@@ -23,37 +24,70 @@ import { useAuth } from "../context/AuthContext";
 import Button from "../components/ui/Button";
 import ImageWithFallback from "../components/ui/ImageWithFallback";
 import BookingModal from "../components/booking/BookingModal";
+import {
+  Haircut,
+  Barber,
+  PaginatedResponse,
+  BookingRequest,
+  ServiceImage,
+} from "../types"; // Импортируем необходимые типы
 
-const HomePage = ({ openLoginModal }) => {
-  const [popularHaircuts, setPopularHaircuts] = useState([]);
-  const [nearbyBarbers, setNearbyBarbers] = useState([]);
-  const [allHaircuts, setAllHaircuts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [galleryLoading, setGalleryLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [userLocation, setUserLocation] = useState({
+// Расширяем интерфейс Haircut для добавления полей, используемых в HomePage
+interface ExtendedHaircut extends Haircut {
+  barberWhatsapp?: string;
+  barberTelegram?: string;
+}
+
+// Типизация пропсов
+interface HomePageProps {
+  openLoginModal: () => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
+  const [popularHaircuts, setPopularHaircuts] = useState<ExtendedHaircut[]>([]);
+  const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
+  console.log("🚀 ~ nearbyBarbers:", nearbyBarbers);
+  const [allHaircuts, setAllHaircuts] = useState<ExtendedHaircut[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [page, setPage] = useState<number>(1);
+  const [userLocation, setUserLocation] = useState<{
+    address: string;
+    latitude: number | null;
+    longitude: number | null;
+  }>({
     address: "",
     latitude: null,
     longitude: null,
   });
 
-  // Search and filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filters, setFilters] = useState({
+  // Типизация фильтров
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [filters, setFilters] = useState<{
+    types: string[];
+    priceRange: [number, number | null];
+  }>({
     types: [],
-    priceRange: [0, null], // [minPrice, maxPrice]
+    priceRange: [0, null],
   });
-  const [sortBy, setSortBy] = useState("popular");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [sortBy, setSortBy] = useState<"popular" | "price" | "recent">(
+    "popular"
+  );
+  const [showCategoryDropdown, setShowCategoryDropdown] =
+    useState<boolean>(false);
 
-  // Modals
-  const [selectedHaircut, setSelectedHaircut] = useState(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  // Типизация модальных окон
+  const [selectedHaircut, setSelectedHaircut] =
+    useState<ExtendedHaircut | null>(null);
+  const [showContactModal, setShowContactModal] = useState<boolean>(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
 
-  const [categories] = useState([
+  // Типизация категорий
+  const [categories] = useState<
+    { name: string; icon: string; color: string }[]
+  >([
     {
       name: "Классические",
       icon: "classic",
@@ -63,9 +97,9 @@ const HomePage = ({ openLoginModal }) => {
     {
       name: "Андеркат",
       icon: "undercut",
-      color: "bg-purple-800 text-white",
+      color: "bg-purple-100 text-purple-800",
     },
-    { name: "Текстурные", icon: "textured", color: "bg-red-600 text-white" },
+    { name: "Текстурные", icon: "textured", color: "bg-red-100 text-red-800" },
     { name: "Кроп", icon: "crop", color: "bg-yellow-100 text-yellow-800" },
     {
       name: "Помпады",
@@ -74,6 +108,7 @@ const HomePage = ({ openLoginModal }) => {
     },
   ]);
 
+  // Типизация категорий фильтров
   const filterCategories = {
     types: [
       "Классическая",
@@ -82,15 +117,15 @@ const HomePage = ({ openLoginModal }) => {
       "Кроп",
       "Помпадя",
       "Текстурная",
-    ],
-    lengths: ["Короткие", "Средние", "Длинные"],
+    ] as const,
+    lengths: ["Короткие", "Средние", "Длинные"] as const,
     styles: [
       "Деловой",
       "Повседневный",
       "Трендовый",
       "Винтажный",
       "Современный",
-    ],
+    ] as const,
     priceRanges: [
       { label: "До 500 сом", min: 0, max: 500 },
       { label: "500-1000 сом", min: 500, max: 1000 },
@@ -99,14 +134,16 @@ const HomePage = ({ openLoginModal }) => {
     ],
   };
 
+  // Типизация опций сортировки
   const sortOptions = [
     { value: "popular", label: "Популярные" },
     { value: "price", label: "По цене" },
     { value: "recent", label: "Новые" },
-  ];
+  ] as const;
 
-  const searchInputRef = useRef(null);
-  const observerRef = useRef(null);
+  // Типизация рефов
+  const searchInputRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const notification = useNotification();
   const { user, toggleFavorite, isAuthenticated } = useAuth();
@@ -140,55 +177,53 @@ const HomePage = ({ openLoginModal }) => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
+      // Получаем популярные стрижки
       const haircutsResponse = await servicesAPI.getPopular();
-      if (haircutsResponse && haircutsResponse.data) {
-        let results = Array.isArray(haircutsResponse.data.results)
-          ? haircutsResponse.data.results
-          : Array.isArray(haircutsResponse.data)
-          ? haircutsResponse.data
-          : [];
-        setPopularHaircuts(
-          results.map((service) => ({
-            ...service,
-            barber:
-              service.barber_details?.full_name ||
-              service.barber_details?.username ||
-              "Барбер",
-            barberId: service.barber_details?.id || service.barber,
-            barberWhatsapp: service.barber_details?.whatsapp,
-            barberTelegram: service.barber_details?.telegram,
-            is_favorite: service.is_favorite || false,
-          }))
-        );
-      }
+      const haircutsData: PaginatedResponse<Haircut> = haircutsResponse.data;
+      const results = Array.isArray(haircutsData.results)
+        ? haircutsData.results
+        : Array.isArray(haircutsData)
+        ? haircutsData
+        : [];
+      setPopularHaircuts(
+        results.map((service) => ({
+          ...service,
+          barber:
+            service.barber_details?.full_name ||
+            service.barber_details?.username ||
+            "Барбер",
+          barberId: service.barber_details?.id.toString() || service.barber,
+          barberWhatsapp: service.barber_details?.whatsapp,
+          barberTelegram: service.barber_details?.telegram,
+          isFavorite: service.is_favorite || false, // Приводим к isFavorite
+        }))
+      );
 
+      // Получаем ближайших барберов
       const barbersResponse = await profileAPI.getAllBarbers();
-      if (barbersResponse && barbersResponse.data) {
-        let barbersData = Array.isArray(barbersResponse.data.results)
-          ? barbersResponse.data.results
-          : Array.isArray(barbersResponse.data)
-          ? barbersResponse.data
-          : [];
-        if (userLocation.latitude && userLocation.longitude) {
-          barbersData = barbersData
-            .map((barber) => {
-              let distance = null;
-              if (barber.profile?.latitude && barber.profile?.longitude) {
-                distance = calculateDistance(
-                  userLocation.latitude,
-                  userLocation.longitude,
-                  barber.profile.latitude,
-                  barber.profile.longitude
-                );
-              }
-              return { ...barber, distance };
-            })
-            .sort(
-              (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
-            );
-        }
-        setNearbyBarbers(barbersData.slice(0, 4));
+      const barbersData: PaginatedResponse<Barber> = barbersResponse.data;
+      let barbers = Array.isArray(barbersData.results)
+        ? barbersData.results
+        : Array.isArray(barbersData)
+        ? barbersData
+        : [];
+      if (userLocation.latitude && userLocation.longitude) {
+        barbers = barbers
+          .map((barber) => {
+            let distance: number | null = null;
+            if (barber.profile?.latitude && barber.profile?.longitude) {
+              distance = calculateDistance(
+                userLocation.latitude,
+                userLocation.longitude,
+                barber.profile.latitude,
+                barber.profile.longitude
+              );
+            }
+            return { ...barber, distance };
+          })
+          .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
       }
+      setNearbyBarbers(barbers.slice(0, 4));
     } catch (error) {
       console.error("Error fetching initial data:", error);
       notification.error("Ошибка загрузки", "Не удалось загрузить данные");
@@ -197,13 +232,13 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  const fetchGalleryData = async (reset = false) => {
+  const fetchGalleryData = async (reset: boolean = false) => {
     if (galleryLoading) return;
 
     setGalleryLoading(true);
     try {
       const currentPage = reset ? 1 : page;
-      const params = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         page_size: 12,
         ordering:
@@ -212,48 +247,45 @@ const HomePage = ({ openLoginModal }) => {
             : sortBy === "price"
             ? "price"
             : "-created_at",
-        ...(filters.types?.length && { types: filters.types.join(",") }),
-        ...(filters.priceRange[0] !== 0 && {
-          min_price: filters.priceRange[0],
-        }),
-        ...(filters.priceRange[1] && { max_price: filters.priceRange[1] }),
-        ...(searchQuery && { search: searchQuery }),
       };
+      if (filters.types.length) params.types = filters.types.join(",");
+      if (filters.priceRange[0] !== 0) params.min_price = filters.priceRange[0];
+      if (filters.priceRange[1]) params.max_price = filters.priceRange[1];
+      if (searchQuery) params.search = searchQuery;
 
       const response = await servicesAPI.getAll(params);
-      if (response && response.data) {
-        const results = Array.isArray(response.data.results)
-          ? response.data.results
-          : Array.isArray(response.data)
-          ? response.data
-          : [];
-        const haircuts = results.map((service) => ({
-          id: service.id,
-          images: service.images || [],
-          primaryImage: service.primary_image || service.image,
-          title: service.title,
-          price: service.price,
-          barber:
-            service.barber_details?.full_name ||
-            service.barber_details?.username ||
-            "Барбер",
-          barberId: service.barber_details?.id || service.barber,
-          type: service.type,
-          length: service.length,
-          style: service.style,
-          location: service.location,
-          duration: service.duration,
-          views: service.views || 0,
-          is_favorite: service.is_favorite || false,
-          barberWhatsapp: service.barber_details?.whatsapp,
-          barberTelegram: service.barber_details?.telegram,
-          description: service.description,
-        }));
+      const responseData: PaginatedResponse<Haircut> = response.data;
+      const results = Array.isArray(responseData.results)
+        ? responseData.results
+        : Array.isArray(responseData)
+        ? responseData
+        : [];
+      const haircuts: ExtendedHaircut[] = results.map((service) => ({
+        id: service.id.toString(), // Приводим к строке
+        images: service.images || [],
+        primaryImage: service.primary_image || service.image,
+        title: service.title,
+        price: parseFloat(service.price), // Price в ServiceResponse - string
+        barber:
+          service.barber_details?.full_name ||
+          service.barber_details?.username ||
+          "Барбер",
+        barberId: service.barber_details?.id.toString() || service.barber,
+        type: service.type,
+        length: service.length,
+        style: service.style,
+        location: service.location,
+        duration: service.duration,
+        views: service.views || 0,
+        isFavorite: service.is_favorite || false,
+        barberWhatsapp: service.barber_details?.whatsapp,
+        barberTelegram: service.barber_details?.telegram,
+        description: service.description,
+      }));
 
-        setAllHaircuts((prev) => (reset ? haircuts : [...prev, ...haircuts]));
-        setPage(currentPage + 1);
-        setHasMore(results.length === 12);
-      }
+      setAllHaircuts((prev) => (reset ? haircuts : [...prev, ...haircuts]));
+      setPage(currentPage + 1);
+      setHasMore(results.length === 12);
     } catch (error) {
       console.error("Error fetching gallery data:", error);
       notification.error("Ошибка", "Не удалось загрузить стрижки");
@@ -272,7 +304,7 @@ const HomePage = ({ openLoginModal }) => {
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
             );
             const data = await response.json();
-            const address = data.address
+            const address: string = data.address
               ? [data.address.city || data.address.town, data.address.suburb]
                   .filter(Boolean)
                   .join(", ") || "Неизвестное местоположение"
@@ -292,7 +324,12 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
     const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
@@ -306,14 +343,17 @@ const HomePage = ({ openLoginModal }) => {
     return parseFloat((R * c).toFixed(1));
   };
 
-  const deg2rad = (deg) => deg * (Math.PI / 180);
+  const deg2rad = (deg: number): number => deg * (Math.PI / 180);
 
-  const getBarberName = (barber) =>
+  const getBarberName = (barber: any) =>
     barber.first_name || barber.last_name
       ? `${barber.first_name || ""} ${barber.last_name || ""}`.trim()
       : barber.username || "Барбер";
 
-  const handleFavoriteToggle = async (haircutId, e) => {
+  const handleFavoriteToggle = async (
+    haircutId: string,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.stopPropagation();
     e.preventDefault();
     if (!isAuthenticated) {
@@ -327,12 +367,12 @@ const HomePage = ({ openLoginModal }) => {
       await toggleFavorite(haircutId);
       setPopularHaircuts((prev) =>
         prev.map((h) =>
-          h.id === haircutId ? { ...h, is_favorite: !h.is_favorite } : h
+          h.id === haircutId ? { ...h, isFavorite: !h.isFavorite } : h
         )
       );
       setAllHaircuts((prev) =>
         prev.map((h) =>
-          h.id === haircutId ? { ...h, is_favorite: !h.is_favorite } : h
+          h.id === haircutId ? { ...h, isFavorite: !h.isFavorite } : h
         )
       );
       notification.success("Успешно", "Статус избранного изменен");
@@ -342,26 +382,33 @@ const HomePage = ({ openLoginModal }) => {
     }
   };
 
-  const handleContactClick = (haircut, e) => {
+  const handleContactClick = (
+    haircut: ExtendedHaircut,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.stopPropagation();
     e.preventDefault();
     setSelectedHaircut(haircut);
     setShowContactModal(true);
   };
 
-  const handleBookClick = (haircut) => {
+  const handleBookClick = (haircut: ExtendedHaircut) => {
     setSelectedHaircut(haircut);
     setIsBookingModalOpen(true);
   };
 
-  const handleBookingConfirm = async (date, time, contactInfo) => {
+  const handleBookingConfirm = async (
+    date: string,
+    time: string,
+    contactInfo: { name?: string; phone?: string; notes?: string }
+  ) => {
     if (!selectedHaircut) return;
     try {
-      const bookingData = {
+      const bookingData: BookingRequest = {
         service: selectedHaircut.id,
         date,
         time,
-        notes: contactInfo?.notes || "",
+        notes: contactInfo.notes,
         client_name: contactInfo.name,
         client_phone: contactInfo.phone,
       };
@@ -389,12 +436,12 @@ const HomePage = ({ openLoginModal }) => {
     setIsFilterOpen(false);
   };
 
-  const handleSearchKeyDown = (e) => {
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") handleSearch();
   };
 
-  const handleCategoryClick = (categoryType) => {
-    const categoryNames = {
+  const handleCategoryClick = (categoryType: string) => {
+    const categoryNames: Record<string, string> = {
       classic: "Классическая",
       fade: "Фейд",
       undercut: "Андеркат",
@@ -412,7 +459,7 @@ const HomePage = ({ openLoginModal }) => {
     setShowCategoryDropdown(false);
   };
 
-  const handlePriceRangeClick = (min, max) => {
+  const handlePriceRangeClick = (min: number, max: number | null) => {
     setFilters((prev) => ({
       ...prev,
       priceRange: [min, max],
@@ -426,17 +473,20 @@ const HomePage = ({ openLoginModal }) => {
     fetchGalleryData(true);
   };
 
-  const handleBarberClick = (barberId, e) => {
+  const handleBarberClick = (
+    barberId: string,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     if (barberId) navigate(`/barber/${barberId}`);
   };
 
-  const HaircutCard = ({ haircut }) => {
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const HaircutCard: React.FC<{ haircut: ExtendedHaircut }> = ({ haircut }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
     const hasMultipleImages = haircut.images && haircut.images.length > 1;
-    const autoSlideIntervalRef = useRef(null);
-    const [autoSlideEnabled, setAutoSlideEnabled] = useState(true);
+    const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [autoSlideEnabled, setAutoSlideEnabled] = useState<boolean>(true);
 
     useEffect(() => {
       if (hasMultipleImages && autoSlideEnabled) {
@@ -446,10 +496,14 @@ const HomePage = ({ openLoginModal }) => {
           );
         }, 5000);
       }
-      return () => clearInterval(autoSlideIntervalRef.current);
+      return () => {
+        if (autoSlideIntervalRef.current) {
+          clearInterval(autoSlideIntervalRef.current);
+        }
+      };
     }, [haircut.images, autoSlideEnabled, hasMultipleImages]);
 
-    const handlePrevImage = (e) => {
+    const handlePrevImage = (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       e.preventDefault();
       setAutoSlideEnabled(false);
@@ -459,7 +513,7 @@ const HomePage = ({ openLoginModal }) => {
         );
     };
 
-    const handleNextImage = (e) => {
+    const handleNextImage = (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       e.preventDefault();
       setAutoSlideEnabled(false);
@@ -469,10 +523,10 @@ const HomePage = ({ openLoginModal }) => {
         );
     };
 
-    const currentImage =
+    const currentImage: string =
       haircut.images && haircut.images.length > 0
         ? haircut.images[currentImageIndex].image
-        : haircut.primaryImage || haircut.image;
+        : haircut.primaryImage || "";
 
     return (
       <div className="group overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white">
@@ -481,7 +535,6 @@ const HomePage = ({ openLoginModal }) => {
             src={currentImage}
             alt={haircut.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
           />
           {hasMultipleImages && (
             <>
@@ -498,7 +551,7 @@ const HomePage = ({ openLoginModal }) => {
                 <ChevronRight className="h-4 w-4" />
               </button>
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {haircut.images.map((_, index) => (
+                {haircut.images.map((_: ServiceImage, index: number) => (
                   <div
                     key={index}
                     className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
@@ -518,13 +571,13 @@ const HomePage = ({ openLoginModal }) => {
           <div className="absolute top-3 right-3 flex gap-1.5 z-10">
             <button
               className={`p-1.5 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 ${
-                haircut.is_favorite ? "text-red-400" : "text-white"
+                haircut.isFavorite ? "text-red-400" : "text-white"
               }`}
               onClick={(e) => handleFavoriteToggle(haircut.id, e)}
             >
               <Heart
                 className={`h-4 w-4 ${
-                  haircut.is_favorite ? "fill-red-400" : ""
+                  haircut.isFavorite ? "fill-red-400" : ""
                 }`}
               />
             </button>
@@ -583,7 +636,7 @@ const HomePage = ({ openLoginModal }) => {
         <Banner />
 
         {/* Nearby Barbers */}
-        <div className="py-6 bg-white rounded-2xl  mt-6">
+        <div className="py-6 bg-white rounded-2xl mt-6">
           <div className="flex justify-between items-center mb-4 px-6">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
               Барберы рядом
@@ -618,21 +671,17 @@ const HomePage = ({ openLoginModal }) => {
                     className="flex-shrink-0 w-44 sm:w-52 bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                   >
                     <img
-                      src={
-                        barber.avatar ||
-                        barber.profile?.photo ||
-                        "https://via.placeholder.com/150"
-                      }
-                      alt={getBarberName(barber)}
+                      src={barber.profile?.photo || "/default-avatar.png"}
+                      alt={barber.name}
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto mb-4 object-cover shadow-sm"
                       loading="lazy"
                     />
                     <p className="text-center font-semibold text-sm sm:text-base text-gray-900 mb-2">
                       {getBarberName(barber)}
                     </p>
-                    <p className="text-xs text-center text-gray-500 flex items-center justify-center">
+                    <p className=" text-[#9A0F34] text-xs text-center  flex items-center justify-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {barber.distance} км
+                      {barber.profile?.address}
                     </p>
                   </button>
                 ))
@@ -683,53 +732,73 @@ const HomePage = ({ openLoginModal }) => {
         </div>
 
         {/* How It Works */}
-        <div className="py-6">
-          <div className="flex overflow-x-auto gap-4 px-2 sm:px-4 pb-4">
-            {[
-              {
-                icon: <Search className="h-8 w-8 text-[#9A0F34]" />,
-                title: "Выбери стрижку",
-                desc: "Просматривай фото реальных стрижек",
-              },
-              {
-                icon: <Calendar className="h-8 w-8 text-[#9A0F34]" />,
-                title: "Забронируй время",
-                desc: "Запишись к барберу онлайн",
-              },
-              {
-                icon: <Star className="h-8 w-8 text-[#9A0F34]" />,
-                title: "Получи результат",
-                desc: "Точно такую же стрижку как на фото",
-              },
-            ].map((step, index) => (
-              <div
-                key={index}
-                className="flex-shrink-0 w-72 sm:w-80 md:w-96 p-5 bg-white rounded-2xl shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <div className="mb-4">{step.icon}</div>
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">
-                  {step.title}
-                </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {step.desc}
-                </p>
-              </div>
-            ))}
+        <div className="py-10 bg-white rounded-2xl">
+          <div className="text-center mb-6 px-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+              Как это работает?
+            </h2>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              Легко, быстро и точно — следуй 3 простым шагам к своему новому
+              образу.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto px-1 sm:px-4 p-6 scroll-smooth scrollbar-none snap-x snap-mandatory">
+            <div className="flex gap-4 w-max justify-between">
+              {[
+                {
+                  icon: <Search className="h-7 w-7 text-white" />,
+                  title: "Выбери стрижку",
+                  desc: "Просматривай фото реальных стрижек и выбери стиль.",
+                },
+                {
+                  icon: <Calendar className="h-7 w-7 text-white" />,
+                  title: "Забронируй время",
+                  desc: "Запишись к барберу онлайн в пару кликов.",
+                },
+                {
+                  icon: <Star className="h-7 w-7 text-white" />,
+                  title: "Получи результат",
+                  desc: "Барбер сделает стрижку как на фото.",
+                },
+                {
+                  icon: <Sparkles className="h-7 w-7 text-white" />,
+                  title: "Уход за стрижкой",
+                  desc: "Получай советы по уходу от барбера и рекомендации по стилю.",
+                },
+              ].map((step, index) => (
+                <div
+                  key={index}
+                  className="flex-shrink-0 snap-center w-64 sm:w-72 md:w-80 p-4 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md transition duration-200 hover:-translate-y-0.5"
+                >
+                  <div className="mb-3 bg-[#9A0F34] p-2 rounded-lg w-fit">
+                    {step.icon}
+                  </div>
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-1">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-gray-600">{step.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* All Haircuts */}
         <div className="py-6" data-section="gallery">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3 px-4 py-3 bg-white shadow-sm rounded-b-lg">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               Все стрижки
             </h2>
-            <div className="flex items-center gap-3">
-              {/* Show select only on md and larger screens */}
+
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              {/* Select виден только на md+ */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="hidden md:block border border-gray-200 p-2 rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200"
+                onChange={(e) =>
+                  setSortBy(e.target.value as "popular" | "price" | "recent")
+                }
+                className="hidden md:block border border-gray-300 px-3 py-2 rounded-md text-sm bg-white shadow-sm focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200"
               >
                 {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -737,13 +806,14 @@ const HomePage = ({ openLoginModal }) => {
                   </option>
                 ))}
               </select>
+
               {(searchQuery ||
                 filters.types.length > 0 ||
                 filters.priceRange[0] !== 0 ||
                 filters.priceRange[1] !== null) && (
                 <Button
                   variant="outline"
-                  className="text-sm px-4 py-2 border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white transition-all duration-200 rounded-lg"
+                  className="text-sm px-4 py-2 border border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white transition-all duration-200 rounded-md"
                   onClick={resetFilters}
                 >
                   Сбросить
@@ -753,15 +823,15 @@ const HomePage = ({ openLoginModal }) => {
           </div>
 
           {/* Sticky Search Panel */}
-          <div className="sticky top-[4rem] z-20 mb-6 bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+          <div className="sticky top-[4rem] z-20 mb-6 bg-white rounded-b-2xl rounded-t-none shadow-lg p-5 border border-t-0 border-gray-100">
             {/* Desktop Search Panel */}
-            <div className="hidden md:flex items-center justify-center gap-4">
-              <div className="relative w-full max-w-lg" ref={searchInputRef}>
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div className="hidden md:flex items-center justify-center gap-4 max-w-4xl mx-auto">
+              <div className="relative flex-grow max-w-lg" ref={searchInputRef}>
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Найти стрижку..."
-                  className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200 text-sm bg-gray-50 shadow-sm"
+                  className="w-full pl-12 pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200 text-sm bg-gray-50 shadow-sm"
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   value={searchQuery}
@@ -770,35 +840,41 @@ const HomePage = ({ openLoginModal }) => {
                   <button
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                     onClick={() => setSearchQuery("")}
+                    aria-label="Очистить поиск"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
+
               <Button
                 variant="primary"
-                className="px-6 py-3 text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] hover:shadow-lg transition-all duration-300 rounded-lg"
+                className="px-6 py-4 text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] hover:shadow-lg transition-all duration-300 rounded-lg"
                 onClick={handleSearch}
               >
                 Поиск
               </Button>
+
               <div className="relative">
                 <button
-                  className={`flex items-center px-4 py-3 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-all duration-200 ${
+                  className={`flex items-center px-3 py-3 border border-gray-200 rounded-lg bg-white shadow-sm transition-all duration-200 ${
                     showCategoryDropdown
                       ? "bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white"
                       : "text-gray-700"
                   }`}
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  aria-haspopup="true"
+                  aria-expanded={showCategoryDropdown}
                 >
                   <Scissors className="h-5 w-5 mr-2" />
-                  <span className="text-sm font-medium">Категории</span>
+                  <span className="text-sm font-semibold">Категории</span>
                   <ChevronDown
                     className={`h-4 w-4 ml-2 transition-transform duration-200 ${
                       showCategoryDropdown ? "rotate-180" : ""
                     }`}
                   />
                 </button>
+
                 {showCategoryDropdown && (
                   <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 p-4 z-50 w-72">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3">
@@ -810,6 +886,7 @@ const HomePage = ({ openLoginModal }) => {
                           key={category.name}
                           onClick={() => handleCategoryClick(category.icon)}
                           className={`flex flex-col items-center p-2 rounded-lg hover:bg-gray-50 transition-colors ${category.color} text-xs`}
+                          aria-label={`Категория ${category.name}`}
                         >
                           <Scissors className="h-4 w-4 mb-1" />
                           <span className="font-medium">{category.name}</span>
@@ -822,7 +899,7 @@ const HomePage = ({ openLoginModal }) => {
             </div>
 
             {/* Mobile Search Panel */}
-            <div className="md:hidden flex gap-3">
+            <div className="md:hidden flex gap-3 items-center px-2">
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -835,16 +912,19 @@ const HomePage = ({ openLoginModal }) => {
                 />
                 {searchQuery && (
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                     onClick={() => setSearchQuery("")}
+                    aria-label="Очистить поиск"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
+
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white flex items-center justify-center px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                aria-label="Открыть фильтры"
               >
                 <Filter className="h-4 w-4" />
               </button>
@@ -869,7 +949,7 @@ const HomePage = ({ openLoginModal }) => {
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4 text-sm">Стрижки не найдены</p>
               <Button
-                className="text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] hover:shadow-lg transition-all duration-300 rounded-lg px-6 py-2"
+                className="text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white font-semibold transition-all duration-300 rounded-lg px-6 py-2"
                 onClick={resetFilters}
               >
                 Сбросить фильтры
@@ -880,10 +960,10 @@ const HomePage = ({ openLoginModal }) => {
 
         {/* Mobile Filter Panel */}
         {isFilterOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 md:hidden transition-all duration-300">
+          <div className="fixed inset-0 z-50 bg-black/60 md:h bg-white transition-all duration-300">
             <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Фильтры</h3>
+                <h3 className="text-lg font-bold text-gray-900">Фильтров</h3>
                 <button
                   onClick={() => setIsFilterOpen(false)}
                   className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
@@ -897,17 +977,18 @@ const HomePage = ({ openLoginModal }) => {
                   Сортировка
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {sortOptions.map((option) => (
+                  {sortOptions.map((opt) => (
                     <button
-                      key={option.value}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                        sortBy === option.value
-                          ? "bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white"
+                      key={opt.value}
+                      className="px-3 py-2 rounded-lg text-sm font-medium"
+                      className={`px-3 py-2 rounded-lg text-sm font-semibold ${
+                        sortBy === opt.value
+                          ? "bg-blue-500 text-white"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      } transition-all duration-200`}
-                      onClick={() => setSortBy(option.value)}
+                      } transition-all duration-200 `}
+                      onClick={() => setSortBy(opt.value)}
                     >
-                      {option.label}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
@@ -928,7 +1009,7 @@ const HomePage = ({ openLoginModal }) => {
                         className="mr-2 h-4 w-4 text-[#9A0F34] focus:ring-[#9A0F34]"
                         checked={filters.types.includes(type)}
                         onChange={() => {
-                          setFilters((prev: any) => ({
+                          setFilters((prev) => ({
                             ...prev,
                             types: prev.types.includes(type)
                               ? prev.types.filter((t) => t !== type)
@@ -990,25 +1071,59 @@ const HomePage = ({ openLoginModal }) => {
         {/* Contact Modal */}
         {showContactModal && selectedHaircut && (
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6"
             onClick={() => setShowContactModal(false)}
           >
             <div
-              className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="relative bg-white rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeScale"
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="contact-modal-title"
+              aria-describedby="contact-modal-desc"
             >
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="h-8 w-8 text-white" />
+              {/* Close button top right */}
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition-colors"
+                aria-label="Закрыть окно"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-600 hover:text-gray-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+
+              <div className="text-center mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#9A0F34] to-[#7b0c29] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <MessageSquare className="h-10 w-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3
+                  id="contact-modal-title"
+                  className="text-2xl font-extrabold text-gray-900 mb-2"
+                >
                   Связаться с барбером
                 </h3>
-                <p className="text-sm text-gray-600">
-                  Узнайте подойдет ли вам эта стрижка
+                <p
+                  id="contact-modal-desc"
+                  className="text-gray-600 text-sm max-w-xs mx-auto"
+                >
+                  Узнайте, подойдет ли вам эта стрижка и задайте вопросы
+                  напрямую
                 </p>
               </div>
-              <div className="space-y-3">
+
+              <div className="space-y-4">
                 {selectedHaircut.barberWhatsapp && (
                   <a
                     href={`https://wa.me/${selectedHaircut.barberWhatsapp.replace(
@@ -1019,12 +1134,13 @@ const HomePage = ({ openLoginModal }) => {
                     }"`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-medium text-sm"
+                    className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white py-3 rounded-2xl shadow-md transition-all duration-300 font-semibold text-base gap-3"
                   >
                     <svg
-                      className="w-5 h-5 mr-2"
+                      className="w-6 h-6"
                       fill="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                     </svg>
@@ -1039,12 +1155,13 @@ const HomePage = ({ openLoginModal }) => {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-medium text-sm"
+                    className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-3 rounded-2xl shadow-md transition-all duration-300 font-semibold text-base gap-3"
                   >
                     <svg
-                      className="w-5 h-5 mr-2"
+                      className="w-6 h-6"
                       fill="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
                     </svg>
@@ -1053,17 +1170,11 @@ const HomePage = ({ openLoginModal }) => {
                 )}
                 {!selectedHaircut.barberWhatsapp &&
                   !selectedHaircut.barberTelegram && (
-                    <p className="text-center text-gray-500 py-4 text-sm">
+                    <p className="text-center text-gray-500 py-6 text-sm">
                       Контактные данные барбера не указаны
                     </p>
                   )}
               </div>
-              <button
-                onClick={() => setShowContactModal(false)}
-                className="mt-6 w-full text-gray-600 py-2 hover:text-gray-800 transition-colors duration-200 font-medium text-sm"
-              >
-                Закрыть
-              </button>
             </div>
           </div>
         )}

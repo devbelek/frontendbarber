@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Calendar, Clock, User, Phone } from "lucide-react";
+import {
+  X,
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+} from "lucide-react";
 import Button from "../ui/Button";
 import { useLanguage } from "../../context/LanguageContext";
-import ImageWithFallback from "../ui/ImageWithFallback";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { profileAPI } from "../../api/services";
-import { bookingsAPI } from "../../api/services";
+import { profileAPI, bookingsAPI } from "../../api/services";
 import { Haircut } from "../../types";
 
 interface BookingModalProps {
@@ -18,6 +26,7 @@ interface BookingModalProps {
     time: string,
     contactInfo: { name: string; phone: string; notes?: string }
   ) => void;
+  theme?: "light" | "dark";
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({
@@ -25,6 +34,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   haircut,
   onConfirm,
+  theme = "light",
 }) => {
   const { t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
@@ -279,258 +289,385 @@ const BookingModal: React.FC<BookingModalProps> = ({
       ? haircut.images[currentImageIndex].image
       : haircut.primaryImage || haircut.images;
 
+  const themeStyles =
+    theme === "dark"
+      ? {
+          modalBg: "bg-gray-900 text-white",
+          headerBg: "bg-gradient-to-r from-gray-800 to-gray-700",
+          sectionBg: "bg-gray-800/50",
+          buttonBg: "bg-gray-700 hover:bg-gray-600",
+          inputBg: "bg-gray-800 border-gray-600 focus:border-blue-500",
+          textColor: "text-gray-200",
+          accentColor: "text-blue-400",
+        }
+      : {
+          modalBg: "bg-white text-gray-900",
+          headerBg: "bg-gradient-to-r from-[#a01a3f] to-[#7a0c2a]",
+          sectionBg: "bg-gray-50",
+          buttonBg:
+            "bg-gradient-to-r from-[#a01a3f] to-[#7a0c2a] hover:from-[#8a1538] hover:to-[#6a0b24]",
+          inputBg: "bg-white border-gray-200 focus:border-[#a01a3f]",
+          textColor: "text-gray-700",
+          accentColor: "text-[#a01a3f]",
+        };
+
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
       onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-xl shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto flex flex-col ${
-          isZoomed ? "h-[92vh]" : "max-h-[85vh] sm:max-h-[90vh]"
-        } overflow-hidden`}
+        className={`rounded-2xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto flex flex-col transition-all duration-300 ${
+          themeStyles.modalBg
+        } ${isZoomed ? "h-[95vh]" : "max-h-[90vh]"} overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         {!isZoomed && (
-          <div className="relative bg-gradient-to-r from-[#a01a3f] to-[#7a0c2a] text-white p-4 sm:p-6 rounded-t-xl">
+          <div
+            className={`relative ${themeStyles.headerBg} text-white px-4 sm:px-6 py-6 sm:py-8 rounded-t-2xl`}
+          >
+            <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-gray-100 hover:text-white"
-              aria-label={t("closeModal")}
+              className="absolute top-3 right-3 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors duration-200"
             >
-              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+              <X className="h-5 w-5" />
             </button>
-            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">
-              {t("bookAppointment")}
-            </h2>
-            <p className="text-gray-200 text-xs sm:text-sm mt-1">
-              {haircut.title}
-            </p>
+            <div className="relative">
+              <h2
+                id="modal-title"
+                className="text-xl sm:text-2xl font-bold mb-2 tracking-tight"
+              >
+                {t("bookAppointment")}
+              </h2>
+              <p className="text-white/90 text-sm font-medium">
+                {haircut.title}
+              </p>
+            </div>
           </div>
         )}
 
+        {/* Content */}
         <div className="flex-1 overflow-y-auto">
           <div className={`${isZoomed ? "p-2 sm:p-4" : "p-4 sm:p-6"}`}>
-            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
+            {/* Service Info */}
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div
-                className={`relative flex items-center justify-center bg-gray-100 ${
+                className={`relative flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 ${
                   isZoomed
-                    ? "w-full h-[60vh] sm:h-[70vh] max-h-[500px]"
-                    : "w-full sm:w-24 md:w-32 h-24 sm:h-24 md:h-32 aspect-square flex-shrink-0"
-                } cursor-pointer rounded-lg overflow-hidden`}
+                    ? "w-full h-[60vh] sm:h-[70vh] max-h-[600px]"
+                    : "w-full sm:w-32 h-32 sm:h-40 aspect-square sm:aspect-auto flex-shrink-0"
+                } cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300`}
                 onClick={handleImageClick}
+                role="button"
+                aria-label={t("zoomImage")}
               >
-                <ImageWithFallback
+                <img
                   ref={imageRef}
                   src={currentImage}
                   alt={haircut.title}
-                  className={`rounded-lg w-full ${
+                  className={`rounded-xl w-full ${
                     isZoomed ? "h-full object-contain" : "h-full object-cover"
                   }`}
                 />
                 {haircut.images && haircut.images.length > 1 && (
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {haircut.images.map((_: any, index: number) => (
-                      <button
-                        key={index}
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          setCurrentImageIndex(index);
-                        }}
-                        className={`w-2 h-2 rounded-full ${
-                          index === currentImageIndex
-                            ? "bg-[#a01a3f]"
-                            : "bg-gray-400"
-                        }`}
-                        aria-label={`View image ${index + 1}`}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
+                      {haircut.images.map((_: any, index: number) => (
+                        <button
+                          key={index}
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            setCurrentImageIndex(index);
+                          }}
+                          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-200 ${
+                            index === currentImageIndex
+                              ? "bg-[#a01a3f] scale-125"
+                              : "bg-white/60 hover:bg-white/80"
+                          }`}
+                          aria-label={`View image ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                    {isZoomed && (
+                      <>
+                        <button
+                          onClick={handlePrevImage}
+                          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full text-white transition-all duration-200"
+                          aria-label={t("previousImage")}
+                        >
+                          <ChevronLeft className="h-4 sm:h-5 w-4 sm:w-5" />
+                        </button>
+                        <button
+                          onClick={handleNextImage}
+                          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full text-white transition-all duration-200"
+                          aria-label={t("nextImage")}
+                        >
+                          <ChevronRight className="h-4 sm:h-5 w-4 sm:w-5" />
+                        </button>
+                        <button
+                          onClick={toggleAutoSlide}
+                          className="absolute top-2 sm:top-4 right-2 sm:right-4 p-2 sm:p-3 bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full text-white transition-all duration-200"
+                          aria-label={
+                            autoSlideEnabled
+                              ? t("pauseSlideshow")
+                              : t("playSlideshow")
+                          }
+                        >
+                          {autoSlideEnabled ? (
+                            <Pause className="h-3 sm:h-4 w-3 sm:w-4" />
+                          ) : (
+                            <Play className="h-3 sm:h-4 w-3 sm:w-4" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
               </div>
+
               {!isZoomed && (
                 <div className="flex-1 w-full">
-                  <h3 className="font-semibold text-base sm:text-lg md:text-xl text-gray-900">
-                    {haircut.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    {haircut.barber}
-                  </p>
-                  <p className="text-[#a01a3f] font-medium text-sm sm:text-base mt-1 sm:mt-2">
-                    {haircut.price} {t("som")}
-                  </p>
-                  {haircut.description && (
-                    <p className="mt-2 text-xs sm:text-sm text-gray-600 line-clamp-2 sm:line-clamp-3">
-                      {haircut.description}
+                  <div
+                    className={`${themeStyles.sectionBg} rounded-xl p-4 sm:p-5`}
+                  >
+                    <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-1">
+                      {haircut.title}
+                    </h3>
+                    <p
+                      className={`${themeStyles.textColor} text-sm mb-2 sm:mb-3 font-medium`}
+                    >
+                      {haircut.barber}
                     </p>
-                  )}
+                    <div
+                      className={`${themeStyles.buttonBg} text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg inline-block font-semibold text-base sm:text-lg shadow-lg`}
+                    >
+                      {haircut.price} {t("som")}
+                    </div>
+                    {haircut.description && (
+                      <p
+                        className={`${themeStyles.textColor} mt-3 sm:mt-4 text-sm leading-relaxed line-clamp-3`}
+                      >
+                        {haircut.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-
-            {isZoomed && haircut.images && haircut.images.length > 1 && (
-              <div className="flex justify-between items-center mt-2 sm:mt-4 px-2 sm:px-4">
-                <button
-                  onClick={handlePrevImage}
-                  className="p-1.5 sm:p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-[#a01a3f] text-sm sm:text-base"
-                  aria-label={t("previousImage")}
-                >
-                  &lt;
-                </button>
-                <div className="flex gap-2 sm:gap-4 items-center">
-                  <span className="text-xs sm:text-sm text-gray-500">
-                    {currentImageIndex + 1} / {haircut.images.length}
-                  </span>
-                </div>
-                <button
-                  onClick={handleNextImage}
-                  className="p-1.5 sm:p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-[#a01a3f] text-sm sm:text-base"
-                  aria-label={t("nextImage")}
-                >
-                  &gt;
-                </button>
-              </div>
-            )}
           </div>
 
+          {/* Booking Steps */}
           {!isZoomed && (
             <>
               {step === 1 ? (
-                <div className="p-4 sm:p-6 border-t border-gray-100">
-                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-[#a01a3f]" />
-                    <h3 className="font-medium text-base sm:text-lg text-gray-900">
-                      {t("selectDate")}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    {availableDates.map((date) => {
-                      const d = new Date(date);
-                      const day = d.getDate();
-                      const month = d.toLocaleString("ru", { month: "short" });
-                      return (
-                        <button
-                          key={date}
-                          onClick={() => setSelectedDate(date)}
-                          className={`p-2 sm:p-3 rounded-lg border text-center text-xs sm:text-sm ${
-                            selectedDate === date
-                              ? "bg-[#a01a3f] text-white border-[#a01a3f]"
-                              : "border-gray-200 hover:border-[#a01a3f] hover:text-[#a01a3f]"
-                          }`}
-                        >
-                          <div className="text-[10px] sm:text-xs capitalize">
-                            {month}
-                          </div>
-                          <div className="font-medium text-sm sm:text-base">
-                            {day}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-[#a01a3f]" />
-                    <h3 className="font-medium text-base sm:text-lg text-gray-900">
-                      {t("selectTime")}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
-                    {availableTimes.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg border text-center text-xs sm:text-sm ${
-                          selectedTime === time
-                            ? "bg-[#a01a3f] text-white border-[#a01a3f]"
-                            : "border-gray-200 hover:border-[#a01a3f] hover:text-[#a01a3f]"
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                <div className="px-4 sm:px-6 pb-6 border-t border-gray-100">
+                  <div className="pt-4 sm:pt-6">
+                    {/* Date Selection */}
+                    <div className="mb-6 sm:mb-8">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+                        <div className="p-1.5 sm:p-2 bg-[#a01a3f]/10 rounded-lg">
+                          <Calendar className="h-4 sm:h-5 w-4 sm:w-5 text-[#a01a3f]" />
+                        </div>
+                        <h3 className="font-semibold text-base sm:text-lg text-gray-900">
+                          {t("selectDate")}
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+                        {availableDates.map((date) => {
+                          const d = new Date(date);
+                          const day = d.getDate();
+                          const month = d.toLocaleString("ru", {
+                            month: "short",
+                          });
+                          const dayName = d.toLocaleString("ru", {
+                            weekday: "short",
+                          });
+                          return (
+                            <button
+                              key={date}
+                              onClick={() => setSelectedDate(date)}
+                              className={`p-3 sm:p-4 rounded-xl border-2 text-center transition-all duration-200 hover:scale-105 ${
+                                selectedDate === date
+                                  ? "bg-[#a01a3f] text-white border-[#a01a3f] shadow-lg shadow-[#a01a3f]/25"
+                                  : "border-gray-200 hover:border-[#a01a3f]/50 hover:bg-gray-50"
+                              }`}
+                              aria-label={`${t("selectDate")} ${formatDate(
+                                date
+                              )}`}
+                            >
+                              <div className="text-xs font-medium opacity-75 mb-1">
+                                {dayName}
+                              </div>
+                              <div className="font-bold text-base sm:text-lg">
+                                {day}
+                              </div>
+                              <div className="text-xs font-medium opacity-75 capitalize">
+                                {month}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Time Selection */}
+                    <div>
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+                        <div className="p-1.5 sm:p-2 bg-[#a01a3f]/10 rounded-lg">
+                          <Clock className="h-4 sm:h-5 w-4 sm:w-5 text-[#a01a3f]" />
+                        </div>
+                        <h3 className="font-semibold text-base sm:text-lg text-gray-900">
+                          {t("selectTime")}
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+                        {availableTimes.map((time) => (
+                          <button
+                            key={time}
+                            onClick={() => setSelectedTime(time)}
+                            className={`py-2 sm:py-3 px-3 sm:px-4 rounded-xl border-2 text-center font-medium transition-all duration-200 hover:scale-105 ${
+                              selectedTime === time
+                                ? "bg-[#a01a3f] text-white border-[#a01a3f] shadow-lg shadow-[#a01a3f]/25"
+                                : "border-gray-200 hover:border-[#a01a3f]/50 hover:bg-gray-50"
+                            }`}
+                            aria-label={`${t("selectTime")} ${time}`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-4 sm:p-6 border-t border-gray-100">
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs sm:text-sm text-gray-600 font-medium">
+                <div className="px-4 sm:px-6 pb-6 border-t border-gray-100">
+                  <div className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+                    {/* Booking Summary */}
+                    <div
+                      className={`${themeStyles.sectionBg} border border-[#a01a3f]/20 rounded-xl p-4 sm:p-5`}
+                    >
+                      <h4 className="font-semibold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-[#a01a3f]" />
                         {t("selectedDateTime")}
-                      </p>
-                      <p className="font-medium text-sm sm:text-base text-gray-900">
-                        {formatDate(selectedDate)} в {selectedTime}
-                      </p>
+                      </h4>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                        <div>
+                          <p className="font-bold text-base sm:text-lg text-gray-900">
+                            {formatDate(selectedDate)}
+                          </p>
+                          <p className="text-[#a01a3f] font-semibold text-sm sm:text-base">
+                            {selectedTime}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                            {t("service")}
+                          </p>
+                          <p className="font-semibold text-[#a01a3f] text-base sm:text-lg">
+                            {haircut.price} {t("som")}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
+                    {/* Contact Information */}
                     {isAuthenticated ? (
-                      <div className="p-3 sm:p-4 bg-rose-50 rounded-lg">
-                        <p className="text-xs sm:text-sm text-[#a01a3f] font-medium">
+                      <div
+                        className={`${themeStyles.sectionBg} rounded-xl p-4 sm:p-5 border border-gray-200`}
+                      >
+                        <h4 className="font-semibold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
+                          <User className="h-4 w-4 text-[#a01a3f]" />
                           {t("contactInfo")}
-                        </p>
-                        <p className="font-medium text-sm sm:text-base text-gray-900">
-                          {customerName}
-                        </p>
-                        {customerPhone ? (
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            {customerPhone}
+                        </h4>
+                        <div className="space-y-2">
+                          <p className="font-medium text-gray-900 text-sm sm:text-base">
+                            {customerName}
                           </p>
-                        ) : (
-                          <div className="mt-2 sm:mt-3">
-                            <label
-                              htmlFor="customerPhone"
-                              className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
+                          {customerPhone ? (
+                            <p
+                              className={`${themeStyles.textColor} flex items-center gap-2 text-sm sm:text-base`}
                             >
-                              <Phone className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 text-[#a01a3f]" />
-                              {t("phoneNumber")}
-                            </label>
-                            <input
-                              type="tel"
-                              id="customerPhone"
-                              className={`w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg text-xs sm:text-sm focus:ring-[#a01a3f] focus:border-[#a01a3f] ${
-                                errors.phone
-                                  ? "border-red-500"
-                                  : "border-gray-200"
-                              }`}
-                              placeholder="+996 XXX XXX XXX"
-                              value={customerPhone}
-                              onChange={(e) => setCustomerPhone(e.target.value)}
-                            />
-                            {errors.phone && (
-                              <p className="mt-1 text-xs text-red-500">
-                                {errors.phone}
-                              </p>
-                            )}
-                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                              {t("phoneSaveNote")}
+                              <Phone className="h-4 w-4" />
+                              {customerPhone}
                             </p>
-                          </div>
-                        )}
-                        <p className="text-[10px] sm:text-xs text-gray-500 mt-1.5 sm:mt-2">
+                          ) : (
+                            <div className="mt-2 sm:mt-3">
+                              <label
+                                htmlFor="customerPhone"
+                                className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
+                              >
+                                <Phone className="h-4 w-4 inline mr-1 sm:mr-2 text-[#a01a3f]" />
+                                {t("phoneNumber")}
+                              </label>
+                              <input
+                                type="tel"
+                                id="customerPhone"
+                                className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-[#a01a3f]/20 transition-all duration-200 ${
+                                  themeStyles.inputBg
+                                } ${
+                                  errors.phone ? "border-red-500 bg-red-50" : ""
+                                }`}
+                                placeholder="+996 XXX XXX XXX"
+                                value={customerPhone}
+                                onChange={(e) =>
+                                  setCustomerPhone(e.target.value)
+                                }
+                                aria-describedby={
+                                  errors.phone ? "phone-error" : undefined
+                                }
+                              />
+                              {errors.phone && (
+                                <p
+                                  id="phone-error"
+                                  className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600 font-medium"
+                                >
+                                  {errors.phone}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1 sm:mt-2">
+                                {t("phoneSaveNote")}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 sm:mt-3 bg-white/50 p-1 sm:p-2 rounded-lg">
                           {t("dataFromProfile")}
                         </p>
                       </div>
                     ) : (
-                      <>
+                      <div className="space-y-3 sm:space-y-4">
                         <div>
                           <label
                             htmlFor="customerName"
-                            className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
+                            className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
                           >
-                            <User className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 text-[#a01a3f]" />
+                            <User className="h-4 w-4 inline mr-1 sm:mr-2 text-[#a01a3f]" />
                             {t("Имя")}
                           </label>
                           <input
                             type="text"
                             id="customerName"
-                            className={`w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg text-xs sm:text-sm focus:ring-[#a01a3f] focus:border-[#a01a3f] ${
-                              errors.name ? "border-red-500" : "border-gray-200"
-                            }`}
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-[#a01a3f]/20 transition-all duration-200 ${
+                              themeStyles.inputBg
+                            } ${errors.name ? "border-red-500 bg-red-50" : ""}`}
                             placeholder={t("Имя")}
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
+                            aria-describedby={
+                              errors.name ? "name-error" : undefined
+                            }
                           />
                           {errors.name && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p
+                              id="name-error"
+                              className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600 font-medium"
+                            >
                               {errors.name}
                             </p>
                           )}
@@ -538,49 +675,62 @@ const BookingModal: React.FC<BookingModalProps> = ({
                         <div>
                           <label
                             htmlFor="customerPhone"
-                            className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
+                            className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
                           >
-                            <Phone className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 text-[#a01a3f]" />
+                            <Phone className="h-4 w-4 inline mr-1 sm:mr-2 text-[#a01a3f]" />
                             {t("Телефон")}
                           </label>
                           <input
                             type="tel"
                             id="customerPhone"
-                            className={`w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg text-xs sm:text-sm focus:ring-[#a01a3f] focus:border-[#a01a3f] ${
-                              errors.phone
-                                ? "border-red-500"
-                                : "border-gray-200"
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-[#a01a3f]/20 transition-all duration-200 ${
+                              themeStyles.inputBg
+                            } ${
+                              errors.phone ? "border-red-500 bg-red-50" : ""
                             }`}
                             placeholder="+996 XXX XXX XXX"
                             value={customerPhone}
                             onChange={(e) => setCustomerPhone(e.target.value)}
+                            aria-describedby={
+                              errors.phone ? "phone-error" : undefined
+                            }
                           />
                           {errors.phone && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p
+                              id="phone-error"
+                              className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600 font-medium"
+                            >
                               {errors.phone}
                             </p>
                           )}
                         </div>
-                      </>
+                      </div>
                     )}
+
+                    {/* Notes */}
                     <div>
                       <label
                         htmlFor="customerNotes"
-                        className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
+                        className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
                       >
                         {t("Описание")}
                       </label>
                       <textarea
                         id="customerNotes"
-                        className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-200 rounded-lg text-xs sm:text-sm focus:ring-[#a01a3f] focus:border-[#a01a3f]"
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-[#a01a3f]/20 transition-all duration-200 resize-none ${themeStyles.inputBg}`}
                         placeholder={t("Описание...")}
                         value={customerNotes}
                         onChange={(e) => setCustomerNotes(e.target.value)}
                         rows={3}
+                        aria-label={t("Описание")}
                       />
                     </div>
-                    <div className="text-[10px] sm:text-xs text-gray-500 bg-rose-50 p-3 sm:p-4 rounded-lg">
-                      <p>{t("Контактная информация Примечание")}</p>
+
+                    {/* Info Notice */}
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 sm:p-4">
+                      <p className="text-xs sm:text-sm text-amber-800 font-medium">
+                        {t("Контактная информация Примечание")}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -589,56 +739,68 @@ const BookingModal: React.FC<BookingModalProps> = ({
           )}
         </div>
 
+        {/* Footer */}
         {!isZoomed && (
-          <div className="p-4 sm:p-6 flex gap-3 bg-gray-50 rounded-b-xl border-t border-gray-100">
-            {step === 1 ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-[#a01a3f] text-xs sm:text-sm"
-                  disabled={isSubmitting}
-                >
-                  {t("cancel")}
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleNextStep}
-                  className="flex-1 bg-[#a01a3f] hover:bg-[#7a0c2a] text-white rounded-lg text-xs sm:text-sm disabled:opacity-50"
-                  disabled={!selectedDate || !selectedTime || isSubmitting}
-                >
-                  {t("Далее")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleBack}
-                  className="flex-1 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-[#a01a3f] text-xs sm:text-sm"
-                  disabled={isSubmitting}
-                >
-                  {t("Назад")}
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleConfirm}
-                  className="flex-1 bg-[#a01a3f] hover:bg-[#7a0c2a] text-white rounded-lg text-xs sm:text-sm disabled:opacity-50"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? t("submitting") : t("confirm")}
-                </Button>
-              </>
-            )}
+          <div
+            className={`${themeStyles.sectionBg} px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 rounded-b-2xl`}
+          >
+            <div className="flex gap-2 sm:gap-3">
+              {step === 1 ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1 py-2 sm:py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300 font-medium transition-all duration-200 text-xs sm:text-sm"
+                    disabled={isSubmitting}
+                    aria-label={t("cancel")}
+                  >
+                    {t("cancel")}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleNextStep}
+                    className={`flex-1 py-2 sm:py-3 ${themeStyles.buttonBg} text-white rounded-xl font-semibold shadow-lg shadow-[#a01a3f]/25 disabled:opacity-50 disabled:shadow-none transition-all duration-200 text-xs sm:text-sm`}
+                    disabled={!selectedDate || !selectedTime || isSubmitting}
+                    aria-label={t("Далее")}
+                  >
+                    {t("Далее")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleBack}
+                    className="flex-1 py-2 sm:py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300 font-medium transition-all duration-200 text-xs sm:text-sm"
+                    disabled={isSubmitting}
+                    aria-label={t("Назад")}
+                  >
+                    {t("Назад")}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleConfirm}
+                    className={`flex-1 py-2 sm:py-3 ${themeStyles.buttonBg} text-white rounded-xl font-semibold shadow-lg shadow-[#a01a3f]/25 disabled:opacity-50 disabled:shadow-none transition-all duration-200 text-xs sm:text-sm`}
+                    disabled={isSubmitting}
+                    aria-label={isSubmitting ? t("submitting") : t("confirm")}
+                  >
+                    {isSubmitting ? t("submitting") : t("confirm")}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
         {isZoomed && (
-          <div className="p-4 sm:p-6 flex justify-center bg-gray-50 rounded-b-xl border-t border-gray-100">
+          <div
+            className={`${themeStyles.sectionBg} p-3 sm:p-4 flex justify-center rounded-b-xl border-t border-gray-100`}
+          >
             <Button
               variant="outline"
               onClick={handleImageClick}
-              className="rounded-lg border-gray-200 text-[#a01a3f] text-xs sm:text-sm"
+              className="rounded-lg border-gray-200 text-[#a01a3f] text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2"
+              aria-label={t("Закрыть")}
             >
               {t("Закрыть")}
             </Button>

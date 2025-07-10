@@ -37,9 +37,9 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
       setLoading(true);
       setError("");
 
-      console.log("Запрос списка барберов...");
+      console.log(t("fetchingBarbers")); // Placeholder for logging translation
       const response = await profileAPI.getAllBarbers();
-      console.log("Ответ API барберов:", response);
+      console.log(t("barbersApiResponse"), response); // Placeholder for logging translation
 
       if (response && response.data) {
         let barbersData = [];
@@ -50,20 +50,20 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           barbersData = response.data;
         }
 
-        console.log("Обработанные данные барберов:", barbersData);
+        console.log(t("processedBarbersData"), barbersData); // Placeholder for logging translation
 
         if (barbersData.length > 0) {
           setAllBarbers(barbersData);
         } else {
-          setError("В системе пока нет зарегистрированных барберов");
+          setError(t("noRegisteredBarbers"));
         }
       } else {
         setAllBarbers([]);
-        setError("Не удалось получить данные о барберах");
+        setError(t("failedToFetchBarbers"));
       }
     } catch (err) {
-      console.error("Ошибка при загрузке барберов:", err);
-      setError("Не удалось загрузить барберов. Пожалуйста, попробуйте позже.");
+      console.error(t("barbersLoadingError"), err);
+      setError(t("barbersLoadingError"));
       setAllBarbers([]);
     } finally {
       setLoading(false);
@@ -140,7 +140,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Поиск барберов..."
+                placeholder={t("searchBarbersPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -156,19 +156,21 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
               )}
             </div>
             <Button onClick={handleSearch} variant="primary">
-              Поиск
+              {t("search")}
             </Button>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#9A0F34] focus:outline-none"
             >
-              <option value="all">Все регионы</option>
-              <option value="current">Мой регион ({currentRegion.name})</option>
+              <option value="all">{t("allRegions")}</option>
+              <option value="current">
+                {t("myRegion")} ({currentRegion.name})
+              </option>
             </select>
             {(searchQuery || regionFilter !== "all") && (
               <Button onClick={resetFilters} variant="outline">
-                Сбросить
+                {t("clearFilters")}
               </Button>
             )}
           </div>
@@ -180,7 +182,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                 <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Поиск барберов..."
+                  placeholder={t("searchBarbersPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -208,26 +210,28 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           <div className="text-sm text-gray-600 mb-4">
             {regionFilter === "current" ? (
               <p>
-                Регион:{" "}
+                {t("regionLabel")}
                 <span className="font-medium">{currentRegion.name}</span>
                 {filteredBarbers.length === 0 && allBarbers.length > 0 && (
                   <span className="ml-2 text-gray-500">
-                    (в выбранном регионе барберов не найдено, показаны все)
+                    ({t("noBarbersInRegion")})
                   </span>
                 )}
               </p>
             ) : (
-              <p>Показаны все барберы</p>
+              <p>{t("allBarbersShown")}</p>
             )}
             {searchQuery && (
               <p className="mt-1">
-                Результаты поиска по запросу:{" "}
+                {t("searchResultsFor")}
                 <span className="font-medium">"{searchQuery}"</span>
               </p>
             )}
             <p className="mt-1 font-medium">
-              Найдено: {filteredBarbers.length}{" "}
-              {filteredBarbers.length === 1 ? "барбер" : "барберов"}
+              {t("foundLabel")} {filteredBarbers.length}{" "}
+              {filteredBarbers.length === 1
+                ? t("barberSingular")
+                : t("barberPlural")}
             </p>
           </div>
         </div>
@@ -253,7 +257,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           <div className="bg-red-50 p-6 rounded-lg text-center">
             <p className="text-red-600 mb-4">{error}</p>
             <Button onClick={() => window.location.reload()}>
-              Попробовать снова
+              {t("tryAgain")}
             </Button>
           </div>
         ) : filteredBarbers.length > 0 ? (
@@ -285,7 +289,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                   <div className="flex items-center text-sm text-gray-600 mb-3">
                     <MapPin className="h-4 w-4 mr-1 text-gray-400" />
                     <span>
-                      {barber.profile?.address || "Локация не указана"}
+                      {barber.profile?.address || t("locationNotSpecified")}
                     </span>
                   </div>
 
@@ -308,7 +312,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
 
                   <Link to={`/barber/${barber.id}`}>
                     <Button variant="outline" fullWidth>
-                      Посмотреть профиль
+                      {t("viewProfile")}
                     </Button>
                   </Link>
                 </div>
@@ -319,20 +323,24 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           <div className="bg-gray-50 p-8 rounded-lg text-center">
             <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Барберы не найдены
+              {t("barbersNotFound")}
             </h3>
             <p className="text-gray-600 mb-4">
               {searchQuery ? (
-                <>По запросу "{searchQuery}" ничего не найдено. </>
+                <>{t("noResultsForQuery", { searchQuery })} </>
               ) : regionFilter === "current" ? (
-                <>В регионе "{currentRegion.name}" барберы не найдены. </>
+                <>
+                  {t("noBarbersInRegionSpecific", {
+                    currentRegion: currentRegion.name,
+                  })}{" "}
+                </>
               ) : (
-                "Барберы не найдены. "
+                t("barbersNotFound")
               )}
-              Попробуйте изменить параметры поиска.
+              {t("tryChangingFilters")}
             </p>
             <Button onClick={resetFilters} variant="primary">
-              Сбросить фильтры
+              {t("clearFilters")}
             </Button>
           </div>
         )}
@@ -342,14 +350,14 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
           <div className="fixed inset-0 z-50 bg-black bg-opacity-50 md:hidden">
             <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-xl p-4 max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Фильтры</h3>
+                <h3 className="text-lg font-semibold">{t("filters")}</h3>
                 <button onClick={() => setIsFilterOpen(false)}>
                   <X className="h-6 w-6 text-gray-500" />
                 </button>
               </div>
 
               <div className="mb-4">
-                <h4 className="font-medium mb-2">Регион</h4>
+                <h4 className="font-medium mb-2">{t("regionLabel")}</h4>
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
@@ -360,7 +368,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                       onChange={(e) => setRegionFilter(e.target.value)}
                       className="mr-2"
                     />
-                    <span>Все регионы</span>
+                    <span>{t("allRegions")}</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -371,7 +379,9 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                       onChange={(e) => setRegionFilter(e.target.value)}
                       className="mr-2"
                     />
-                    <span>Мой регион ({currentRegion.name})</span>
+                    <span>
+                      {t("myRegion")} ({currentRegion.name})
+                    </span>
                   </label>
                 </div>
               </div>
@@ -381,7 +391,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                   className="w-full py-2 bg-gray-200 rounded-lg"
                   onClick={resetFilters}
                 >
-                  Сбросить
+                  {t("clearFilters")}
                 </button>
                 <button
                   className="w-full py-2 bg-[#9A0F34] text-white rounded-lg"
@@ -390,7 +400,7 @@ const BarberListPage: React.FC<BarberListPageProps> = ({ openLoginModal }) => {
                     handleSearch();
                   }}
                 >
-                  Применить
+                  {t("apply")}
                 </button>
               </div>
             </div>

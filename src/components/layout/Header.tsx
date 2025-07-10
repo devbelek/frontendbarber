@@ -1,19 +1,23 @@
 import { FC, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Globe, MapPin, LogOut, Store, Home } from "lucide-react";
+import { Globe, MapPin, Store, Home } from "lucide-react";
 import Button from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useLocation as useLocationContext } from "../../context/LocationContext";
 
+// Default avatar image
+const DEFAULT_AVATAR =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Default_pfp.svg/340px-Default_pfp.svg.png";
+
 interface HeaderProps {
-  openLoginModal: () => void; // Добавляем проп для открытия модального окна
+  openLoginModal: () => void;
 }
 
 const Header: FC<HeaderProps> = ({ openLoginModal }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { currentRegion } = useLocationContext();
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
@@ -31,7 +35,7 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
       <div className="container mx-auto px-4 relative">
         <div className="flex justify-between items-center h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link to="/" className="flex items-center" aria-label={t("home")}>
             <svg
               viewBox="0 0 24 24"
               className="h-7 w-7 text-[#9A0F34]"
@@ -59,9 +63,10 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                   ? "border-[#9A0F34] text-[#9A0F34] font-semibold"
                   : "border-transparent text-gray-700 hover:text-[#9A0F34] hover:border-[#9A0F34]"
               }`}
+              aria-label={t("home")}
             >
               <Home className="h-5 w-5 mr-2" />
-              Главная
+              {t("home")}
             </Link>
             <Link
               to="/discover"
@@ -70,9 +75,10 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                   ? "border-[#9A0F34] text-[#9A0F34] font-semibold"
                   : "border-transparent text-gray-700 hover:text-[#9A0F34] hover:border-[#9A0F34]"
               }`}
+              aria-label={t("discover")}
             >
               <Store className="h-5 w-5 mr-2" />
-              Мастера и салоны
+              {t("discover")}
             </Link>
           </nav>
 
@@ -83,6 +89,9 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
               <button
                 onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
                 className="flex items-center space-x-1 rounded-md py-1 px-2 text-gray-700 hover:bg-gray-100"
+                aria-label={`${t("regionLabel").replace(": ", "")}: ${
+                  currentRegion.name
+                }`}
               >
                 <MapPin className="h-4 w-4" />
                 <span className="text-sm">{currentRegion.name}</span>
@@ -104,26 +113,31 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
             <button
               onClick={toggleLanguage}
               className="p-2 rounded-full text-gray-700 hover:bg-gray-100"
-              aria-label="Сменить язык"
+              aria-label={t("toggleLanguage")}
             >
               <Globe className="h-5 w-5" />
             </button>
 
             {/* Authentication Buttons */}
             {isAuthenticated ? (
-              <>
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm">
-                    {t("profile")}
-                  </Button>
-                </Link>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <LogOut className="h-4 w-4 mr-1.5" />
-                  {t("logout")}
-                </Button>
-              </>
+              <Link to="/profile">
+                <img
+                  src={user?.profile?.photo || DEFAULT_AVATAR}
+                  alt={t("profile")}
+                  className="w-8 h-8 rounded-full object-cover"
+                  onError={(e) => {
+                    console.warn("Failed to load user avatar, using fallback");
+                    e.currentTarget.src = DEFAULT_AVATAR;
+                  }}
+                  aria-label={t("profile")}
+                />
+              </Link>
             ) : (
-              <Button variant="primary" onClick={openLoginModal}>
+              <Button
+                variant="primary"
+                onClick={openLoginModal}
+                aria-label={t("signIn")}
+              >
                 {t("signIn")}
               </Button>
             )}
@@ -134,20 +148,34 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
             <button
               onClick={toggleLanguage}
               className="flex items-center px-3 py-1.5 rounded-lg bg-[#9A0F34] text-white text-sm font-medium shadow"
-              aria-label="Сменить язык"
+              aria-label={t("toggleLanguage")}
             >
               <Globe className="h-4 w-4" />
             </button>
             <button
               onClick={toggleMobileMenu}
               className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
-              aria-label="Toggle mobile menu"
-            ></button>
+              aria-label={t("toggleMobileMenu")}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {/* {isMobileMenuOpen && (
+        {isMobileMenuOpen && (
           <div className="md:hidden absolute top-14 right-0 w-64 bg-white border border-gray-200 shadow-lg z-50">
             <nav className="flex flex-col space-y-4 p-4">
               <Link
@@ -158,9 +186,10 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                     ? "text-[#9A0F34] font-semibold"
                     : ""
                 }`}
+                aria-label={t("home")}
               >
                 <Home className="h-5 w-5 mr-2" />
-                Главная
+                {t("home")}
               </Link>
               <Link
                 to="/discover"
@@ -170,9 +199,10 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                     ? "text-[#9A0F34] font-semibold"
                     : ""
                 }`}
+                aria-label={t("discover")}
               >
                 <Store className="h-5 w-5 mr-2" />
-                Мастера и салоны
+                {t("discover")}
               </Link>
               <div className="flex flex-col space-y-4 pt-4 border-t border-gray-200">
                 <button
@@ -180,39 +210,34 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                     setIsRegionDropdownOpen(!isRegionDropdownOpen);
                   }}
                   className="flex items-center text-gray-700 hover:text-[#9A0F34]"
+                  aria-label={`${t("regionLabel").replace(": ", "")}: ${
+                    currentRegion.name
+                  }`}
                 >
                   <MapPin className="h-5 w-5 mr-2" />
                   {currentRegion.name}
                 </button>
 
                 {isAuthenticated ? (
-                  <>
-                    <Link
-                      to="/profile"
-                      onClick={toggleMobileMenu}
-                      className="flex items-center text-gray-700 hover:text-[#9A0F34]"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-left"
-                      >
-                        {t("profile")}
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        logout();
-                        toggleMobileMenu();
+                  <Link
+                    to="/profile"
+                    onClick={toggleMobileMenu}
+                    className="flex items-center text-gray-700 hover:text-[#9A0F34]"
+                    aria-label={t("profile")}
+                  >
+                    <img
+                      src={user?.profile?.photo || DEFAULT_AVATAR}
+                      alt={t("profile")}
+                      className="w-8 h-8 rounded-full object-cover mr-2"
+                      onError={(e) => {
+                        console.warn(
+                          "Failed to load user avatar, using fallback"
+                        );
+                        e.currentTarget.src = DEFAULT_AVATAR;
                       }}
-                      className="w-full text-left"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      {t("logout")}
-                    </Button>
-                  </>
+                    />
+                    {t("profile")}
+                  </Link>
                 ) : (
                   <Button
                     variant="primary"
@@ -221,6 +246,7 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
                       toggleMobileMenu();
                     }}
                     className="w-full text-left"
+                    aria-label={t("signIn")}
                   >
                     {t("signIn")}
                   </Button>
@@ -228,7 +254,7 @@ const Header: FC<HeaderProps> = ({ openLoginModal }) => {
               </div>
             </nav>
           </div>
-        )} */}
+        )}
       </div>
     </header>
   );

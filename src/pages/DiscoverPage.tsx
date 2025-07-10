@@ -16,12 +16,17 @@ import ImageWithFallback from "../components/ui/ImageWithFallback";
 import { profileAPI } from "../api/services";
 import { barbershopsAPI } from "../api/barbershops";
 import { Barbershop, Barber, UserProfile } from "../types";
+import { useLanguage } from "../context/LanguageContext";
+import { useNotification } from "../context/NotificationContext";
+import Banner from "../components/home/Banner";
 
 interface DiscoverPageProps {
   openLoginModal: () => void;
 }
 
 const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
+  const { t } = useLanguage();
+  const notification = useNotification();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"barbers" | "barbershops">(
     "barbers"
@@ -31,17 +36,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
-  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     fetchData();
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const fetchData = async () => {
@@ -58,12 +55,12 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
           name:
             `${barber.first_name || ""} ${barber.last_name || ""}`.trim() ||
             barber.username ||
-            "Без имени",
+            t("noName"),
           avatar: barber.profile?.photo || "/default-avatar.png",
-          rating: barber.rating || barber.rating || 0,
-          reviewCount: barber.review_count || barber.reviews_count || 0, // Учитываем возможное reviews_count
-          specialization: barber.profile?.specialization || ["Мужские стрижки"],
-          location: barber.profile?.address || "Бишкек",
+          rating: barber.rating || 0,
+          reviewCount: barber.review_count || barber.reviews_count || 0,
+          specialization: barber.profile?.specialization || [t("default")],
+          location: barber.profile?.address || t("locationNotSpecified"),
           workingHours: {
             from: barber.profile?.working_hours_from || "09:00",
             to: barber.profile?.working_hours_to || "18:00",
@@ -76,14 +73,14 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
             ],
           },
           portfolio: barber.portfolio || [],
-          description: barber.profile?.bio || "Информация о барбере",
+          description: barber.profile?.bio || t("about"),
           profile: {
             user_type: barber.profile?.user_type || "barber",
             phone: barber.profile?.phone || "",
             photo: barber.profile?.photo || "/default-avatar.png",
             whatsapp: barber.profile?.whatsapp || "",
             telegram: barber.profile?.telegram || "",
-            address: barber.profile?.address || "Бишкек",
+            address: barber.profile?.address || t("locationNotSpecified"),
             offers_home_service: barber.profile?.offers_home_service || false,
             latitude: barber.profile?.latitude || null,
             longitude: barber.profile?.longitude || null,
@@ -108,14 +105,15 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
       setBarbers(mappedBarbers);
 
       const barbershopsResponse = await barbershopsAPI.getAll();
-      console.log("Raw barbershops response:", barbershopsResponse.data); // Логируем ответ для барбершопов
+      console.log("Raw barbershops response:", barbershopsResponse.data);
       setBarbershops(
         Array.isArray(barbershopsResponse?.data)
           ? barbershopsResponse.data
           : barbershopsResponse?.data?.results || []
       );
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error(t("error"), error);
+      notification.error(t("loadingError"), t("loadingErrorDescription"));
     } finally {
       setLoading(false);
     }
@@ -155,7 +153,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
     if (barbershopId) {
       navigate(`/barbershop/${barbershopId}`);
     } else {
-      console.error("Invalid barbershop ID:", barbershopId);
+      console.error(t("error"), "Invalid barbershop ID:", barbershopId);
     }
   };
 
@@ -178,38 +176,8 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
   return (
     <Layout openLoginModal={openLoginModal}>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-        {/* Header */}
-        <div
-          className={`text-white overflow-hidden transition-all duration-300 ${
-            isScrolled
-              ? "min-h-[100px] py-4 px-4 sm:px-6 pb-2"
-              : "min-h-[350px] py-20 px-4 sm:px-6"
-          }`}
-          style={{
-            backgroundImage: `linear-gradient(to right, rgb(154, 15, 52) 0%, rgba(154, 15, 52, 0.31) 50%, rgba(154, 15, 52, 0) 100%), url('https://www.vmcdn.ca/f/files/sudbury/spotlight-images/sudbury-barber-studio/adobestock_231110781.jpeg;w=960')`,
-            backgroundPosition: "right",
-            backgroundSize: "cover",
-            backgroundRepeat: "no-repeat",
-          }}
-        >
-          <div className="container mx-auto px-4 z-10 flex flex-col justify-center h-full">
-            <h1
-              className={`font-extrabold mb-5 tracking-tight animate-fade-in-down transition-all duration-300 ${
-                isScrolled ? "text-2xl md:text-3xl" : "text-4xl md:text-4xl"
-              }`}
-            >
-              Ваш идеальный барбер в Бишкеке
-            </h1>
-            <p
-              className={`opacity-90 max-w-xl animate-fade-in-up delay-200 transition-all duration-300 ${
-                isScrolled ? "text-sm md:text-base" : "text-lg md:text-xl"
-              }`}
-            >
-              Найдите лучших мастеров и топовые барбершопы для стильной стрижки
-              рядом с вами
-            </p>
-          </div>
-        </div>
+        {/* Banner */}
+        <Banner />
 
         {/* Search and Filters */}
         <div className="container mx-auto px-4 py-4">
@@ -218,7 +186,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
             <div className="flex items-center gap-2 mb-4">
               <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-[#9A0F34] transition-colors duration-200" />
               <span className="text-base sm:text-xl font-bold text-gray-900">
-                г. Бишкек
+                {t("cityBishkek")}
               </span>
             </div>
 
@@ -227,15 +195,19 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-gray-400 group-focus-within:text-[#9A0F34] transition-colors duration-200" />
               <input
                 type="text"
-                placeholder={`Поиск ${
-                  activeTab === "barbers" ? "барберов" : "барбершопов"
-                }...`}
+                placeholder={
+                  activeTab === "barbers"
+                    ? t("searchBarbersPlaceholder")
+                    : t("searchBarbershopsPlaceholder")
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 sm:pl-12 sm:pr-4 sm:py-4 border border-gray-200 rounded-md sm:rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#9A0F34]/80 focus:bg-white transition-all duration-300 placeholder-gray-400 text-sm sm:text-base text-gray-900"
-                aria-label={`Поиск ${
-                  activeTab === "barbers" ? "барберов" : "барбершопов"
-                }`}
+                aria-label={
+                  activeTab === "barbers"
+                    ? t("searchBarbersPlaceholder")
+                    : t("searchBarbershopsPlaceholder")
+                }
               />
             </div>
 
@@ -246,7 +218,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                   onClick={resetFilters}
                   variant="outline"
                   className="flex items-center gap-1.5 border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white rounded-md px-3 py-2 sm:px-5 sm:py-2.5 transition-all duration-200 font-semibold text-xs sm:text-sm"
-                  aria-label="Сбросить поиск"
+                  aria-label={t("clearFilters")}
                 >
                   <svg
                     className="h-3.5 w-3.5 sm:h-4 sm:w-4"
@@ -261,7 +233,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                  Сбросить
+                  {t("clearFilters")}
                 </Button>
               )}
             </div>
@@ -275,11 +247,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     ? "bg-[#9A0F34] text-white sm:shadow-sm"
                     : "text-gray-600 hover:bg-gray-100 hover:text-[#9A0F34] sm:hover:bg-gray-200/50"
                 }`}
-                aria-label={`Показать барберов (${filteredBarbers.length})`}
+                aria-label={`${t("barbers")} (${filteredBarbers.length})`}
                 aria-current={activeTab === "barbers" ? "true" : undefined}
               >
                 <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                Барберы ({filteredBarbers.length})
+                {t("barbers")} ({filteredBarbers.length})
               </button>
               <button
                 onClick={() => setActiveTab("barbershops")}
@@ -288,11 +260,13 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     ? "bg-[#9A0F34] text-white sm:shadow-sm"
                     : "text-gray-600 hover:bg-gray-100 hover:text-[#9A0F34] sm:hover:bg-gray-200/50"
                 }`}
-                aria-label={`Показать барбершопы (${filteredBarbershops.length})`}
+                aria-label={`${t("barbershopsTab")} (${
+                  filteredBarbershops.length
+                })`}
                 aria-current={activeTab === "barbershops" ? "true" : undefined}
               >
                 <Store className="h-4 w-4 sm:h-5 sm:w-5" />
-                Барбершопы ({filteredBarbershops.length})
+                {t("barbershopsTab")} ({filteredBarbershops.length})
               </button>
             </div>
           </div>
@@ -324,11 +298,10 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     <div className="col-span-full text-center py-16">
                       <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-                        Барберы не найдены
+                        {t("barbersNotFound")}
                       </h3>
                       <p className="text-gray-600 max-w-md mx-auto">
-                        Попробуйте изменить параметры поиска или посмотреть
-                        барбершопы
+                        {t("barbersNotFoundDescription")}
                       </p>
                     </div>
                   ) : (
@@ -360,7 +333,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                                   d="M5 13l4 4L19 7"
                                 />
                               </svg>
-                              Выезд на дом
+                              {t("homeService")}
                             </div>
                           )}
 
@@ -374,7 +347,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                                 {(barber.rating || 0).toFixed(1)}
                               </span>
                               <span className="text-xs text-white/80">
-                                ({barber.reviewCount || 0} отзывов)
+                                ({barber.reviewCount || 0} {t("reviews")})
                               </span>
                             </div>
                           </div>
@@ -385,7 +358,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             <div className="flex items-start">
                               <MapPin className="h-4 w-4 mr-2 mt-0.5 text-[#9A0F34]" />
                               <span className="line-clamp-1">
-                                {barber.location || "Локация не указана"}
+                                {barber.location}
                               </span>
                             </div>
                             {barber.workingHours?.from && (
@@ -403,8 +376,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             variant="primary"
                             className="w-full mt-5 bg-[#9A0F34] hover:bg-[#7b0c29] text-white font-semibold py-2.5 rounded-xl transition-all duration-200"
                             onClick={() => handleBarberClick(barber.id)}
+                            aria-label={`${t("bookAppointment")} ${
+                              barber.name
+                            }`}
                           >
-                            Записаться
+                            {t("bookAppointment")}
                           </Button>
                         </div>
                       </div>
@@ -420,18 +396,18 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                     <div className="col-span-full text-center py-16">
                       <Store className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-                        Барбершопы не найдены
+                        {t("barbershopsNotFound")}
                       </h3>
                       <p className="text-gray-600 max-w-md mx-auto mb-4">
-                        Попробуйте изменить параметры поиска или посмотреть
-                        барберов
+                        {t("barbershopsNotFoundDescription")}
                       </p>
                       <Button
                         variant="outline"
                         className="border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white"
                         onClick={() => setActiveTab("barbers")}
+                        aria-label={t("viewBarbers")}
                       >
-                        Смотреть барберов
+                        {t("viewBarbers")}
                       </Button>
                     </div>
                   ) : (
@@ -443,7 +419,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                         <div className="relative h-36 sm:h-48">
                           <ImageWithFallback
                             src={shop.logo || "/images/barbershop-logo.webp"}
-                            alt={shop.name || "Барбершоп"}
+                            alt={shop.name || t("noTitle")}
                             className="w-full h-full object-cover"
                           />
                           {shop.is_verified && (
@@ -461,13 +437,13 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                                   d="M5 13l4 4L19 7"
                                 />
                               </svg>
-                              Проверено
+                              {t("verified")}
                             </div>
                           )}
                         </div>
                         <div className="p-4">
                           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 truncate">
-                            {shop.name || "Без названия"}
+                            {shop.name || t("noTitle")}
                           </h3>
                           <div className="flex items-center mb-2">
                             <span className="text-yellow-400">★★★★★</span>
@@ -475,14 +451,14 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               {(shop.rating || 0).toFixed(1)}
                             </span>
                             <span className="text-gray-500 text-xs ml-1">
-                              ({shop.review_count || 0} отзывов)
+                              ({shop.review_count || 0} {t("reviews")})
                             </span>
                           </div>
                           <div className="space-y-2 text-xs sm:text-sm text-gray-600 mb-4">
                             <div className="flex items-start">
                               <MapPin className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-[#9A0F34]" />
                               <span className="truncate">
-                                {shop.address || "Не указано"}
+                                {shop.address || t("notSpecified")}
                               </span>
                             </div>
                             <div className="flex items-center">
@@ -491,13 +467,15 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                             </div>
                             <div className="flex items-center">
                               <Phone className="h-3.5 w-3.5 mr-2 flex-shrink-0 text-[#9A0F34]" />
-                              <span>{shop.phone || "Не указано"}</span>
+                              <span>{shop.phone || t("notSpecified")}</span>
                             </div>
                           </div>
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center text-xs sm:text-sm text-gray-600">
                               <Users className="h-3.5 w-3.5 mr-1 text-[#9A0F34]" />
-                              <span>{shop.barbers?.length || 0} барберов</span>
+                              <span>
+                                {shop.barbers?.length || 0} {t("barberPlural")}
+                              </span>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -507,11 +485,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ openLoginModal }) => {
                               onClick={() =>
                                 handleBarbershopClick(shop.id.toString())
                               }
-                              aria-label={`View details of ${
-                                shop.name || "barbershop"
+                              aria-label={`${t("viewDetails")} ${
+                                shop.name || t("noTitle")
                               }`}
                             >
-                              Подробнее
+                              {t("viewDetails")}
                             </Button>
                           </div>
                         </div>

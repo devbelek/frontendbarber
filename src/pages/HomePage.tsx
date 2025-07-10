@@ -30,23 +30,22 @@ import {
   PaginatedResponse,
   BookingRequest,
   ServiceImage,
-} from "../types"; // Импортируем необходимые типы
+} from "../types";
+import { useLanguage } from "../context/LanguageContext";
 
-// Расширяем интерфейс Haircut для добавления полей, используемых в HomePage
 interface ExtendedHaircut extends Haircut {
   barberWhatsapp?: string;
   barberTelegram?: string;
 }
 
-// Типизация пропсов
 interface HomePageProps {
   openLoginModal: () => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
+  const { t } = useLanguage();
   const [popularHaircuts, setPopularHaircuts] = useState<ExtendedHaircut[]>([]);
   const [nearbyBarbers, setNearbyBarbers] = useState<Barber[]>([]);
-  console.log("🚀 ~ nearbyBarbers:", nearbyBarbers);
   const [allHaircuts, setAllHaircuts] = useState<ExtendedHaircut[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
@@ -62,7 +61,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     longitude: null,
   });
 
-  // Типизация фильтров
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [filters, setFilters] = useState<{
@@ -78,75 +76,64 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
   const [showCategoryDropdown, setShowCategoryDropdown] =
     useState<boolean>(false);
 
-  // Типизация модальных окон
   const [selectedHaircut, setSelectedHaircut] =
     useState<ExtendedHaircut | null>(null);
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
 
-  // Типизация категорий
-  const [categories] = useState<
-    { name: string; icon: string; color: string }[]
-  >([
+  const categories = [
+    { name: t("classic"), icon: "classic", color: "bg-blue-100 text-blue-800" },
+    { name: t("fade"), icon: "fade", color: "bg-green-100 text-green-800" },
     {
-      name: "Классические",
-      icon: "classic",
-      color: "bg-blue-100 text-blue-800",
-    },
-    { name: "Фейд", icon: "fade", color: "bg-green-100 text-green-800" },
-    {
-      name: "Андеркат",
+      name: t("undercut"),
       icon: "undercut",
       color: "bg-purple-100 text-purple-800",
     },
-    { name: "Текстурные", icon: "textured", color: "bg-red-100 text-red-800" },
-    { name: "Кроп", icon: "crop", color: "bg-yellow-100 text-yellow-800" },
+    { name: t("textured"), icon: "textured", color: "bg-red-100 text-red-800" },
+    { name: t("crop"), icon: "crop", color: "bg-yellow-100 text-yellow-800" },
     {
-      name: "Помпады",
+      name: t("pompadour"),
       icon: "pompadour",
       color: "bg-indigo-100 text-indigo-800",
     },
-  ]);
+  ];
 
-  // Типизация категорий фильтров
   const filterCategories = {
     types: [
-      "Классическая",
-      "Фейд",
-      "Андеркат",
-      "Кроп",
-      "Помпадя",
-      "Текстурная",
-    ] as const,
-    lengths: ["Короткие", "Средние", "Длинные"] as const,
+      t("classic"),
+      t("fade"),
+      t("undercut"),
+      t("crop"),
+      t("pompadour"),
+      t("textured"),
+    ],
+    lengths: [t("short"), t("medium"), t("long")],
     styles: [
-      "Деловой",
-      "Повседневный",
-      "Трендовый",
-      "Винтажный",
-      "Современный",
-    ] as const,
+      t("business"),
+      t("casual"),
+      t("trendy"),
+      t("vintage"),
+      t("modern"),
+    ],
     priceRanges: [
-      { label: "До 500 сом", min: 0, max: 500 },
-      { label: "500-1000 сом", min: 500, max: 1000 },
-      { label: "1000-2000 сом", min: 1000, max: 2000 },
-      { label: "2000+ сом", min: 2000, max: null },
+      { label: t("upTo500"), min: 0, max: 500 },
+      { label: t("500to1000"), min: 500, max: 1000 },
+      { label: t("1000to2000"), min: 1000, max: 2000 },
+      { label: t("over2000"), min: 2000, max: null },
     ],
   };
 
-  // Типизация опций сортировки
   const sortOptions = [
-    { value: "popular", label: "Популярные" },
-    { value: "price", label: "По цене" },
-    { value: "recent", label: "Новые" },
-  ] as const;
+    { value: "popular", label: t("popular") },
+    { value: "price", label: t("price") },
+    { value: "recent", label: t("recent") },
+  ];
 
-  // Типизация рефов
   const searchInputRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const notification = useNotification();
-  const { user, toggleFavorite, isAuthenticated } = useAuth();
+  const { toggleFavorite, isAuthenticated } = useAuth();
 
   useEffect(() => {
     getUserLocation();
@@ -177,7 +164,6 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // Получаем популярные стрижки
       const haircutsResponse = await servicesAPI.getPopular();
       const haircutsData: PaginatedResponse<Haircut> = haircutsResponse.data;
       const results = Array.isArray(haircutsData.results)
@@ -191,15 +177,14 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
           barber:
             service.barber_details?.full_name ||
             service.barber_details?.username ||
-            "Барбер",
+            t("default"),
           barberId: service.barber_details?.id.toString() || service.barber,
           barberWhatsapp: service.barber_details?.whatsapp,
           barberTelegram: service.barber_details?.telegram,
-          isFavorite: service.is_favorite || false, // Приводим к isFavorite
+          isFavorite: service.is_favorite || false,
         }))
       );
 
-      // Получаем ближайших барберов
       const barbersResponse = await profileAPI.getAllBarbers();
       const barbersData: PaginatedResponse<Barber> = barbersResponse.data;
       let barbers = Array.isArray(barbersData.results)
@@ -225,8 +210,8 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
       }
       setNearbyBarbers(barbers.slice(0, 4));
     } catch (error) {
-      console.error("Error fetching initial data:", error);
-      notification.error("Ошибка загрузки", "Не удалось загрузить данные");
+      console.error(t("loadingError"), error);
+      notification.error(t("loadingError"), t("loadingErrorDescription"));
     } finally {
       setLoading(false);
     }
@@ -261,15 +246,15 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         ? responseData
         : [];
       const haircuts: ExtendedHaircut[] = results.map((service) => ({
-        id: service.id.toString(), // Приводим к строке
+        id: service.id.toString(),
         images: service.images || [],
         primaryImage: service.primary_image || service.image,
         title: service.title,
-        price: parseFloat(service.price), // Price в ServiceResponse - string
+        price: parseFloat(service.price),
         barber:
           service.barber_details?.full_name ||
           service.barber_details?.username ||
-          "Барбер",
+          t("default"),
         barberId: service.barber_details?.id.toString() || service.barber,
         type: service.type,
         length: service.length,
@@ -287,8 +272,8 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
       setPage(currentPage + 1);
       setHasMore(results.length === 12);
     } catch (error) {
-      console.error("Error fetching gallery data:", error);
-      notification.error("Ошибка", "Не удалось загрузить стрижки");
+      console.error(t("error"), error);
+      notification.error(t("error"), t("noResults"));
     } finally {
       setGalleryLoading(false);
     }
@@ -307,19 +292,19 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
             const address: string = data.address
               ? [data.address.city || data.address.town, data.address.suburb]
                   .filter(Boolean)
-                  .join(", ") || "Неизвестное местоположение"
-              : "Неизвестное местоположение";
+                  .join(", ") || t("unknown")
+              : t("unknown");
             setUserLocation({ address, latitude, longitude });
           } catch (error) {
-            console.error("Error getting address:", error);
+            console.error(t("error"), error);
             setUserLocation({
-              address: "Не удалось определить адрес",
+              address: t("error"),
               latitude,
               longitude,
             });
           }
         },
-        (error) => console.error("Error getting location:", error)
+        (error) => console.error(t("error"), error)
       );
     }
   };
@@ -348,7 +333,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
   const getBarberName = (barber: any) =>
     barber.first_name || barber.last_name
       ? `${barber.first_name || ""} ${barber.last_name || ""}`.trim()
-      : barber.username || "Барбер";
+      : barber.username || t("default");
 
   const handleFavoriteToggle = async (
     haircutId: string,
@@ -357,10 +342,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
     e.stopPropagation();
     e.preventDefault();
     if (!isAuthenticated) {
-      notification.info(
-        "Требуется вход",
-        "Чтобы добавить в избранное, необходимо войти"
-      );
+      notification.info(t("loginRequired"), t("loginToFavorite"));
       return;
     }
     try {
@@ -375,10 +357,10 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
           h.id === haircutId ? { ...h, isFavorite: !h.isFavorite } : h
         )
       );
-      notification.success("Успешно", "Статус избранного изменен");
+      notification.success(t("success"), t("favoriteStatusChanged"));
     } catch (error) {
-      console.error("Error toggling favorite:", error);
-      notification.error("Ошибка", "Не удалось изменить статус избранного");
+      console.error(t("failedToChangeFavoriteStatus"), error);
+      notification.error(t("error"), t("failedToChangeFavoriteStatus"));
     }
   };
 
@@ -415,18 +397,15 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
       await bookingsAPI.create(bookingData);
       setIsBookingModalOpen(false);
       notification.success(
-        "Бронирование создано",
-        `Услуга "${selectedHaircut.title}" успешно забронирована`
+        t("bookingCreated"),
+        t("bookingCreatedSuccess", { title: selectedHaircut.title })
       );
       if (isAuthenticated) {
         navigate("/profile", { state: { activeTab: "bookings" } });
       }
     } catch (err) {
-      console.error("Error creating booking:", err);
-      notification.error(
-        "Ошибка бронирования",
-        "Не удалось создать бронирование. Пожалуйста, попробуйте снова."
-      );
+      console.error(t("bookingError"), err);
+      notification.error(t("bookingError"), t("bookingErrorDescription"));
     }
   };
 
@@ -442,12 +421,12 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
   const handleCategoryClick = (categoryType: string) => {
     const categoryNames: Record<string, string> = {
-      classic: "Классическая",
-      fade: "Фейд",
-      undercut: "Андеркат",
-      textured: "Текстурная",
-      crop: "Кроп",
-      pompadour: "Помпадя",
+      classic: t("classic"),
+      fade: t("fade"),
+      undercut: t("undercut"),
+      textured: t("textured"),
+      crop: t("crop"),
+      pompadour: t("pompadour"),
     };
     const newType = categoryNames[categoryType] || categoryType;
     setFilters((prev) => ({
@@ -540,21 +519,23 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-black/70 text-white rounded-full hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 bg-black/70 text-white rounded-full hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#9A0F34]/50"
+                aria-label={t("previousImage")}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/70 text-white rounded-full hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 bg-black/70 text-white rounded-full hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#9A0F34]/50"
+                aria-label={t("nextImage")}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <div className="absolute bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 flex gap-1 sm:gap-1.5">
                 {haircut.images.map((_: ServiceImage, index: number) => (
                   <div
                     key={index}
-                    className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
+                    className={`h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300 ${
                       index === currentImageIndex
                         ? "bg-white scale-125"
                         : "bg-white/50"
@@ -564,66 +545,72 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               </div>
             </>
           )}
-          <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs flex items-center backdrop-blur-sm">
-            <Eye className="h-3 w-3 mr-1" />
+          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 bg-black/60 text-white px-1.5 sm:px-2 py-1 rounded-full text-[10px] sm:text-xs flex items-center backdrop-blur-sm">
+            <Eye className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
             {haircut.views || 0}
           </div>
-          <div className="absolute top-3 right-3 flex gap-1.5 z-10">
+          <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex gap-1 sm:gap-1.5 z-10">
             <button
-              className={`p-1.5 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 ${
+              className={`p-1 sm:p-1.5 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 ${
                 haircut.isFavorite ? "text-red-400" : "text-white"
               }`}
               onClick={(e) => handleFavoriteToggle(haircut.id, e)}
+              aria-label={
+                haircut.isFavorite ? t("removeFavorite") : t("favorite")
+              }
             >
               <Heart
-                className={`h-4 w-4 ${
+                className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${
                   haircut.isFavorite ? "fill-red-400" : ""
                 }`}
               />
             </button>
             {(haircut.barberWhatsapp || haircut.barberTelegram) && (
               <button
-                className="p-1.5 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 text-white"
+                className="p-1 sm:p-1.5 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 text-white"
                 onClick={(e) => handleContactClick(haircut, e)}
+                aria-label={t("contactBarber")}
               >
-                <MessageSquare className="h-4 w-4" />
+                <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             )}
           </div>
         </div>
 
-        <div className="p-4">
-          <h3 className="text-sm font-semibold mb-1 line-clamp-1 text-gray-900">
+        <div className="p-3 sm:p-4">
+          <h3 className="text-[11px] sm:text-sm font-semibold mb-1 line-clamp-1 text-gray-900">
             {haircut.title}
           </h3>
           {haircut.description && (
-            <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+            <p className="text-[10px] sm:text-xs text-gray-600 line-clamp-2 mb-1 sm:mb-2">
               {haircut.description}
             </p>
           )}
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[#9A0F34] font-bold text-sm">
-              {Math.floor(haircut.price || 0)} сом
+          <div className="flex justify-between items-center mb-1 sm:mb-2">
+            <span className="text-[#9A0F34] font-bold text-[11px] sm:text-sm">
+              {t("from")} {Math.floor(haircut.price || 0)} {t("som")}
             </span>
             <button
               onClick={(e) => handleBarberClick(haircut.barberId, e)}
-              className="text-xs text-gray-600 hover:text-[#9A0F34] transition-colors duration-200"
+              className="text-[10px] sm:text-xs text-gray-600 hover:text-[#9A0F34] transition-colors duration-200"
+              aria-label={t("viewProfile")}
             >
               {haircut.barber}
             </button>
           </div>
           <button
-            className="w-full bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white text-sm py-2 rounded-lg hover:shadow-lg transition-all duration-300"
+            className="w-full bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white text-[11px] sm:text-sm py-1.5 sm:py-2 rounded-lg hover:shadow-lg transition-all duration-300"
             onClick={async () => {
               try {
                 await servicesAPI.incrementViews(haircut.id);
               } catch (error) {
-                console.error("Failed to increment views:", error);
+                console.error(t("error"), error);
               }
               handleBookClick(haircut);
             }}
+            aria-label={t("iWantThis")}
           >
-            Хочу такую же
+            {t("iWantThis")}
           </button>
         </div>
       </div>
@@ -639,13 +626,14 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         <div className="py-6 bg-white rounded-2xl mt-6">
           <div className="flex justify-between items-center mb-4 px-6">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-              Барберы рядом
+              {t("nearbyBarbers")}
             </h2>
             <button
               onClick={() => navigate("/discover")}
               className="text-sm text-[#9A0F34] hover:text-[#7b0c29] font-medium transition-colors duration-200"
+              aria-label={t("viewAll")} // Added
             >
-              Смотреть все
+              {t("viewAll")}
             </button>
           </div>
           <div className="overflow-x-auto">
@@ -669,25 +657,26 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                     key={barber.id}
                     onClick={() => navigate(`/barber/${barber.id}`)}
                     className="flex-shrink-0 w-44 sm:w-52 bg-white rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                    aria-label={t("viewProfile")} // Added
                   >
                     <img
                       src={barber.profile?.photo || "/default-avatar.png"}
-                      alt={barber.name}
+                      alt={getBarberName(barber)}
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto mb-4 object-cover shadow-sm"
                       loading="lazy"
                     />
                     <p className="text-center font-semibold text-sm sm:text-base text-gray-900 mb-2">
                       {getBarberName(barber)}
                     </p>
-                    <p className=" text-[#9A0F34] text-xs text-center  flex items-center justify-center">
+                    <p className="text-[#9A0F34] text-xs text-center flex items-center justify-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {barber.profile?.address}
+                      {barber.profile?.address || t("unknown")}
                     </p>
                   </button>
                 ))
               ) : (
                 <div className="w-full text-center py-4 text-gray-500 text-sm">
-                  Барберы не найдены
+                  {t("nearbyBarbersNotFound")}
                 </div>
               )}
             </div>
@@ -698,7 +687,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         <div className="py-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-              Популярные стрижки
+              {t("popularHaircuts")}
             </h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -725,7 +714,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 ))
             ) : (
               <div className="col-span-2 sm:col-span-3 lg:col-span-4 text-center py-4 text-gray-500 text-sm">
-                Стрижки не найдены
+                {t("haircutsNotFound")}
               </div>
             )}
           </div>
@@ -735,11 +724,10 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         <div className="py-10 bg-white rounded-2xl">
           <div className="text-center mb-6 px-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-              Как это работает?
+              {t("howItWorks")}
             </h2>
             <p className="text-sm text-gray-600 max-w-md mx-auto">
-              Легко, быстро и точно — следуй 3 простым шагам к своему новому
-              образу.
+              {t("howItWorksSubtitle")}
             </p>
           </div>
 
@@ -748,23 +736,23 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               {[
                 {
                   icon: <Search className="h-7 w-7 text-white" />,
-                  title: "Выбери стрижку",
-                  desc: "Просматривай фото реальных стрижек и выбери стиль.",
+                  title: t("chooseHaircutStep"),
+                  desc: t("chooseHaircutStepDescription"),
                 },
                 {
                   icon: <Calendar className="h-7 w-7 text-white" />,
-                  title: "Забронируй время",
-                  desc: "Запишись к барберу онлайн в пару кликов.",
+                  title: t("bookTime"),
+                  desc: t("bookTimeDescription"),
                 },
                 {
                   icon: <Star className="h-7 w-7 text-white" />,
-                  title: "Получи результат",
-                  desc: "Барбер сделает стрижку как на фото.",
+                  title: t("getResult"),
+                  desc: t("getResultDescription"),
                 },
                 {
                   icon: <Sparkles className="h-7 w-7 text-white" />,
-                  title: "Уход за стрижкой",
-                  desc: "Получай советы по уходу от барбера и рекомендации по стилю.",
+                  title: t("haircutCare"),
+                  desc: t("haircutCareDescription"),
                 },
               ].map((step, index) => (
                 <div
@@ -788,17 +776,17 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
         <div className="py-6" data-section="gallery">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3 px-4 py-3 bg-white shadow-sm rounded-b-lg">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Все стрижки
+              {t("allHaircuts")}
             </h2>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              {/* Select виден только на md+ */}
               <select
                 value={sortBy}
                 onChange={(e) =>
                   setSortBy(e.target.value as "popular" | "price" | "recent")
                 }
                 className="hidden md:block border border-gray-300 px-3 py-2 rounded-md text-sm bg-white shadow-sm focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200"
+                aria-label={t("sort")} // Added
               >
                 {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -815,13 +803,13 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                   variant="outline"
                   className="text-sm px-4 py-2 border border-[#9A0F34] text-[#9A0F34] hover:bg-[#9A0F34] hover:text-white transition-all duration-200 rounded-md"
                   onClick={resetFilters}
+                  aria-label={t("clearFilters")} // Added
                 >
-                  Сбросить
+                  {t("clearFilters")}
                 </Button>
               )}
             </div>
           </div>
-
           {/* Sticky Search Panel */}
           <div className="sticky top-[4rem] z-20 mb-6 bg-white rounded-b-2xl rounded-t-none shadow-lg p-5 border border-t-0 border-gray-100">
             {/* Desktop Search Panel */}
@@ -830,17 +818,18 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Найти стрижку..."
+                  placeholder={t("searchHaircutPlaceholder")}
                   className="w-full pl-12 pr-12 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none transition-all duration-200 text-sm bg-gray-50 shadow-sm"
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   value={searchQuery}
+                  aria-label={t("searchHaircutPlaceholder")} // Added
                 />
                 {searchQuery && (
                   <button
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                     onClick={() => setSearchQuery("")}
-                    aria-label="Очистить поиск"
+                    aria-label={t("clearFilters")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -851,8 +840,9 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 variant="primary"
                 className="px-6 py-4 text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] hover:shadow-lg transition-all duration-300 rounded-lg"
                 onClick={handleSearch}
+                aria-label={t("search")} // Added
               >
-                Поиск
+                {t("search")}
               </Button>
 
               <div className="relative">
@@ -865,9 +855,12 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                   aria-haspopup="true"
                   aria-expanded={showCategoryDropdown}
+                  aria-label={t("categories")} // Added
                 >
                   <Scissors className="h-5 w-5 mr-2" />
-                  <span className="text-sm font-semibold">Категории</span>
+                  <span className="text-sm font-semibold">
+                    {t("categories")}
+                  </span>
                   <ChevronDown
                     className={`h-4 w-4 ml-2 transition-transform duration-200 ${
                       showCategoryDropdown ? "rotate-180" : ""
@@ -878,7 +871,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 {showCategoryDropdown && (
                   <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 p-4 z-50 w-72">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                      Выберите категорию
+                      {t("selectCategory")}
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       {categories.map((category) => (
@@ -886,7 +879,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                           key={category.name}
                           onClick={() => handleCategoryClick(category.icon)}
                           className={`flex flex-col items-center p-2 rounded-lg hover:bg-gray-50 transition-colors ${category.color} text-xs`}
-                          aria-label={`Категория ${category.name}`}
+                          aria-label={t("selectCategory") + " " + category.name} // Updated
                         >
                           <Scissors className="h-4 w-4 mb-1" />
                           <span className="font-medium">{category.name}</span>
@@ -904,17 +897,18 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Найти стрижку..."
+                  placeholder={t("searchHaircutPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9A0F34] focus:outline-none text-sm bg-gray-50 shadow-sm"
+                  aria-label={t("searchHaircutPlaceholder")} // Added
                 />
                 {searchQuery && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                     onClick={() => setSearchQuery("")}
-                    aria-label="Очистить поиск"
+                    aria-label={t("clearFilters")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -924,49 +918,52 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white flex items-center justify-center px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-                aria-label="Открыть фильтры"
+                aria-label={t("filters")} // Added
               >
                 <Filter className="h-4 w-4" />
               </button>
             </div>
           </div>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {allHaircuts.map((haircut) => (
               <HaircutCard key={haircut.id} haircut={haircut} />
             ))}
           </div>
-
           {galleryLoading && (
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9A0F34]"></div>
             </div>
           )}
-
-          <div ref={observerRef} className="h-4"></div>
-
           {!loading && !galleryLoading && allHaircuts.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4 text-sm">Стрижки не найдены</p>
+              <p className="text-gray-500 mb-4 text-sm">
+                {t("haircutsNotFound")}
+              </p>
               <Button
                 className="text-sm bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white font-semibold transition-all duration-300 rounded-lg px-6 py-2"
                 onClick={resetFilters}
+                aria-label={t("clearFilters")} // Added
               >
-                Сбросить фильтры
+                {t("clearFilters")}
               </Button>
             </div>
           )}
+          <div ref={observerRef} className="h-4"></div>{" "}
+          {/* Added for infinite scroll */}
         </div>
 
         {/* Mobile Filter Panel */}
         {isFilterOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 md:h bg-white transition-all duration-300">
+          <div className="fixed inset-0 z-50 bg-black/60 bg-white transition-all duration-300">
             <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Фильтров</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {t("filters")}
+                </h3>
                 <button
                   onClick={() => setIsFilterOpen(false)}
                   className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                  aria-label={t("close")} // Added
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -974,19 +971,19 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
               <div className="mb-4">
                 <h4 className="font-semibold text-sm text-gray-900 mb-2">
-                  Сортировка
+                  {t("sort")}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {sortOptions.map((opt) => (
                     <button
                       key={opt.value}
-                      className="px-3 py-2 rounded-lg text-sm font-medium"
                       className={`px-3 py-2 rounded-lg text-sm font-semibold ${
                         sortBy === opt.value
                           ? "bg-blue-500 text-white"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       } transition-all duration-200 `}
                       onClick={() => setSortBy(opt.value)}
+                      aria-label={opt.label} // Added
                     >
                       {opt.label}
                     </button>
@@ -996,7 +993,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
               <div className="mb-4">
                 <h4 className="font-semibold text-sm text-gray-900 mb-2">
-                  Тип стрижки
+                  {t("filterByType")}
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   {filterCategories.types.map((type) => (
@@ -1016,6 +1013,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                               : [...prev.types, type],
                           }));
                         }}
+                        aria-label={type} // Added
                       />
                       <span className="text-sm text-gray-700">{type}</span>
                     </label>
@@ -1025,7 +1023,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
 
               <div className="mb-4">
                 <h4 className="font-semibold text-sm text-gray-900 mb-2">
-                  Цена
+                  {t("filterByPrice")}
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   {filterCategories.priceRanges.map((range) => (
@@ -1040,6 +1038,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                       onClick={() =>
                         handlePriceRangeClick(range.min, range.max)
                       }
+                      aria-label={range.label} // Added
                     >
                       {range.label}
                     </button>
@@ -1051,8 +1050,9 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                 <button
                   className="w-full py-2 bg-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-300 transition-all duration-200"
                   onClick={resetFilters}
+                  aria-label={t("clearFilters")} // Added
                 >
-                  Сбросить
+                  {t("clearFilters")}
                 </button>
                 <button
                   className="w-full py-2 bg-gradient-to-r from-[#9A0F34] to-[#7b0c29] text-white rounded-lg text-sm hover:shadow-lg transition-all duration-300"
@@ -1060,8 +1060,9 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                     setIsFilterOpen(false);
                     handleSearch();
                   }}
+                  aria-label={t("confirm")} // Added
                 >
-                  Применить
+                  {t("confirm")}
                 </button>
               </div>
             </div>
@@ -1082,11 +1083,10 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
               aria-labelledby="contact-modal-title"
               aria-describedby="contact-modal-desc"
             >
-              {/* Close button top right */}
               <button
                 onClick={() => setShowContactModal(false)}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition-colors"
-                aria-label="Закрыть окно"
+                aria-label={t("close")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1112,14 +1112,13 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                   id="contact-modal-title"
                   className="text-2xl font-extrabold text-gray-900 mb-2"
                 >
-                  Связаться с барбером
+                  {t("contactBarber")}
                 </h3>
                 <p
                   id="contact-modal-desc"
                   className="text-gray-600 text-sm max-w-xs mx-auto"
                 >
-                  Узнайте, подойдет ли вам эта стрижка и задайте вопросы
-                  напрямую
+                  {t("contactBarberDescription")}
                 </p>
               </div>
 
@@ -1129,9 +1128,9 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                     href={`https://wa.me/${selectedHaircut.barberWhatsapp.replace(
                       /\D/g,
                       ""
-                    )}?text=Здравствуйте! Меня интересует стрижка "${
-                      selectedHaircut.title
-                    }"`}
+                    )}?text=${t("whatsappMessage", {
+                      title: selectedHaircut.title,
+                    })}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white py-3 rounded-2xl shadow-md transition-all duration-300 font-semibold text-base gap-3"
@@ -1144,7 +1143,7 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                     >
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                     </svg>
-                    WhatsApp
+                    {t("whatsapp")}
                   </a>
                 )}
                 {selectedHaircut.barberTelegram && (
@@ -1165,13 +1164,13 @@ const HomePage: React.FC<HomePageProps> = ({ openLoginModal }) => {
                     >
                       <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
                     </svg>
-                    Telegram
+                    {t("telegram")}
                   </a>
                 )}
                 {!selectedHaircut.barberWhatsapp &&
                   !selectedHaircut.barberTelegram && (
                     <p className="text-center text-gray-500 py-6 text-sm">
-                      Контактные данные барбера не указаны
+                      {t("noBarberContactInfo")}
                     </p>
                   )}
               </div>

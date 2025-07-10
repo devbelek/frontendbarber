@@ -16,6 +16,8 @@ import Button from "../components/ui/Button";
 import HaircutGrid from "../components/haircuts/HaircutGrid";
 import { barbershopsAPI } from "../api/barbershops";
 import { Barbershop, Barber, Haircut } from "../types";
+import { useLanguage } from "../context/LanguageContext";
+import { useNotification } from "../context/NotificationContext";
 
 // Default images
 const DEFAULT_BG_IMAGE =
@@ -32,6 +34,8 @@ interface BarbershopDetailPageProps {
 const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
   openLoginModal,
 }) => {
+  const { t } = useLanguage();
+  const notification = useNotification();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
@@ -45,11 +49,12 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
     if (id) {
       fetchBarbershopData();
     } else {
-      console.error("No barbershop ID provided");
-      setError("ID барбершопа не указан");
+      console.error(t("noBarbershopId"));
+      setError(t("noBarbershopId"));
+      notification.error(t("error"), t("noBarbershopId"));
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t, notification]);
 
   const fetchBarbershopData = async () => {
     try {
@@ -59,15 +64,15 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
       const [shopResponse, barbersResponse, servicesResponse] =
         await Promise.all([
           barbershopsAPI.getById(id!).catch((e) => {
-            console.error("Error fetching barbershop:", e);
-            throw new Error("Не удалось загрузить данные барбершопа");
+            console.error(t("error"), e);
+            throw new Error(t("fetchBarbershopError"));
           }),
           barbershopsAPI.getBarbers(id!).catch((e) => {
-            console.error("Error fetching barbers:", e);
+            console.error(t("error"), e);
             return { data: [] };
           }),
           barbershopsAPI.getServices(id!).catch((e) => {
-            console.error("Error fetching services:", e);
+            console.error(t("error"), e);
             return { data: [] };
           }),
         ]);
@@ -90,8 +95,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
             photos: shopResponse.data.photos?.map((photo: string) =>
               photo.startsWith("http") ? photo : `http://127.0.0.1:8000${photo}`
             ) || [DEFAULT_BG_IMAGE],
-            description:
-              shopResponse.data.description || "Описание отсутствует",
+            description: shopResponse.data.description || t("noDescription"),
             latitude: Number(shopResponse.data.latitude) || null,
             longitude: Number(shopResponse.data.longitude) || null,
             telegram: shopResponse.data.telegram || null,
@@ -122,7 +126,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                 ? `${barber.user_details.first_name || ""} ${
                     barber.user_details.last_name || ""
                   }`.trim()
-                : barber.name || "Без имени",
+                : barber.name || t("noName"),
               avatar,
             };
           })
@@ -146,8 +150,12 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
       setBarbers(normalizedBarbers);
       setServices(normalizedServices);
     } catch (error: any) {
-      console.error("Error fetching barbershop data:", error);
-      setError(error.message || "Ошибка загрузки данных");
+      console.error(t("error"), error);
+      setError(error.message || t("loadingError"));
+      notification.error(
+        t("loadingError"),
+        error.message || t("loadingErrorDescription")
+      );
       setBarbershop(null);
       setBarbers([]);
       setServices([]);
@@ -175,15 +183,15 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
       <Layout openLoginModal={openLoginModal}>
         <div className="container mx-auto px-4 py-6 text-center">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {error || "Барбершоп не найден"}
+            {error || t("barbershopNotFound")}
           </h2>
           <Link to="/discover">
             <Button
               variant="primary"
               className="bg-[#9A0F34] text-white px-6 py-2 rounded-lg text-sm hover:bg-[#7b0c29] transition-colors"
-              aria-label="Вернуться к списку барбершопов"
+              aria-label={t("backToBarbershops")}
             >
-              К списку барбершопов
+              {t("backToBarbershops")}
             </Button>
           </Link>
         </div>
@@ -198,7 +206,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
         <div className="relative h-48 sm:h-64 md:h-80">
           <img
             src={barbershop.photos?.[0] || DEFAULT_BG_IMAGE}
-            alt={barbershop.name || "Барбершоп"}
+            alt={barbershop.name || t("barbershopsTab")}
             className="w-full h-full object-cover rounded-b-4xl"
             loading="lazy"
             onError={(e) => {
@@ -213,7 +221,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                 <div className="flex items-end gap-4">
                   <img
                     src={barbershop.logo || DEFAULT_LOGO}
-                    alt={barbershop.name || "Логотип барбершопа"}
+                    alt={barbershop.name || t("barbershopsTab")}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-white shadow-lg"
                     loading="lazy"
                     onError={(e) => {
@@ -223,7 +231,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                   />
                   <div className="text-white">
                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">
-                      {barbershop.name || "Без названия"}
+                      {barbershop.name || t("noName")}
                     </h1>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center">
@@ -235,7 +243,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           {(barbershop.rating || 0).toFixed(1)}
                         </span>
                         <span className="text-xs opacity-75 ml-2">
-                          ({barbershop.review_count || 0} отзывов)
+                          ({barbershop.review_count || 0} {t("reviews")})
                         </span>
                       </div>
                       {barbershop.is_verified && (
@@ -253,7 +261,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                               d="M5 13l4 4L19 7"
                             />
                           </svg>
-                          Проверено
+                          {t("verified")}
                         </div>
                       )}
                     </div>
@@ -263,9 +271,11 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                   variant="primary"
                   className="bg-[#9A0F34] text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-[#7b0c29] transition-colors"
                   onClick={() => navigate(`/booking?barbershop=${id}`)}
-                  aria-label={`Записаться в ${barbershop.name || "барбершоп"}`}
+                  aria-label={`${t("bookAppointment")} ${
+                    barbershop.name || t("barbershopsTab")
+                  }`}
                 >
-                  Записаться
+                  {t("bookAppointment")}
                 </Button>
               </div>
             </div>
@@ -280,38 +290,45 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
               {/* Barbershop Info Card */}
               <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
                 <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Store className="h-5 w-5 text-[#9A0F34]" />О барбершопе
+                  <Store className="h-5 w-5 text-[#9A0F34]" />
+                  {t("aboutBarbershop")}
                 </h3>
                 <div className="space-y-4 text-sm text-gray-600">
                   {/* Description */}
                   <div>
-                    <p className="font-semibold text-gray-900">Описание</p>
+                    <p className="font-semibold text-gray-900">
+                      {t("description")}
+                    </p>
                     <p className="text-gray-700 leading-relaxed">
-                      {barbershop.description || "Описание отсутствует"}
+                      {barbershop.description}
                     </p>
                   </div>
                   {/* Address */}
                   <div className="flex items-start gap-2">
                     <MapPin className="h-5 w-5 text-[#9A0F34] mt-0.5" />
                     <div>
-                      <p className="font-semibold text-gray-900">Адрес</p>
-                      <p>{barbershop.address || "Не указано"}</p>
+                      <p className="font-semibold text-gray-900">
+                        {t("address")}
+                      </p>
+                      <p>{barbershop.address || t("notSpecified")}</p>
                     </div>
                   </div>
                   {/* Working Hours */}
                   <div className="flex items-start gap-2">
                     <Clock className="h-5 w-5 text-[#9A0F34] mt-0.5" />
                     <div>
-                      <p className="font-semibold text-gray-900">Часы работы</p>
+                      <p className="font-semibold text-gray-900">
+                        {t("workingHours")}
+                      </p>
                       <p>
                         {barbershop.working_hours?.from &&
                         barbershop.working_hours?.to
                           ? `${barbershop.working_hours.from} - ${barbershop.working_hours.to}`
-                          : "Не указано"}
+                          : t("notSpecified")}
                       </p>
                       <p className="text-gray-500">
                         {barbershop.working_hours?.days?.join(", ") ||
-                          "Не указано"}
+                          t("notSpecified")}
                       </p>
                     </div>
                   </div>
@@ -319,7 +336,9 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                   <div className="flex items-start gap-2">
                     <Phone className="h-5 w-5 text-[#9A0F34] mt-0.5" />
                     <div>
-                      <p className="font-semibold text-gray-900">Телефон</p>
+                      <p className="font-semibold text-gray-900">
+                        {t("phone")}
+                      </p>
                       <a
                         href={
                           barbershop.phone
@@ -331,15 +350,16 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                         }
                         className="text-[#9A0F34] hover:underline"
                         aria-disabled={!barbershop.phone}
+                        aria-label={t("contactViaWhatsApp")}
                       >
-                        {barbershop.phone || "Не указано"}
+                        {barbershop.phone || t("notSpecified")}
                       </a>
                     </div>
                   </div>
                   {/* Social Media */}
                   <div>
                     <p className="font-semibold text-gray-900 mb-2">
-                      Социальные сети
+                      {t("socialMedia")}
                     </p>
                     <div className="flex gap-3">
                       {barbershop.whatsapp && (
@@ -348,7 +368,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors"
-                          aria-label="Связаться через WhatsApp"
+                          aria-label={t("contactViaWhatsApp")}
                         >
                           <MessageCircle className="h-5 w-5" />
                         </a>
@@ -366,7 +386,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-500 text-white rounded-lg flex items-center justify-center hover:from-purple-700 hover:to-pink-600 transition-colors"
-                          aria-label="Посмотреть Instagram"
+                          aria-label={t("viewInstagram")}
                         >
                           <Instagram className="h-5 w-5" />
                         </a>
@@ -384,7 +404,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-10 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
-                          aria-label="Связаться через Telegram"
+                          aria-label={t("contactViaTelegram")}
                         >
                           <svg
                             className="h-5 w-5"
@@ -399,7 +419,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                         !barbershop.instagram &&
                         !barbershop.telegram && (
                           <p className="text-sm text-gray-500 italic">
-                            Социальные сети не указаны
+                            {t("noSocialMedia")}
                           </p>
                         )}
                     </div>
@@ -421,8 +441,9 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                     }`}
                     onClick={() => setActiveTab("barbers")}
                     aria-selected={activeTab === "barbers"}
+                    aria-label={`${t("ourBarbers")} (${barbers.length})`}
                   >
-                    Наши барберы ({barbers.length})
+                    {t("ourBarbers")} ({barbers.length})
                   </button>
                   <button
                     className={`px-4 py-2 text-sm font-semibold ${
@@ -432,8 +453,9 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                     }`}
                     onClick={() => setActiveTab("services")}
                     aria-selected={activeTab === "services"}
+                    aria-label={`${t("ourWorks")} (${services.length})`}
                   >
-                    Наши работы ({services.length})
+                    {t("ourWorks")} ({services.length})
                   </button>
                 </div>
 
@@ -442,7 +464,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                   <div className="space-y-3">
                     {barbers.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center">
-                        Барберы не найдены
+                        {t("barbersNotFound")}
                       </p>
                     ) : (
                       barbers.map((barber) => (
@@ -450,13 +472,13 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           key={barber.id}
                           to={`/barber/${barber.id}`}
                           className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                          aria-label={`Перейти к профилю ${
-                            barber.name || "барбера"
-                          }`}
+                          aria-label={t("goToProfile", {
+                            name: barber.name || t("barber"),
+                          })}
                         >
                           <img
                             src={barber.avatar || DEFAULT_AVATAR}
-                            alt={barber.name || "Барбер"}
+                            alt={barber.name || t("barber")}
                             className="w-10 h-10 rounded-full object-cover"
                             loading="lazy"
                             onError={(e) => {
@@ -468,7 +490,7 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                           />
                           <div className="flex-1">
                             <p className="font-semibold text-sm text-gray-900">
-                              {barber.name || "Без имени"}
+                              {barber.name}
                             </p>
                             <div className="flex items-center text-xs text-gray-500">
                               <Star
@@ -490,15 +512,15 @@ const BarbershopDetailPage: React.FC<BarbershopDetailPageProps> = ({
                     {services.length === 0 ? (
                       <div className="text-center py-8 sm:py-12">
                         <p className="text-sm sm:text-base text-gray-500 mb-4">
-                          Пока нет добавленных работ
+                          {t("noWorksAdded")}
                         </p>
                         <Link to="/discover">
                           <Button
                             variant="primary"
                             className="bg-[#9A0F34] text-white px-6 py-2 rounded-lg text-sm hover:bg-[#7b0c29] transition-colors"
-                            aria-label="Вернуться к списку барбершопов"
+                            aria-label={t("backToBarbershops")}
                           >
-                            К списку барбершопов
+                            {t("backToBarbershops")}
                           </Button>
                         </Link>
                       </div>
